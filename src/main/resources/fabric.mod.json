@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "wynn_ai",
+  "version": "${version}",
+  "name": "WYNN AI",
+  "description": "AI mod",
+  "authors": ["natga999"],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/wynn_ai/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "net.natga999.wynn_ai.client.Wynn_aiClient"
+    ],
+    "main": [
+      "net.natga999.wynn_ai.Wynn_ai"
+    ]
+  },
+  "mixins": [
+    "wynn_ai.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.0",
+    "fabric": "*",
+    "minecraft": "1.21.x",
+    "java": ">=17"
+  }
+}
