@@ -1,0 +1,26 @@
+{
+  "Oak": {
+    "minYOffset": -1.0,
+    "maxYOffset": 1.5,
+    "sizeXZOffset": 0.5,
+    "color": "#FFAA00"
+  },
+  "Wheat": {
+    "minYOffset": -2.5,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 1.0,
+    "color": "#FFFF00"
+  },
+  "Barley": {
+    "minYOffset": -2.5,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 1.0,
+    "color": "#FFFF00"
+  },
+  "Zombie Raider": {
+    "minYOffset": -2.0,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 0.5,
+    "color": "#FFAA00"
+  }
+}

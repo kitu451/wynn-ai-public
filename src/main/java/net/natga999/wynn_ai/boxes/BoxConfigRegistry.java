@@ -1,49 +1,76 @@
 package net.natga999.wynn_ai.boxes;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class BoxConfigRegistry {
-    // Map to store keyword -> BoxConfig
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BoxConfigRegistry.class); // Logger instance
+
     private static final Map<String, BoxConfig> CONFIG_MAP = new HashMap<>();
 
     static {
-        // Register configurations
-        // Fishing
+        try {
+            // Load the boxconfig.json file
+            InputStream inputStream = BoxConfigRegistry.class.getClassLoader().getResourceAsStream("boxconfig.json");
 
-        // Woodcutting
-        CONFIG_MAP.put("Oak", new BoxConfig(-1.0, 1.5, 0.5, 0xFFAA00));
+            if (inputStream == null) {
+                throw new RuntimeException("boxconfig.json file not found in classpath.");
+            }
 
-        // Mining
+            ObjectMapper objectMapper = new ObjectMapper();
 
-        // Farming
-        CONFIG_MAP.put("Wheat", new BoxConfig(-2.5, 0.0, 1.0, 0xFFFF00));
-        CONFIG_MAP.put("Barley", new BoxConfig(-2.5, 0.0, 1.0, 0xFFFF00));
+            // Parse JSON into a map of keyword -> BoxConfigDto
+            Map<String, BoxConfigDto> configs = objectMapper.readValue(inputStream, new TypeReference<>() {});
 
-        // Mobs
-        CONFIG_MAP.put("Zombie Raider", new BoxConfig(-2.0, 0.0, 0.5, 0xFFAA00));
+            // Convert BoxConfigDto to BoxConfig and populate CONFIG_MAP
+            for (Map.Entry<String, BoxConfigDto> entry : configs.entrySet()) {
+                CONFIG_MAP.put(entry.getKey(), entry.getValue().toBoxConfig());
+            }
 
-        //CONFIG_MAP.put("Corn", new BoxConfig(-0.5, 0.5, 1.0, 0xFFAA00)); // Orange box, standard size
-        // Add more configurations here
+            for (Map.Entry<String, BoxConfigDto> entry : configs.entrySet()) {
+                LOGGER.debug("Loaded configuration for keyword {}: {}", entry.getKey(), entry.getValue());
+                System.out.println("Loaded configuration for keyword " + entry.getKey() + ": " + entry.getValue());
+                CONFIG_MAP.put(entry.getKey(), entry.getValue().toBoxConfig());
+            }
+
+            LOGGER.info("Loaded {} configurations successfully.", CONFIG_MAP.size());
+        } catch (Exception e) {
+            LOGGER.error("Failed to load box configurations", e);
+        }
     }
 
-    /**
-     * Retrieves a BoxConfig for the given keyword.
-     *
-     * @param keyword The string keyword to search for.
-     * @return The corresponding BoxConfig, or null if not found.
-     */
     public static BoxConfig getConfig(String keyword) {
         return CONFIG_MAP.get(keyword);
     }
 
-    /**
-     * Retrieves all registered keywords.
-     *
-     * @return A Set of all keywords in the map.
-     */
     public static Set<String> getRegisteredKeywords() {
         return CONFIG_MAP.keySet();
+    }
+
+    // Helper DTO Class to Parse JSON
+    private static class BoxConfigDto {
+        public double minYOffset;
+        public double maxYOffset;
+        public double sizeXZOffset;
+        public String color; // e.g., "#FFAA00"
+
+        // Convert BoxConfigDto to BoxConfig
+        public BoxConfig toBoxConfig() {
+            return new BoxConfig(minYOffset, maxYOffset, sizeXZOffset, parseColor(color));
+        }
+
+        private int parseColor(String color) {
+            // Parse the color in HEX format to an integer
+            return Integer.parseInt(color.replace("#", ""), 16);
+        }
     }
 }

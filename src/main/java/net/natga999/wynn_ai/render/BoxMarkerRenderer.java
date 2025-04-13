@@ -1,13 +1,14 @@
 package net.natga999.wynn_ai.render;
 
+import net.natga999.wynn_ai.boxes.BoxConfig;
+import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
+
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtDouble;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-import net.natga999.wynn_ai.boxes.BoxConfig;
-import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
 
 import java.util.List;
 
