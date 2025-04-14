@@ -1,16 +1,15 @@
 package net.natga999.wynn_ai;
 
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.component.type.CustomModelDataComponent;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.text.Text;
 import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.render.BoxMarkerRenderer;
 import net.natga999.wynn_ai.render.ItemMarkerRenderer;
 import net.natga999.wynn_ai.render.MarkerRenderer;
 import net.natga999.wynn_ai.render.RenderHUD;
+
+import net.minecraft.client.render.Camera;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.entity.ItemEntity;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -27,20 +26,20 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Vec3d;
+
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 public class TestRender implements ClientModInitializer {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestRender.class);
 
-    private static final int detectionRadius = 5; // Radius to detect entities
+    private static final int detectionRadius = 256; // Radius to detect entities
     private final EntityDetector entityDetector = new EntityDetector(detectionRadius);
     private final MarkerRenderer markerRenderer = new BoxMarkerRenderer();
+    private final ItemMarkerRenderer itemMarkerRenderer = new ItemMarkerRenderer();
     private final RenderHUD renderHUD = new RenderHUD();
 
     // Cache to store nearby entities
@@ -55,6 +54,7 @@ public class TestRender implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        LOGGER.info("Initialized Client");
         // Initialize the keybinding
         registerKeyBind();
 
@@ -114,30 +114,14 @@ public class TestRender implements ClientModInitializer {
         MatrixStack matrices = context.matrixStack();
         VertexConsumerProvider.Immediate vertices = client.getBufferBuilders().getEntityVertexConsumers();
 
-        // Create an instance of the new renderer
-        ItemMarkerRenderer itemMarkerRenderer = new ItemMarkerRenderer();
-
         for (Entity entity : cachedNearbyEntities) {
             if (entity instanceof DisplayEntity.TextDisplayEntity displayEntity) {
                 NbtCompound nbt = displayEntity.writeNbt(new NbtCompound());
                 markerRenderer.renderMarker(nbt, camera, matrices, vertices);
             }
             if (entity instanceof ItemEntity itemEntity) {
-                try {
-                    NbtCompound nbt = itemEntity.writeNbt(new NbtCompound());
-                    markerRenderer.renderMarker(nbt, camera, matrices, vertices);
-
-                    int CustomModelData = itemEntity.writeNbt(new NbtCompound()).getCompound("Item").getCompound("components").getInt("minecraft:damage");
-                    if (Objects.equals(itemEntity.writeNbt(new NbtCompound()).getCompound("Item").getString("id"), "minecraft:diamond_axe"))
-                        client.player.sendMessage(Text.of("minecraft:damage - axe id" + CustomModelData));
-                        //LOGGER.error(String.valueOf(nbt));
-                } catch (Exception e) {
-                    LOGGER.error("Failed read NBT in ItemEntity: {}", e.getMessage(), e);
-                }
-
                 itemMarkerRenderer.renderMarkerForItem(itemEntity, camera, matrices, vertices);
             }
-
         }
     }
 }

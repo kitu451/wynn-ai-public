@@ -3,13 +3,13 @@ package net.natga999.wynn_ai.boxes;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BoxConfigRegistry {
 
@@ -19,9 +19,9 @@ public class BoxConfigRegistry {
 
     // Define the default configuration as a static and reusable instance
     private static final BoxConfig DEFAULT_CONFIG = new BoxConfig(
-            2.0, // minYOffset: Half a block above
-            -2.0,  // maxYOffset: 1.5 blocks height
-            1.0,  // sizeXZOffset: Half a block width/length
+            0.0, // minYOffset: Half a block above
+            -1.9,  // maxYOffset: 1.5 blocks height
+            0.5,  // sizeXZOffset: Half a block width/length
             0xFFFFFF // Color: Default white
     );
 
@@ -68,7 +68,7 @@ public class BoxConfigRegistry {
         return CONFIG_MAP.keySet();
     }
 
-    // Helper DTO Class to Parse JSON
+    // Helper DTO class to parse JSON
     private static class BoxConfigDto {
         public double minYOffset;
         public double maxYOffset;

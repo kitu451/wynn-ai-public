@@ -1,12 +1,14 @@
 package net.natga999.wynn_ai.render;
 
+import net.natga999.wynn_ai.item_boxes.ItemConfig;
+import net.natga999.wynn_ai.item_boxes.ItemConfigRegistry;
+
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.ItemEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-import net.natga999.wynn_ai.boxes.BoxConfig;
-import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
 
 /**
  * Renderer for ItemEntity markers.
@@ -32,19 +34,49 @@ public class ItemMarkerRenderer {
         // Get the item's display name
         String name = itemEntity.getStack().getName().getString();
 
+        // Complex Item
+        NbtCompound nbt = itemEntity.writeNbt(new NbtCompound());
+        int Damage = nbt.getCompound("Item").getCompound("components").getInt("minecraft:damage");
+        String itemId = nbt.getCompound("Item").getString("id");
+
+        switch (itemId) {
+            case "minecraft:diamond_axe" -> {
+                switch (Damage) {
+                    case 96 -> name = String.valueOf(18); // Discarded Scrap (damage=96, after pickup -> CustomModelData=18)
+                    case 61 -> name = String.valueOf(68); // Missing Coinage (damage=61, after pickup -> CustomModelData=68)
+                    case 28 -> name = String.valueOf(85); // Fossilized Starfish (damage=28, after pickup -> CustomModelData=85)
+                    case 66 -> name = String.valueOf(73); // Elestial Voidstone (damage=66, after pickup -> CustomModelData=73)
+                    case 53 -> name = String.valueOf(59); // Precious Mineral (damage=53, after pickup -> CustomModelData=59)
+                    case 65 -> name = String.valueOf(72); // Small Ruby (damage=65, after pickup -> CustomModelData=72)
+                }
+            }
+            case "minecraft:diamond_shovel" -> {
+                switch (Damage) {
+                    case 99 -> name = String.valueOf(542); // Hobby Horse (damage=99, after pickup -> CustomModelData=542)
+                    case 25 -> name = String.valueOf(306); // Frying Pan (damage=25, after pickup -> CustomModelData=306)
+                }
+            }
+        }
+
+        // Check for Custom Model cases
+        int CustomModelData = nbt.getCompound("Item").getCompound("components").getInt("minecraft:custom_model_data");
+        if (CustomModelData != 0) {
+            name = String.valueOf(CustomModelData);
+        }
+
         // Find a matching box configuration for this item's name
-        BoxConfig matchingConfig = null;
-        for (String keyword : BoxConfigRegistry.getRegisteredKeywords()) {
+        ItemConfig matchingConfig = null;
+        for (String keyword : ItemConfigRegistry.getRegisteredKeywords()) {
             if (name.contains(keyword)) {
                 // If the item's name contains a keyword, use its config
-                matchingConfig = BoxConfigRegistry.getConfig(keyword);
+                matchingConfig = ItemConfigRegistry.getConfig(keyword);
                 break;
             }
         }
 
         // Use a default configuration if no match is found
         if (matchingConfig == null) {
-            matchingConfig = BoxConfigRegistry.getDefaultConfig();
+            matchingConfig = ItemConfigRegistry.getDefaultConfig();
         }
 
         // Define the bounding box around the item

@@ -22,12 +22,6 @@ public class BoxMarkerRenderer implements MarkerRenderer {
 
         String text = nbt.contains("text") ? nbt.getString("text") : "";
 
-
-        // Drew boxes for specific ItemModel of Dropped item
-        if (nbt.getCompound("Item").getCompound("components").contains("minecraft:custom_model_data")) {
-            text = String.valueOf(nbt.getCompound("Item").getCompound("components").getInt("minecraft:custom_model_data"));
-        }
-
         BoxConfig matchingConfig = null;
 
         // Iterate through all registered keywords in BoxConfigRegistry
@@ -39,7 +33,9 @@ public class BoxMarkerRenderer implements MarkerRenderer {
         }
 
         // If no matching box configuration, skip rendering
-        if (matchingConfig == null) return;
+        if (matchingConfig == null) {
+            matchingConfig = BoxConfigRegistry.getDefaultConfig();
+        }
 
         // Adjust position relative to camera
         Vec3d relativePos = position.subtract(camera.getPos());
