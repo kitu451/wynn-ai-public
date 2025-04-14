@@ -5,7 +5,9 @@
   "name": "WYNN AI",
   "description": "AI mod",
   "authors": ["natga999"],
-  "contact": {},
+  "contact": {
+    "homepage": "https://github.com/kitu451/WYNN-AI"
+  },
   "license": "MIT",
   "icon": "assets/wynn_ai/icon.png",
   "environment": "client",

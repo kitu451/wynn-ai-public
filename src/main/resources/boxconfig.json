@@ -5,10 +5,22 @@
     "sizeXZOffset": 0.5,
     "color": "#FFAA00"
   },
+  "Birch": {
+    "minYOffset": -1.0,
+    "maxYOffset": 1.5,
+    "sizeXZOffset": 0.5,
+    "color": "#FFAA00"
+  },
   "Wheat": {
     "minYOffset": -2.5,
     "maxYOffset": 0.0,
     "sizeXZOffset": 1.0,
+    "color": "#FFFF00"
+  },
+  "Wheat String": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
     "color": "#FFFF00"
   },
   "Barley": {
@@ -17,10 +29,282 @@
     "sizeXZOffset": 1.0,
     "color": "#FFFF00"
   },
+  "Oat": {
+    "minYOffset": -2.5,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 1.0,
+    "color": "#FFFF00"
+  },
+  "Copper": {
+    "minYOffset": -2.0,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 1.0,
+    "color": "#FFFFFF"
+  },
+  "Granite": {
+    "minYOffset": -2.0,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 1.0,
+    "color": "#FFFFFF"
+  },
+  "Gold": {
+    "minYOffset": -2.0,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 1.0,
+    "color": "#FFFFFF"
+  },
   "Zombie Raider": {
     "minYOffset": -2.0,
     "maxYOffset": 0.0,
-    "sizeXZOffset": 0.5,
-    "color": "#FFAA00"
+    "sizeXZOffset": 0.3,
+    "color": "#FF0000"
+  },
+  "Weak Zombie": {
+    "minYOffset": -2.0,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 0.3,
+    "color": "#FF0000"
+  },
+  "Zombie Grook": {
+    "minYOffset": -0.7,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 0.45,
+    "color": "#FF0000"
+  },
+  "Loot Chest": {
+    "minYOffset": -1.25,
+    "maxYOffset": -0.4,
+    "sizeXZOffset": 0.45,
+    "color": "#D3D3D3"
+  },
+  "Brick": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Stick": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "18": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "85": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Flint": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Red Sand": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Pink Tulip": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Clay Ball": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Iron Nugget": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "White Glazed Terracotta": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Chorus Plant": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Slimeball": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Chorus Fruit": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Stone Button": {
+    "minYOffset": 5.0,
+    "maxYOffset": -5.0,
+    "sizeXZOffset": 0.2,
+    "color": "#cca106"
+  },
+  "Flower Pot": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "Paper": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "Grass Block": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "Glass Bottle": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "Piston": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "73": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "306": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "542": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "Brewing Stand": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "Iron Trapdoor": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "68": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "Nether Brick": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "End Rod": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+  "Shulker Shell": {
+    "minYOffset": 10.0,
+    "maxYOffset": -10.0,
+    "sizeXZOffset": 0.2,
+    "color": "#a821d1"
+  },
+
+
+  "Black Stained Glass": {
+    "minYOffset": 10.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#00FFFF"
+  },
+  "Daylight Detector": {
+    "minYOffset": 10.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#00FFFF"
+  },
+  "Block of Iron": {
+    "minYOffset": 10.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#00FFFF"
+  },
+  "Clock": {
+    "minYOffset": 10.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#00FFFF"
+  },
+  "Mushroom Stew": {
+    "minYOffset": 10.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#00FFFF"
+  },
+  "59": {
+    "minYOffset": 10.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#00FFFF"
+  },
+  "72": {
+    "minYOffset": 10.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#00FFFF"
+  },
+  "Beacon": {
+    "minYOffset": 0.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#f2111c"
+  },
+  "Totem of Undying": {
+    "minYOffset": 0.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#f2111c"
+  },
+  "Purple Glazed Terracotta": {
+    "minYOffset": 0.0,
+    "maxYOffset": -50.0,
+    "sizeXZOffset": 0.2,
+    "color": "#f2111c"
   }
 }

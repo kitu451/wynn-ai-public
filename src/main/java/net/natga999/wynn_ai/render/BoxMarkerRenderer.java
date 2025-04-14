@@ -22,6 +22,12 @@ public class BoxMarkerRenderer implements MarkerRenderer {
 
         String text = nbt.contains("text") ? nbt.getString("text") : "";
 
+
+        // Drew boxes for specific ItemModel of Dropped item
+        if (nbt.getCompound("Item").getCompound("components").contains("minecraft:custom_model_data")) {
+            text = String.valueOf(nbt.getCompound("Item").getCompound("components").getInt("minecraft:custom_model_data"));
+        }
+
         BoxConfig matchingConfig = null;
 
         // Iterate through all registered keywords in BoxConfigRegistry

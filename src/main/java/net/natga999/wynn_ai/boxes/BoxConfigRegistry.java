@@ -17,6 +17,14 @@ public class BoxConfigRegistry {
 
     private static final Map<String, BoxConfig> CONFIG_MAP = new HashMap<>();
 
+    // Define the default configuration as a static and reusable instance
+    private static final BoxConfig DEFAULT_CONFIG = new BoxConfig(
+            2.0, // minYOffset: Half a block above
+            -2.0,  // maxYOffset: 1.5 blocks height
+            1.0,  // sizeXZOffset: Half a block width/length
+            0xFFFFFF // Color: Default white
+    );
+
     static {
         try {
             // Load the boxconfig.json file
@@ -50,6 +58,10 @@ public class BoxConfigRegistry {
 
     public static BoxConfig getConfig(String keyword) {
         return CONFIG_MAP.get(keyword);
+    }
+
+    public static BoxConfig getDefaultConfig() {
+        return DEFAULT_CONFIG;
     }
 
     public static Set<String> getRegisteredKeywords() {
