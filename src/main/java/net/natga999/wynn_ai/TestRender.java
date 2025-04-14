@@ -1,6 +1,7 @@
 package net.natga999.wynn_ai;
 
 import net.natga999.wynn_ai.detector.EntityDetector;
+import net.natga999.wynn_ai.keys.KeyInputHandler;
 import net.natga999.wynn_ai.render.BoxMarkerRenderer;
 import net.natga999.wynn_ai.render.ItemMarkerRenderer;
 import net.natga999.wynn_ai.render.MarkerRenderer;
@@ -12,22 +13,17 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.ItemEntity;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 
 import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Vec3d;
 
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Collections;
@@ -46,17 +42,14 @@ public class TestRender implements ClientModInitializer {
     private List<Entity> cachedNearbyEntities = Collections.emptyList();
 
     // Flag to toggle HUD rendering
-    private boolean renderHud = false;
-
-    // KeyBinding for toggling HUD
-    private KeyBinding toggleHudKey;
-
+    private static boolean renderHud = false;
 
     @Override
     public void onInitializeClient() {
         LOGGER.info("Initialized Client");
-        // Initialize the keybinding
-        registerKeyBind();
+
+        // Initialize key bindings through KeyInputHandler
+        KeyInputHandler.register();
 
         // Register rendering event callback
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
@@ -72,23 +65,14 @@ public class TestRender implements ClientModInitializer {
                 renderDetectedEntitiesOnHud(drawContext);
             }
         });
-
-        // Register a tick event for listening to key presses
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            // Check if the toggle key was pressed
-            if (toggleHudKey.wasPressed()) {
-                renderHud = !renderHud; // Toggle the HUD state
-            }
-        });
     }
 
-    private void registerKeyBind() {
-        toggleHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.wynn_ai.toggle_hud", // Name/Identifier for the key
-                InputUtil.Type.KEYSYM,    // Type of key input
-                GLFW.GLFW_KEY_H,          // Default key (e.g., "H")
-                "category.wynn_ai"        // Keybinding category (e.g., mod-specific category)
-        ));
+    public static boolean isHudEnabled() {
+        return renderHud;
+    }
+
+    public static void setHudEnabled(boolean value) {
+        renderHud = value;
     }
 
     private void updateCachedNearbyEntities(MinecraftClient client) {
