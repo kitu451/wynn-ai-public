@@ -2,10 +2,7 @@ package net.natga999.wynn_ai;
 
 import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.keys.KeyInputHandler;
-import net.natga999.wynn_ai.render.BoxMarkerRenderer;
-import net.natga999.wynn_ai.render.ItemMarkerRenderer;
-import net.natga999.wynn_ai.render.MarkerRenderer;
-import net.natga999.wynn_ai.render.RenderHUD;
+import net.natga999.wynn_ai.render.*;
 
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -32,8 +29,11 @@ import java.util.List;
 public class TestRender implements ClientModInitializer {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestRender.class);
 
-    private static final int detectionRadius = 256; // Radius to detect entities
-    private final EntityDetector entityDetector = new EntityDetector(detectionRadius);
+    // Static reference to the current instance
+    private static TestRender INSTANCE;
+
+    private static int detectionRadius = 16; // Radius to detect entities
+    private EntityDetector entityDetector;
     private final MarkerRenderer markerRenderer = new BoxMarkerRenderer();
     private final ItemMarkerRenderer itemMarkerRenderer = new ItemMarkerRenderer();
     private final RenderHUD renderHUD = new RenderHUD();
@@ -43,10 +43,13 @@ public class TestRender implements ClientModInitializer {
 
     // Flag to toggle HUD rendering
     private static boolean renderHud = false;
+    // Flag to toggle box rendering
+    private static boolean renderBoxes = true;
 
     @Override
     public void onInitializeClient() {
         LOGGER.info("Initialized Client");
+        INSTANCE = this;
 
         // Initialize key bindings through KeyInputHandler
         KeyInputHandler.register();
@@ -65,14 +68,38 @@ public class TestRender implements ClientModInitializer {
                 renderDetectedEntitiesOnHud(drawContext);
             }
         });
+
+        entityDetector = new EntityDetector(detectionRadius);
+
+        EntityOutliner.init();
     }
 
+    // Getter for detection radius
+    public static int getDetectionRadius() {
+        return detectionRadius;
+    }
+
+    // Setter for detection radius with validation
+    public static void setDetectionRadius(int radius) {
+        // Ensure radius is within reasonable bounds (e.g., between 1 and 512)
+        detectionRadius = Math.max(1, Math.min(512, radius));
+
+        if (INSTANCE != null && INSTANCE.entityDetector != null) {
+            INSTANCE.entityDetector.updateDetectionRadius(detectionRadius);
+        }
+    }
     public static boolean isHudEnabled() {
         return renderHud;
     }
-
     public static void setHudEnabled(boolean value) {
         renderHud = value;
+    }
+
+    public static boolean isBoxRenderingEnabled() {
+        return renderBoxes;
+    }
+    public static void setBoxRenderingEnabled(boolean value) {
+        renderBoxes = value;
     }
 
     private void updateCachedNearbyEntities(MinecraftClient client) {
@@ -101,7 +128,12 @@ public class TestRender implements ClientModInitializer {
         for (Entity entity : cachedNearbyEntities) {
             if (entity instanceof DisplayEntity.TextDisplayEntity displayEntity) {
                 NbtCompound nbt = displayEntity.writeNbt(new NbtCompound());
-                markerRenderer.renderMarker(nbt, camera, matrices, vertices);
+                if (renderBoxes) {
+                    markerRenderer.renderMarker(nbt, camera, matrices, vertices);
+                }
+            }
+            if (entity instanceof DisplayEntity.ItemDisplayEntity displayEntity) {
+                displayEntity.setGlowing(true);
             }
             if (entity instanceof ItemEntity itemEntity) {
                 itemMarkerRenderer.renderMarkerForItem(itemEntity, camera, matrices, vertices);

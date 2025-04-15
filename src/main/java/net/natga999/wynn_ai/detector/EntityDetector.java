@@ -9,10 +9,15 @@ import java.util.List;
 
 public class EntityDetector {
 
-    private final int detectionRadius;
+    private int detectionRadius;
 
     public EntityDetector(int detectionRadius) {
         this.detectionRadius = detectionRadius;
+    }
+
+    // Add a method to update the detection radius
+    public void updateDetectionRadius(int radius) {
+        this.detectionRadius = radius;
     }
 
     public List<Entity> detectNearbyEntities(Vec3d playerPosition, MinecraftClient client) {
