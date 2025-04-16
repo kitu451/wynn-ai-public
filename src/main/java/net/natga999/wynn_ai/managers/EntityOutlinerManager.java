@@ -1,4 +1,4 @@
-package net.natga999.wynn_ai.render;
+package net.natga999.wynn_ai.managers;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -6,7 +6,7 @@ import net.minecraft.entity.EntityType;
 import java.util.HashMap;
 import java.util.Map;
 
-public class EntityOutliner {
+public class EntityOutlinerManager {
     // Flag to enable or disable entity outlining
     public static boolean outlineAllEntities = false;
 

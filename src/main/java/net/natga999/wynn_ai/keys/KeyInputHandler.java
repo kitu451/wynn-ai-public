@@ -5,23 +5,15 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
-import net.natga999.wynn_ai.render.EntityOutliner;
+import net.natga999.wynn_ai.managers.EntityOutlinerManager;
+import net.natga999.wynn_ai.managers.RenderManager;
 import org.lwjgl.glfw.GLFW;
 import net.natga999.wynn_ai.CustomMenuScreen;
-import net.natga999.wynn_ai.TestRender;
 
 public class KeyInputHandler {
     private static KeyBinding toggleHudKey;
     private static KeyBinding toggleMenuKey;
-
-    private static final KeyBinding TOGGLE_OUTLINE_KEY = KeyBindingHelper.registerKeyBinding(
-            new KeyBinding(
-                    "key.wynn_ai.toggle_outline",
-                    InputUtil.Type.KEYSYM,
-                    GLFW.GLFW_KEY_O, // Use any key you prefer
-                    "category.wynn_ai.keys"
-            )
-    );
+    private static KeyBinding toggleOutlineKey;
 
     public static void register() {
         toggleHudKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
@@ -38,9 +30,22 @@ public class KeyInputHandler {
                 "category.custommenu"
         ));
 
+        toggleOutlineKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.wynn_ai.toggle_outline",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_O,
+                "category.wynn_ai.keys"
+        ));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (toggleHudKey.wasPressed()) {
-                TestRender.setHudEnabled(!TestRender.isHudEnabled());
+                RenderManager.getInstance().toggleHud();
+                // Optional: Add a notification message when toggling
+                if (client.player != null) {
+                    RenderManager.getInstance();
+                    client.player.sendMessage(Text.literal("HUD: " +
+                            (RenderManager.isHudEnabled() ? "ON" : "OFF")), true);
+                }
             }
 
             if (toggleMenuKey.wasPressed()) {
@@ -51,8 +56,8 @@ public class KeyInputHandler {
                 }
             }
 
-            if (TOGGLE_OUTLINE_KEY.wasPressed()) {
-                boolean newState = EntityOutliner.toggleOutlining();
+            if (toggleOutlineKey.wasPressed()) {
+                boolean newState = EntityOutlinerManager.toggleOutlining();
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("Entity outlining: " + (newState ? "ON" : "OFF")), true);
             }

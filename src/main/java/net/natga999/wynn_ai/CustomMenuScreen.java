@@ -1,5 +1,6 @@
 package net.natga999.wynn_ai;
 
+import net.natga999.wynn_ai.managers.RenderManager;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
@@ -35,9 +36,9 @@ public class CustomMenuScreen extends Screen {
         CheckboxWidget hudToggleCheckbox = CheckboxWidget.builder(Text.of("Show HUD"), textRenderer)
                 .pos(windowX + windowWidth / 4 + 15, windowY + 10)
                 .maxWidth(150)
-                .checked(TestRender.isHudEnabled())
+                .checked(RenderManager.isHudEnabled())
                 .callback((widget, isChecked) -> {
-                    TestRender.setHudEnabled(isChecked);
+                    RenderManager.setHudEnabled(isChecked);
                 })
                 .build();
 
@@ -61,8 +62,8 @@ public class CustomMenuScreen extends Screen {
         // Add box rendering toggle checkbox
         CheckboxWidget boxToggle = CheckboxWidget.builder(Text.of("Show Entity Boxes"), this.textRenderer)
                 .pos(windowX + 10, windowY + 32) // Position below the HUD checkbox
-                .checked(TestRender.isBoxRenderingEnabled())
-                .callback((checkbox, checked) -> TestRender.setBoxRenderingEnabled(checked))
+                .checked(RenderManager.isBoxRenderingEnabled())
+                .callback((checkbox, checked) -> RenderManager.setBoxRenderingEnabled(checked))
                 .build();
         this.addDrawableChild(boxToggle);
 

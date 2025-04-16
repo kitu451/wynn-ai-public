@@ -14,7 +14,7 @@ import net.minecraft.util.math.Vec3d;
  * Renderer for ItemEntity markers.
  * Renders a box around the position of the entity, with customizable size and color.
  */
-public class ItemMarkerRenderer {
+public class ItemMarkerRenderer implements ItemRenderer {
 
     /**
      * Renders a marker for a given ItemEntity.
@@ -24,7 +24,7 @@ public class ItemMarkerRenderer {
      * @param matrices        The current transformation matrix.
      * @param vertexConsumers The vertex consumers for rendering the entity.
      */
-    public void renderMarkerForItem(ItemEntity itemEntity, Camera camera, MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
+    public void renderMarker(ItemEntity itemEntity, Camera camera, MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
         // Get the item's position
         Vec3d position = itemEntity.getPos();
 
