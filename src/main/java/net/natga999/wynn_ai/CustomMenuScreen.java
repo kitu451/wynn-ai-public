@@ -1,6 +1,8 @@
 package net.natga999.wynn_ai;
 
+import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
+
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
@@ -62,10 +64,18 @@ public class CustomMenuScreen extends Screen {
         // Add box rendering toggle checkbox
         CheckboxWidget boxToggle = CheckboxWidget.builder(Text.of("Show Entity Boxes"), this.textRenderer)
                 .pos(windowX + 10, windowY + 32) // Position below the HUD checkbox
-                .checked(RenderManager.isBoxRenderingEnabled())
-                .callback((checkbox, checked) -> RenderManager.setBoxRenderingEnabled(checked))
+                .checked(RenderManager.isBoxEnabled())
+                .callback((checkbox, checked) -> RenderManager.setBoxEnabled(checked))
                 .build();
         this.addDrawableChild(boxToggle);
+
+        // Add box rendering toggle checkbox
+        CheckboxWidget outlineToggle = CheckboxWidget.builder(Text.of("Show Outlines"), this.textRenderer)
+                .pos(windowX + windowWidth / 4 + 15, windowY + 32) // Position below the HUD checkbox
+                .checked(RenderManager.isBoxEnabled())
+                .callback((checkbox, checked) -> EntityOutlinerManager.setOutliningEnabled(checked))
+                .build();
+        this.addDrawableChild(outlineToggle);
 
         // Add a button to close the menu
         this.addDrawableChild(ButtonWidget.builder(Text.of("Close Menu"), button -> {

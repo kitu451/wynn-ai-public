@@ -13,7 +13,7 @@ public abstract class MixinMinecraftClient {
 
     @Inject(method = "hasOutline", at = @At("HEAD"), cancellable = true)
     private void outlineEntities(Entity entity, CallbackInfoReturnable<Boolean> ci) {
-        if (EntityOutlinerManager.outlineAllEntities) {
+        if (EntityOutlinerManager.shouldOutline(entity)) {
             ci.setReturnValue(true);
         }
     }

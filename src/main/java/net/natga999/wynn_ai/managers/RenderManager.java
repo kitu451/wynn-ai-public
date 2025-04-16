@@ -1,16 +1,17 @@
 package net.natga999.wynn_ai.managers;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.entity.Entity;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.natga999.wynn_ai.render.BoxMarkerRenderer;
 import net.natga999.wynn_ai.render.ItemMarkerRenderer;
 import net.natga999.wynn_ai.render.MarkerRenderer;
 import net.natga999.wynn_ai.render.RenderHUD;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.nbt.NbtCompound;
+
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import java.util.List;
 
 /**
@@ -22,7 +23,7 @@ public class RenderManager {
 
     // Rendering configuration flags
     private static boolean hudEnabled = false;
-    private static boolean boxesEnabled = true;
+    private static boolean boxesEnabled = false;
 
     // Renderers
     private final RenderHUD hudRenderer = new RenderHUD();
@@ -51,25 +52,21 @@ public class RenderManager {
     public static boolean isHudEnabled() {
         return hudEnabled;
     }
-
     public static void setHudEnabled(boolean value) {
         hudEnabled = value;
     }
-
     public void toggleHud() {
         hudEnabled = !hudEnabled;
     }
 
     // Box rendering management
-    public static boolean isBoxRenderingEnabled() {
+    public static boolean isBoxEnabled() {
         return boxesEnabled;
     }
-
-    public static void setBoxRenderingEnabled(boolean value) {
+    public static void setBoxEnabled(boolean value) {
         boxesEnabled = value;
     }
-
-    public void toggleBoxRendering() {
+    public void toggleBox() {
         boxesEnabled = !boxesEnabled;
     }
 
