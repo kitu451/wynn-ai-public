@@ -65,6 +65,10 @@ public class TestRender implements ClientModInitializer {
         return detectionRadius;
     }
 
+    public static List<Entity> getCachedNearbyEntities() {
+        return INSTANCE.cachedNearbyEntities;
+    }
+
     // Setter for detection radius with validation
     public static void setDetectionRadius(int radius) {
         // Ensure radius is within reasonable bounds (e.g., between 1 and 512)

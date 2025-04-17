@@ -2,6 +2,7 @@ package net.natga999.wynn_ai.managers;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.natga999.wynn_ai.TestRender;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -82,7 +83,7 @@ public class EntityOutlinerManager {
      * @return True if the entity should be outlined
      */
     public static boolean shouldOutline(Entity entity) {
-        if (outlineAllEntities) {
+        if (outlineAllEntities && TestRender.getCachedNearbyEntities().contains(entity)) {
             return true;
         }
 
