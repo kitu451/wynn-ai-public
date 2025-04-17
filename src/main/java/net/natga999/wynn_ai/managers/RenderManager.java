@@ -12,12 +12,17 @@ import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 /**
  * Manages all rendering-related settings and operations
  */
 public class RenderManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RenderManager.class);
+
     // Singleton instance
     private static RenderManager INSTANCE;
 
@@ -102,19 +107,10 @@ public class RenderManager {
                         context.consumers()
                 );
             }
+//            else if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplayEntity) {
+//                NbtCompound nbt = itemDisplayEntity.writeNbt(new NbtCompound());
+//                LOGGER.error("nbt: " + nbt);
+//            }
         }
-    }
-
-    /**
-     * Create an NBT compound with entity data for rendering
-     */
-    private net.minecraft.nbt.NbtCompound createEntityNbt(Entity entity) {
-        net.minecraft.nbt.NbtCompound nbt = new net.minecraft.nbt.NbtCompound();
-        nbt.putDouble("x", entity.getX());
-        nbt.putDouble("y", entity.getY());
-        nbt.putDouble("z", entity.getZ());
-        nbt.putFloat("width", entity.getWidth());
-        nbt.putFloat("height", entity.getHeight());
-        return nbt;
     }
 }
