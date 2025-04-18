@@ -86,14 +86,7 @@ public class CustomMenuScreen extends Screen {
                 .build();
         this.addDrawableChild(outlineToggle);
 
-        // Add a button to open the second menu
-        this.addDrawableChild(ButtonWidget.builder(Text.of("Open Second Menu"), button -> {
-                    // Open SecondMenuScreen
-                    //MinecraftClient.getInstance().setScreen(new SecondMenuScreen(Text.of("Second Menu")));
-                }
-        ).dimensions(this.width / 2 - 50, this.height / 2, 100, 20).build());
-
-                // Add a button to close the menu
+        // Add a button to close the menu
         this.addDrawableChild(ButtonWidget.builder(Text.of("Close Menu"), button -> {
             this.close();
         }).dimensions(windowX + windowWidth / 2 - 50, windowY + windowHeight - 30, 100, 20).build());

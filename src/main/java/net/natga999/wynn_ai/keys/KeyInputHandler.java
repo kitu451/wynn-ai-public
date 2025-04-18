@@ -60,7 +60,7 @@ public class KeyInputHandler {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (toggleMenuKey.wasPressed()) {
                 if (client.currentScreen == null) {
-                    client.setScreen(new CustomMenuScreen(Text.of("WYNN AI Menu"),toggleMenuKey));
+                    client.setScreen(new CustomMenuScreen(Text.of("WYNN AI Menu 2"),toggleMenuKey));
                 } else if (client.currentScreen instanceof CustomMenuScreen) {
                     client.setScreen(null);
                 }

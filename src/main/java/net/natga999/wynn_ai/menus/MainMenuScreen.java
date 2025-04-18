@@ -1,5 +1,9 @@
 package net.natga999.wynn_ai.menus;
 
+import net.natga999.wynn_ai.TestRender;
+import net.natga999.wynn_ai.managers.EntityOutlinerManager;
+import net.natga999.wynn_ai.managers.RenderManager;
+
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -8,11 +12,9 @@ import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
-import net.natga999.wynn_ai.TestRender;
-import net.natga999.wynn_ai.managers.EntityOutlinerManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +22,7 @@ public class MainMenuScreen extends Screen {
     private static final Logger LOGGER = LoggerFactory.getLogger(MainMenuScreen.class);
 
     private boolean isDragging = false; // Whether the menu is currently being dragged
+    private boolean isDraggingSlider = false;
     private int dragOffsetX = 0;        // Offset between the mouse and menu position
     private int dragOffsetY = 0;
 
@@ -140,6 +143,29 @@ public class MainMenuScreen extends Screen {
                 configWidgets.add(new WidgetWithOffset(checkbox, offsetX, offsetY));
                 break;
 
+            case "slider":
+                customSlider slider = new customSlider(
+                        windowX + offsetX,
+                        windowY + offsetY,
+                        config.getWidth(),
+                        config.getHeight(),
+                        Text.of(config.getText()),
+                        0.0) {
+                    @Override
+                    protected void applyValue() {
+                        handleSliderAction(config.getAction(), this.value); // Call handleSliderAction here
+                    }
+                    @Override
+                    protected void updateMessage() {
+                        int radius = denormalizeRadius(this.value);
+                        this.setMessage(Text.of(config.getText() + ": " + radius));
+                    }
+                };
+
+                this.addDrawableChild(slider);
+                configWidgets.add(new WidgetWithOffset(slider, offsetX, offsetY));
+                break;
+
             default:
                 LOGGER.warn("Unknown widget type: {}", config.getType());
                 break;
@@ -152,18 +178,8 @@ public class MainMenuScreen extends Screen {
         LOGGER.info("Button action: {}", action);
 
         switch (action) {
-            case "startGame":
-                // Implement start game action
-                break;
-
-            case "openSettings":
-                // Implement open settings action
-                break;
-
-            case "openSecondMenu":
-                // This would open your second menu screen
-                // MinecraftClient.getInstance().setScreen(new SecondMenuScreen(Text.of("Second Menu")));
-                LOGGER.info("Opening second menu");
+            case "close":
+                this.close();
                 break;
 
             // Add other actions as needed
@@ -181,7 +197,7 @@ public class MainMenuScreen extends Screen {
 
         switch (action) {
             case "showHUD":
-                // Implement start game action
+                RenderManager.setHudEnabled(checked);
                 break;
 
             case "showOutlines":
@@ -189,13 +205,43 @@ public class MainMenuScreen extends Screen {
                 break;
 
             case "showEntityBoxes":
-
+                RenderManager.setBoxEnabled(checked);
                 break;
 
             // Add other actions as needed
 
             default:
                 LOGGER.warn("Unknown button action: {}", action);
+                break;
+        }
+    }
+
+    private void handleSliderAction(String action, double value) {
+        if (action == null) return;
+
+        LOGGER.info("Slider action: {}, value: {}", action, value);
+
+        switch (action) {
+            case "detectionRadius":
+                // Determine the current detection radius
+                int currentRadius = TestRender.getDetectionRadius();
+
+                // Recalculate slider value if necessary
+                if (value == 0.0) { // Assume slider starts at 0.0 if unset
+                    value = normalizeRadius(currentRadius);
+                }
+
+                // Update the detection radius with the slider value
+                int updatedRadius = denormalizeRadius(value);
+                TestRender.setDetectionRadius(updatedRadius);
+
+                LOGGER.info("Detection radius updated to: {}", updatedRadius);
+                break;
+
+            // Add other slider-related actions if needed
+
+            default:
+                LOGGER.warn("Unknown slider action: {}", action);
                 break;
         }
     }
@@ -218,22 +264,9 @@ public class MainMenuScreen extends Screen {
     }
 
     // Custom slider class for detection radius
-    private class DetectionRadiusSlider extends SliderWidget {
-
-        public DetectionRadiusSlider(int x, int y, int width, int height, Text text, double value) {
+    private abstract static class customSlider extends SliderWidget {
+        public customSlider(int x, int y, int width, int height, Text text, double value) {
             super(x, y, width, height, text, value);
-        }
-
-        @Override
-        protected void updateMessage() {
-            int radius = denormalizeRadius(this.value);
-            this.setMessage(Text.of("Detection Radius: " + radius));
-        }
-
-        @Override
-        protected void applyValue() {
-            int radius = denormalizeRadius(this.value);
-            TestRender.setDetectionRadius(radius);
         }
     }
 
@@ -243,7 +276,6 @@ public class MainMenuScreen extends Screen {
         // Render a semi-transparent background
         int windowColor = 0xAA000000; // Semi-transparent black
         int borderColor = 0xFFFFFFFF; // White border
-
 
         // Draw window background and border
         context.fill(windowX, windowY, windowX + windowWidth, windowY + windowHeight, windowColor);
@@ -266,14 +298,20 @@ public class MainMenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && isMouseOverWindow(mouseX, mouseY)) {
-            // Save the mouse down position but don't start dragging yet
-            mouseDownX = (int) mouseX;
-            mouseDownY = (int) mouseY;
-            dragOffsetX = (int) mouseX - windowX;
-            dragOffsetY = (int) mouseY - windowY;
-            // Let the widgets handle the click too
-            return super.mouseClicked(mouseX, mouseY, button);
+        if (button == 0) {
+
+            if (isMouseOverSlider(mouseX, mouseY)) {
+                isDraggingSlider = true;
+            }
+
+            if (isMouseOverWindow(mouseX, mouseY)) {
+                // Save the mouse down position but don't start dragging yet
+                mouseDownX = (int) mouseX;
+                mouseDownY = (int) mouseY;
+                dragOffsetX = (int) mouseX - windowX;
+                dragOffsetY = (int) mouseY - windowY;
+                // Let the widgets handle the click too
+            }
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
@@ -281,6 +319,8 @@ public class MainMenuScreen extends Screen {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (button == 0) {
+            isDraggingSlider = false;
+
             if (isDragging) {
                 isDragging = false;
                 return true; // Consume drag release
@@ -297,24 +337,25 @@ public class MainMenuScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        // Avoid dragging if the mouse is over a widget
-        if (isMouseOverWidget(mouseX, mouseY)) {
+        if (isDraggingSlider) {
             return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
         }
 
-        if (!isDragging && button == 0) {
-            if (Math.abs(mouseX - mouseDownX) > DRAG_THRESHOLD || Math.abs(mouseY - mouseDownY) > DRAG_THRESHOLD) {
-                isDragging = true;
+        // Allow dragging as long as you're over the window
+        if (isMouseOverWindow(mouseX, mouseY)) {
+            if (!isDragging && button == 0) {
+                if (Math.abs(mouseX - mouseDownX) > DRAG_THRESHOLD || Math.abs(mouseY - mouseDownY) > DRAG_THRESHOLD) {
+                    isDragging = true;
+                }
+            }
+
+            if (isDragging && button == 0) {
+                windowX = (int) mouseX - dragOffsetX;
+                windowY = (int) mouseY - dragOffsetY;
+                updateWidgetPositions();
+                return true; // Consume the event
             }
         }
-
-        if (isDragging && button == 0) {
-            windowX = (int) mouseX - dragOffsetX;
-            windowY = (int) mouseY - dragOffsetY;
-            updateWidgetPositions();
-            return true; // Consume the event
-        }
-
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
@@ -322,6 +363,15 @@ public class MainMenuScreen extends Screen {
         for (var widget : this.children()) {
             if (widget instanceof SliderWidget slider && slider.isMouseOver(mouseX, mouseY)) {
                 return true; // Block dragging only if mouse is over a slider
+            }
+        }
+        return false;
+    }
+
+    private boolean isMouseOverSlider(double mouseX, double mouseY) {
+        for (var widget : this.children()) {
+            if (widget instanceof SliderWidget slider && slider.isMouseOver(mouseX, mouseY)) {
+                return true;
             }
         }
         return false;
