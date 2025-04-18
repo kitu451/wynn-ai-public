@@ -2,7 +2,7 @@ package net.natga999.wynn_ai.keys;
 
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
-import net.natga999.wynn_ai.CustomMenuScreen;
+import net.natga999.wynn_ai.menus.CustomMenuScreen;
 
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -11,10 +11,12 @@ import net.minecraft.text.Text;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.natga999.wynn_ai.menus.MainMenuScreen;
 import org.lwjgl.glfw.GLFW;
 
 public class KeyInputHandler {
     private static KeyBinding toggleMenuKey;
+    private static KeyBinding toggleMainMenuKey;
     private static KeyBinding toggleBoxesKey;
     private static KeyBinding toggleOutlineKey;
     private static KeyBinding toggleHudKey;
@@ -24,6 +26,13 @@ public class KeyInputHandler {
                 "key.wynn_ai.togglemenu",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_8,
+                "category.wynn_ai.keys"
+        ));
+
+        toggleMainMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.wynn_ai.togglemainmenu",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_KP_9,
                 "category.wynn_ai.keys"
         ));
 
@@ -53,6 +62,14 @@ public class KeyInputHandler {
                 if (client.currentScreen == null) {
                     client.setScreen(new CustomMenuScreen(Text.of("WYNN AI Menu"),toggleMenuKey));
                 } else if (client.currentScreen instanceof CustomMenuScreen) {
+                    client.setScreen(null);
+                }
+            }
+
+            if (toggleMainMenuKey.wasPressed()) {
+                if (client.currentScreen == null) {
+                    client.setScreen(new MainMenuScreen(Text.of("WYNN AI Menu"),toggleMainMenuKey, "MainMenu"));
+                } else if (client.currentScreen instanceof MainMenuScreen) {
                     client.setScreen(null);
                 }
             }

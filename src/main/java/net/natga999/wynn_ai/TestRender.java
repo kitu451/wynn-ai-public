@@ -13,8 +13,11 @@ import net.minecraft.entity.Entity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 
+import net.natga999.wynn_ai.menus.LayoutManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,6 +39,14 @@ public class TestRender implements ClientModInitializer {
         INSTANCE = this;
 
         entityDetector = new EntityDetector(detectionRadius);
+
+        try {
+            LayoutManager.loadLayouts("menuconfig.json");
+            System.out.println("Menu layouts loaded successfully.");
+        } catch (IOException e) {
+            System.err.println("Failed to load menu layouts");
+            e.printStackTrace();
+        }
 
         // Initialize renderer managers
         RenderManager.init();

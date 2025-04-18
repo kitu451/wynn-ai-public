@@ -1,5 +1,7 @@
-package net.natga999.wynn_ai;
+package net.natga999.wynn_ai.menus;
 
+import net.minecraft.client.MinecraftClient;
+import net.natga999.wynn_ai.TestRender;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 
@@ -84,7 +86,14 @@ public class CustomMenuScreen extends Screen {
                 .build();
         this.addDrawableChild(outlineToggle);
 
-        // Add a button to close the menu
+        // Add a button to open the second menu
+        this.addDrawableChild(ButtonWidget.builder(Text.of("Open Second Menu"), button -> {
+                    // Open SecondMenuScreen
+                    //MinecraftClient.getInstance().setScreen(new SecondMenuScreen(Text.of("Second Menu")));
+                }
+        ).dimensions(this.width / 2 - 50, this.height / 2, 100, 20).build());
+
+                // Add a button to close the menu
         this.addDrawableChild(ButtonWidget.builder(Text.of("Close Menu"), button -> {
             this.close();
         }).dimensions(windowX + windowWidth / 2 - 50, windowY + windowHeight - 30, 100, 20).build());
@@ -190,13 +199,13 @@ public class CustomMenuScreen extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && isMouseOverWindow(mouseX, mouseY)) {
-            // Save initial mouse press position
+            // Save the mouse down position but don't start dragging yet
             mouseDownX = (int) mouseX;
             mouseDownY = (int) mouseY;
             dragOffsetX = (int) mouseX - windowX;
             dragOffsetY = (int) mouseY - windowY;
-            // Do not start dragging yet
-            return super.mouseClicked(mouseX, mouseY, button); // Let widgets receive the event
+            // Let the widgets handle the click too
+            return super.mouseClicked(mouseX, mouseY, button);
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
@@ -212,13 +221,12 @@ public class CustomMenuScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-
+        // Avoid dragging if the mouse is over a widget
         if (isMouseOverWidget(mouseX, mouseY)) {
             return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
         }
 
         if (!isDragging && button == 0) {
-            // Check if mouse moved enough to count as dragging
             if (Math.abs(mouseX - mouseDownX) > DRAG_THRESHOLD || Math.abs(mouseY - mouseDownY) > DRAG_THRESHOLD) {
                 isDragging = true;
             }
@@ -228,7 +236,7 @@ public class CustomMenuScreen extends Screen {
             windowX = (int) mouseX - dragOffsetX;
             windowY = (int) mouseY - dragOffsetY;
             updateWidgetPositions();
-            return true;
+            return true; // Consume the event
         }
 
         return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);

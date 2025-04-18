@@ -14,7 +14,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.List;
 
 /**
@@ -91,6 +90,7 @@ public class RenderManager {
         if (!boxesEnabled || entities.isEmpty()) return;
 
         for (Entity entity : entities) {
+
             if (entity instanceof net.minecraft.entity.ItemEntity itemEntity) {
                 itemMarkerRenderer.renderMarker(
                         itemEntity,
