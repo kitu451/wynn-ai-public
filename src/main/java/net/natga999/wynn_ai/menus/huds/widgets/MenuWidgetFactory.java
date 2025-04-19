@@ -14,6 +14,16 @@ public class MenuWidgetFactory {
             String action = (String) data.get("action");
             return new ButtonWidget(x, y, width, height, text, action);
         }
+        if ("checkbox".equalsIgnoreCase(type)) {
+            int x = (int) data.get("x");
+            int y = (int) data.get("y");
+            int width = (int) data.get("width");
+            int height = (int) data.get("height");
+            String text = (String) data.get("text");
+            String action = (String) data.get("action");
+            Boolean checked = (Boolean) data.get("checked");
+            return new CheckBoxWidget(x, y, width, height, text, action, checked);
+        }
         return null; // or throw exception
     }
 }

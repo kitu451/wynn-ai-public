@@ -3,17 +3,47 @@
     "MainMenu": {
       "x": 50,
       "y": 50,
-      "windowWidth": 120,
-      "windowHeight": 80,
+      "windowWidth": 100,
+      "windowHeight": 130,
       "widgets": [
         {
           "type": "button",
-          "x": 20,
-          "y": 50,
+          "x": 10,
+          "y": 105,
           "width": 80,
           "height": 20,
           "text": "Close",
           "action": "close"
+        },
+        {
+          "type": "checkbox",
+          "x": 10,
+          "y": 25,
+          "width": 80,
+          "height": 20,
+          "text": "Check",
+          "action": "showHUD",
+          "checked": false
+        },
+        {
+          "type": "checkbox",
+          "x": 10,
+          "y": 50,
+          "width": 80,
+          "height": 20,
+          "text": "Check",
+          "action": "showBoxes",
+          "checked": false
+        },
+        {
+          "type": "checkbox",
+          "x": 10,
+          "y": 75,
+          "width": 80,
+          "height": 20,
+          "text": "Check",
+          "action": "showOutlines",
+          "checked": false
         }
       ],
       "title": "Main Menu"

@@ -31,9 +31,6 @@ public class TestRender implements ClientModInitializer {
     private static int detectionRadius = 16; // Radius to detect entities
     private EntityDetector entityDetector;
 
-    private double virtualMouseX = 0;
-    private double virtualMouseY = 0;
-
     // Cache to store nearby entities
     private List<Entity> cachedNearbyEntities = Collections.emptyList();
 
@@ -45,11 +42,10 @@ public class TestRender implements ClientModInitializer {
         entityDetector = new EntityDetector(detectionRadius);
 
         try {
-            LayoutManager.loadLayouts("menuconfig.json");
-            System.out.println("Menu layouts loaded successfully.");
+            LayoutManager.loadLayouts("assets/wynn_ai/menuconfig.json");
+            LOGGER.info("Menu layouts loaded successfully");
         } catch (IOException e) {
-            System.err.println("Failed to load menu layouts");
-            e.printStackTrace();
+            LOGGER.error("Failed to load menu layouts");
         }
 
         // Initialize renderer managers
@@ -59,7 +55,7 @@ public class TestRender implements ClientModInitializer {
         // Register key bindings
         KeyInputHandler.register();
 
-        new registerMouseMovement();
+        //new registerMouseMovement();
         new MouseInputHandler();
 
         // Register HUD rendering

@@ -12,6 +12,9 @@ public class MenuHUDLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(MenuHUDLoader.class);
     private static final Map<String, MenuHUDConfig> loadedHUDMenus = new HashMap<>();
 
+    // Tracks current state of checkboxes (action → checked)
+    private static final Map<String, Boolean> checkboxStates = new HashMap<>();
+
     static {
         try (InputStream inputStream = MenuHUDLoader.class.getClassLoader().getResourceAsStream("assets/wynn_ai/menuhudconfig.json")) {
             if (inputStream == null) {
@@ -30,6 +33,14 @@ public class MenuHUDLoader {
         } catch (Exception e) {
             LOGGER.error("Failed to load menu layouts", e);
         }
+    }
+
+    public static boolean getCheckboxState(String action) {
+        return checkboxStates.getOrDefault(action, false);
+    }
+
+    public static void setCheckboxState(String action, boolean checked) {
+        checkboxStates.put(action, checked);
     }
 
     public static MenuHUDConfig getMenuHUDConfig(String menuName) {

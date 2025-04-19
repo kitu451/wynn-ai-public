@@ -17,7 +17,7 @@ public class LayoutManager {
 
     public static void loadLayouts(String filePath) throws IOException {
 
-        try (InputStream inputStream = LayoutManager.class.getClassLoader().getResourceAsStream("menuconfig.json")) {
+        try (InputStream inputStream = LayoutManager.class.getClassLoader().getResourceAsStream("assets/wynn_ai/menuconfig.json")) {
             if (inputStream == null) {
                 throw new IOException("menuconfig.json not found in resources.");
             }

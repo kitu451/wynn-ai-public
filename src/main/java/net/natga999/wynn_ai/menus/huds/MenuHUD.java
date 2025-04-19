@@ -1,7 +1,9 @@
 package net.natga999.wynn_ai.menus.huds;
 
+import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.menus.huds.widgets.ButtonWidget;
+import net.natga999.wynn_ai.menus.huds.widgets.CheckBoxWidget;
 import net.natga999.wynn_ai.menus.huds.widgets.MenuWidget;
 import net.natga999.wynn_ai.menus.huds.widgets.MenuWidgetFactory;
 
@@ -55,12 +57,27 @@ public class MenuHUD {
                     handleAction(button.getAction());
                 }
             }
+            if (widget instanceof CheckBoxWidget checkBox) {
+                if (checkBox.isMouseOver(mouseX, mouseY, config.x, config.y)) {
+                    checkBox.setChecked(!checkBox.isChecked());
+                    handleAction(checkBox.getAction());
+                }
+            }
         }
     }
 
     private void handleAction(String action) {
         if ("close".equalsIgnoreCase(action)) {
             RenderManager.setMenuHUDEnabled(false);
+        }
+        if ("showHUD".equalsIgnoreCase(action)) {
+            RenderManager.setHudEnabled(!RenderManager.isHudEnabled());
+        }
+        if ("showBoxes".equalsIgnoreCase(action)) {
+            RenderManager.setBoxEnabled(!RenderManager.isBoxEnabled());
+        }
+        if ("showOutlines".equalsIgnoreCase(action)) {
+            EntityOutlinerManager.toggleOutlining();
         }
         // Add more actions here later
     }
