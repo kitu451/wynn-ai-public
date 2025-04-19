@@ -1,0 +1,22 @@
+{
+  "menus": {
+    "MainMenu": {
+      "x": 50,
+      "y": 50,
+      "windowWidth": 120,
+      "windowHeight": 80,
+      "widgets": [
+        {
+          "type": "button",
+          "x": 20,
+          "y": 50,
+          "width": 80,
+          "height": 20,
+          "text": "Close",
+          "action": "close"
+        }
+      ],
+      "title": "Main Menu"
+    }
+  }
+}

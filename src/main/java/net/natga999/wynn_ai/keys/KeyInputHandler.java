@@ -2,7 +2,6 @@ package net.natga999.wynn_ai.keys;
 
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
-import net.natga999.wynn_ai.menus.CustomMenuScreen;
 
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -15,22 +14,30 @@ import net.natga999.wynn_ai.menus.MainMenuScreen;
 import org.lwjgl.glfw.GLFW;
 
 public class KeyInputHandler {
-    private static KeyBinding toggleMenuKey;
-    private static KeyBinding toggleMainMenuKey;
+    private static KeyBinding toggleInteractionModeKey;
+    private static KeyBinding togglePersistentMenuKey;
+    private static KeyBinding toggleMenuHUDKey;
     private static KeyBinding toggleBoxesKey;
     private static KeyBinding toggleOutlineKey;
     private static KeyBinding toggleHudKey;
 
     public static void register() {
-        toggleMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.wynn_ai.togglemenu",
+        toggleMenuHUDKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.wynn_ai.toggle_HUD_menu",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_KP_7,
+                "category.wynn_ai.keys"
+        ));
+
+        toggleInteractionModeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.wynn_ai.toggle_interaction_mode",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_8,
                 "category.wynn_ai.keys"
         ));
 
-        toggleMainMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.wynn_ai.togglemainmenu",
+        togglePersistentMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.wynn_ai.toggle_persistent_menu",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_9,
                 "category.wynn_ai.keys"
@@ -58,20 +65,27 @@ public class KeyInputHandler {
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (toggleMenuKey.wasPressed()) {
-                if (client.currentScreen == null) {
-                    client.setScreen(new CustomMenuScreen(Text.of("WYNN AI Menu 2"),toggleMenuKey));
-                } else if (client.currentScreen instanceof CustomMenuScreen) {
-                    client.setScreen(null);
-                }
+            if (toggleMenuHUDKey.wasPressed()) {
+                RenderManager.getInstance().toggleMenuHUD();
+                assert client.player != null;
+                client.player.sendMessage(Text.literal("Menu HUD: " + (RenderManager.isMenuHUDEnabled() ? "ON" : "OFF")), true);
             }
 
-            if (toggleMainMenuKey.wasPressed()) {
+            if (togglePersistentMenuKey.wasPressed()) {
+                RenderManager.toggleMenuVisible();
+                assert client.player != null;
                 if (client.currentScreen == null) {
-                    client.setScreen(new MainMenuScreen(Text.of("WYNN AI Menu"),toggleMainMenuKey, "MainMenu"));
+                    client.setScreen(new MainMenuScreen(Text.of("WYNN AI Menu"),togglePersistentMenuKey, "MainMenu"));
                 } else if (client.currentScreen instanceof MainMenuScreen) {
                     client.setScreen(null);
                 }
+                client.player.sendMessage(Text.literal("Persistent menu: " + (RenderManager.isMenuVisible() ? "ON" : "OFF")), true);
+            }
+
+            if (toggleInteractionModeKey.wasPressed()) {
+                RenderManager.toggleInteractionMode();
+                assert client.player != null;
+                client.player.sendMessage(Text.literal("Mouse interaction: " + (RenderManager.isInteractionMode() ? "ON" : "OFF")), true);
             }
 
             if (toggleBoxesKey.wasPressed()) {
@@ -93,13 +107,5 @@ public class KeyInputHandler {
                 client.player.sendMessage(Text.literal("HUD: " + (RenderManager.isHudEnabled() ? "ON" : "OFF")), true);
             }
         });
-    }
-
-    public static boolean isHudToggleKey(int keyCode) {
-        return toggleHudKey.matchesKey(keyCode, 0);
-    }
-
-    public static boolean isMenuToggleKey(int keyCode) {
-        return toggleMenuKey.matchesKey(keyCode, 0);
     }
 }

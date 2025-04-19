@@ -1,5 +1,6 @@
 package net.natga999.wynn_ai.menus;
 
+import net.minecraft.client.util.InputUtil;
 import net.natga999.wynn_ai.TestRender;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
@@ -13,10 +14,12 @@ import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
 
+import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class MainMenuScreen extends Screen {
     private static final Logger LOGGER = LoggerFactory.getLogger(MainMenuScreen.class);
@@ -277,23 +280,24 @@ public class MainMenuScreen extends Screen {
         int windowColor = 0xAA000000; // Semi-transparent black
         int borderColor = 0xFFFFFFFF; // White border
 
-        // Draw window background and border
-        context.fill(windowX, windowY, windowX + windowWidth, windowY + windowHeight, windowColor);
-        context.drawBorder(windowX, windowY, windowWidth, windowHeight, borderColor);
+        if (RenderManager.isMenuVisible()) {
+            // Draw window background and border
+            context.fill(windowX, windowY, windowX + windowWidth, windowY + windowHeight, windowColor);
+            context.drawBorder(windowX, windowY, windowWidth, windowHeight, borderColor);
 
-        // Render title at the top of the window
-        context.drawText(
-                this.textRenderer,
-                this.title,
-                windowX + (windowWidth / 2) - (this.textRenderer.getWidth(this.title) / 2),
-                windowY + 6,
-                0xFFFFFF,
-                true
-        );
+            // Render title at the top of the window
+            context.drawText(
+                    this.textRenderer,
+                    this.title,
+                    windowX + (windowWidth / 2) - (this.textRenderer.getWidth(this.title) / 2),
+                    windowY + 6,
+                    0xFFFFFF,
+                    true
+            );
 
-        // Render all widgets
-        super.render(context, mouseX, mouseY, delta);
-
+            // Render all widgets
+            super.render(context, mouseX, mouseY, delta);
+        }
     }
 
     @Override
@@ -412,19 +416,69 @@ public class MainMenuScreen extends Screen {
         // Do nothing to prevent Minecraft's default blurred background rendering
     }
 
+    // Add these methods to allow player movement while the menu is open
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // Close screen when pressing the toggle key again
-        if (toggleKey.matchesKey(keyCode, scanCode)) {
+        // Handle only ESC and your toggle key
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE || toggleKey.matchesKey(keyCode, scanCode)) {
             this.close();
             return true;
         }
 
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        // Allow the game to handle movement keys (WASD, space, etc.)
+        return false; // Return false for key presses to pass through to the game
+    }
+
+    @Override
+    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        // Allow all key releases to pass through
+        return false;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+
+        // Get Minecraft client instance
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+
+        // Make sure the mouse is locked (so player can move camera)
+        if (!client.mouse.isCursorLocked()) {
+            //client.mouse.lockCursor(); // This re-locks the mouse to the game window
+        }
+
+        // Unpause key bindings for movement
+        KeyBinding[] movementKeys = {
+                client.options.forwardKey,
+                client.options.leftKey,
+                client.options.backKey,
+                client.options.rightKey,
+                client.options.jumpKey,
+                client.options.sneakKey
+        };
+
+        // Set these keys as unpressed
+        for (KeyBinding key : movementKeys) {
+            // Get the actual key code based on the binding
+            int keyCode = key.getDefaultKey().getCode();
+
+            // Check if the key is pressed and update the binding state
+            boolean isPressed = GLFW.glfwGetKey(client.getWindow().getHandle(), keyCode) == GLFW.GLFW_PRESS;
+            KeyBinding.setKeyPressed(InputUtil.fromKeyCode(keyCode, 0), isPressed);
+
+            // If the key is pressed, force it to be processed
+            if (isPressed) {
+                KeyBinding.onKeyPressed(InputUtil.fromKeyCode(keyCode, 0));
+            }
+        }
     }
 
     @Override
     public void close() {
+        RenderManager.toggleMenuVisible();
+        assert Objects.requireNonNull(client).player != null;
+        assert client.player != null;
+        client.player.sendMessage(Text.literal("Persistent menu: " + (RenderManager.isMenuVisible() ? "ON" : "OFF")), true);
         assert this.client != null;
         this.client.setScreen(null);
     }

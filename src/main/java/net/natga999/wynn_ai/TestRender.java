@@ -1,6 +1,7 @@
 package net.natga999.wynn_ai;
 
 import net.natga999.wynn_ai.detector.EntityDetector;
+import net.natga999.wynn_ai.input.MouseInputHandler;
 import net.natga999.wynn_ai.keys.KeyInputHandler;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
@@ -30,6 +31,9 @@ public class TestRender implements ClientModInitializer {
     private static int detectionRadius = 16; // Radius to detect entities
     private EntityDetector entityDetector;
 
+    private double virtualMouseX = 0;
+    private double virtualMouseY = 0;
+
     // Cache to store nearby entities
     private List<Entity> cachedNearbyEntities = Collections.emptyList();
 
@@ -55,11 +59,15 @@ public class TestRender implements ClientModInitializer {
         // Register key bindings
         KeyInputHandler.register();
 
+        new registerMouseMovement();
+        new MouseInputHandler();
+
         // Register HUD rendering
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             MinecraftClient client = MinecraftClient.getInstance();
             updateCachedNearbyEntities(client);
             RenderManager.getInstance().renderEntityHud(drawContext, client, cachedNearbyEntities);
+            RenderManager.getInstance().renderMenuWithName(drawContext, client, "MainMenu");
         });
 
         // Register rendering event callback

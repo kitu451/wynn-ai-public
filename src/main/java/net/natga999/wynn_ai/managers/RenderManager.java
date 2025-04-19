@@ -1,5 +1,6 @@
 package net.natga999.wynn_ai.managers;
 
+import net.natga999.wynn_ai.menus.huds.MenuHUD;
 import net.natga999.wynn_ai.render.BoxMarkerRenderer;
 import net.natga999.wynn_ai.render.ItemMarkerRenderer;
 import net.natga999.wynn_ai.render.MarkerRenderer;
@@ -28,6 +29,10 @@ public class RenderManager {
     // Rendering configuration flags
     private static boolean hudEnabled = false;
     private static boolean boxesEnabled = false;
+
+    private static boolean menuVisible = false;
+    private static boolean menuHUDVisible = false;
+    private static boolean interactionMode = false;
 
     // Renderers
     private final RenderHUD hudRenderer = new RenderHUD();
@@ -74,13 +79,69 @@ public class RenderManager {
         boxesEnabled = !boxesEnabled;
     }
 
+    // Menu HUD rendering management
+    public static boolean isMenuHUDEnabled() {
+        return menuHUDVisible;
+    }
+    public static void setMenuHUDEnabled(boolean value) {
+        menuHUDVisible = value;
+    }
+    public void toggleMenuHUD() {
+        menuHUDVisible = !menuHUDVisible;
+    }
+
+    // Menu visibility
+    public static boolean isMenuVisible() {
+        return menuVisible;
+    }
+
+    public static void toggleMenuVisible() {
+        menuVisible = !menuVisible;
+    }
+
+    // Interaction mode (cursor unlock)
+    public static boolean isInteractionMode() {
+        return interactionMode;
+    }
+
+    public static void toggleInteractionMode() {
+        interactionMode = !interactionMode;
+
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (interactionMode) {
+            client.mouse.unlockCursor();
+        } else {
+            client.mouse.lockCursor();
+        }
+    }
+
+    /**
+     * Dynamically render a MenuHUD by name.
+     * @param drawContext The DrawContext of the game.
+     * @param client The MinecraftClient instance.
+     * @param menuName The name of the MenuHUD to render.
+     */
+    public void renderMenuWithName(DrawContext drawContext, MinecraftClient client, String menuName) {
+        if (!menuHUDVisible) {
+            return; // Do not process if the menu HUD is disabled
+        }
+
+        if (menuName == null || menuName.isEmpty()) {
+            LOGGER.warn("Menu name is null or empty.");
+            return;
+        }
+
+        MenuHUD menuHUD = new MenuHUD(menuName); // Instantiate MenuHUD with the given name
+        menuHUD.renderMenuHUD(drawContext, client); // Render the MenuHUD
+    }
+
     /**
      * Render the HUD with entity information
      */
     public void renderEntityHud(DrawContext drawContext, MinecraftClient client, List<Entity> entities) {
-        if (!hudEnabled || entities.isEmpty()) return;
-
-        hudRenderer.renderDetectedEntitiesOnHud(drawContext, client, entities, entities.size());
+        if (hudEnabled && !entities.isEmpty()) {
+            hudRenderer.renderDetectedEntitiesOnHud(drawContext, client, entities, entities.size());
+        }
     }
 
     /**
