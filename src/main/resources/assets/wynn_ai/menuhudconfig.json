@@ -3,50 +3,124 @@
     "MainMenu": {
       "x": 50,
       "y": 50,
-      "windowWidth": 100,
-      "windowHeight": 130,
+      "windowWidth": 120,
+      "windowHeight": 155,
+      "title": "Main Menu",
       "widgets": [
         {
-          "type": "button",
-          "x": 10,
-          "y": 105,
-          "width": 80,
+          "type": "slider",
+          "x": 5,
+          "y": 25,
+          "width": 110,
           "height": 20,
-          "text": "Close",
-          "action": "close"
+          "text": "Detect radius",
+          "action": "detectionRadius",
+          "value": 16,
+          "min": 0,
+          "max": 500,
+          "step": 1
         },
         {
           "type": "checkbox",
-          "x": 10,
-          "y": 25,
-          "width": 80,
+          "x": 5,
+          "y": 50,
+          "width": 110,
           "height": 20,
-          "text": "Check",
+          "text": "show HUD",
           "action": "showHUD",
           "checked": false
         },
         {
           "type": "checkbox",
-          "x": 10,
-          "y": 50,
-          "width": 80,
+          "x": 5,
+          "y": 75,
+          "width": 110,
           "height": 20,
-          "text": "Check",
+          "text": "show boxes",
           "action": "showBoxes",
           "checked": false
         },
         {
           "type": "checkbox",
-          "x": 10,
-          "y": 75,
-          "width": 80,
+          "x": 5,
+          "y": 100,
+          "width": 110,
           "height": 20,
-          "text": "Check",
+          "text": "show outlines",
           "action": "showOutlines",
           "checked": false
+        },
+        {
+          "type": "button",
+          "x": 5,
+          "y": 130,
+          "width": 110,
+          "height": 20,
+          "text": "Close",
+          "action": "close"
         }
-      ],
-      "title": "Main Menu"
+      ]
+    },
+    "MainMenu2": {
+      "x": 300,
+      "y": 50,
+      "windowWidth": 120,
+      "windowHeight": 155,
+      "title": "Main Menu",
+      "widgets": [
+        {
+          "type": "slider",
+          "x": 5,
+          "y": 25,
+          "width": 110,
+          "height": 20,
+          "text": "Detect radius",
+          "action": "detectionRadius",
+          "value": 16,
+          "min": 0,
+          "max": 500,
+          "step": 1
+        },
+        {
+          "type": "checkbox",
+          "x": 5,
+          "y": 50,
+          "width": 110,
+          "height": 20,
+          "text": "show HUD",
+          "action": "showHUD",
+          "checked": false
+        },
+        {
+          "type": "checkbox",
+          "x": 5,
+          "y": 75,
+          "width": 110,
+          "height": 20,
+          "text": "show boxes",
+          "action": "showBoxes",
+          "checked": false
+        },
+        {
+          "type": "checkbox",
+          "x": 5,
+          "y": 100,
+          "width": 110,
+          "height": 20,
+          "text": "show outlines",
+          "action": "showOutlines",
+          "checked": false
+        },
+        {
+          "type": "button",
+          "x": 5,
+          "y": 130,
+          "width": 110,
+          "height": 20,
+          "text": "Close",
+          "action": "close"
+        }
+      ]
     }
   }
 }

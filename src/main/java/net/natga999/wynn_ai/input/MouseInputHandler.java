@@ -1,9 +1,8 @@
 package net.natga999.wynn_ai.input;
 
-import net.natga999.wynn_ai.managers.RenderManager;
-import net.natga999.wynn_ai.menus.huds.MenuHUD;
-
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.natga999.wynn_ai.managers.MenuHUDManager;
+import net.natga999.wynn_ai.managers.RenderManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,9 +10,6 @@ import static org.lwjgl.glfw.GLFW.*;
 
 public class MouseInputHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(MouseInputHandler.class);
-
-    private final String currentMenu = "MainMenu"; // Replace dynamically if needed
-    private final MenuHUD menuHUD = new MenuHUD(currentMenu);
     private boolean wasMousePressedLastTick = false;
 
     public MouseInputHandler() {
@@ -35,12 +31,22 @@ public class MouseInputHandler {
             double mouseX = xPos[0] / scale;
             double mouseY = yPos[0] / scale;
 
-            // Check if left mouse button is pressed
             boolean leftPressed = glfwGetMouseButton(windowHandle, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
 
-            if (leftPressed && !wasMousePressedLastTick) {
-                LOGGER.info("Mouse clicked at: x={} y={}", mouseX, mouseY);
-                menuHUD.onMouseClick(mouseX, mouseY);
+            if (leftPressed) {
+                if (!wasMousePressedLastTick) {
+                    // Click
+                    MenuHUDManager.handleClick(mouseX, mouseY);
+                    LOGGER.debug("Mouse clicked at: x={} y={}", mouseX, mouseY);
+                } else {
+                    // Drag
+                    MenuHUDManager.handleDrag(mouseX, mouseY);
+                    LOGGER.trace("Mouse dragging at: x={} y={}", mouseX, mouseY);
+                }
+            } else if (wasMousePressedLastTick) {
+                // Release
+                MenuHUDManager.handleRelease();
+                LOGGER.debug("Mouse released");
             }
 
             wasMousePressedLastTick = leftPressed;

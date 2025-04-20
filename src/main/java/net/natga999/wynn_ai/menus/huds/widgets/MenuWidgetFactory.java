@@ -24,6 +24,19 @@ public class MenuWidgetFactory {
             Boolean checked = (Boolean) data.get("checked");
             return new CheckBoxWidget(x, y, width, height, text, action, checked);
         }
-        return null; // or throw exception
+        if ("slider".equalsIgnoreCase(type)) {
+            int x = (int) data.get("x");
+            int y = (int) data.get("y");
+            int width = (int) data.get("width");
+            int height = (int) data.get("height");
+            String text = (String) data.get("text");
+            String action = (String) data.get("action");
+            float value = ((Number) data.get("value")).floatValue();
+            float min = ((Number) data.get("min")).floatValue();
+            float max = ((Number) data.get("max")).floatValue();
+            float step = ((Number) data.get("step")).floatValue();
+            return new SliderWidget(x, y, width, height, text, action, value, min, max, step);
+        }
+        return null;
     }
 }

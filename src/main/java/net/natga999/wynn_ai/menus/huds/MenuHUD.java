@@ -1,11 +1,9 @@
 package net.natga999.wynn_ai.menus.huds;
 
+import net.natga999.wynn_ai.TestRender;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
-import net.natga999.wynn_ai.menus.huds.widgets.ButtonWidget;
-import net.natga999.wynn_ai.menus.huds.widgets.CheckBoxWidget;
-import net.natga999.wynn_ai.menus.huds.widgets.MenuWidget;
-import net.natga999.wynn_ai.menus.huds.widgets.MenuWidgetFactory;
+import net.natga999.wynn_ai.menus.huds.widgets.*;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -17,6 +15,14 @@ import java.util.Map;
 public class MenuHUD {
     private final List<MenuWidget> widgets = new ArrayList<>();
     private final MenuHUDConfig config;
+    private SliderWidget activeSlider = null;
+
+    private boolean dragging = false;
+    private int dragOffsetX = 0;
+    private int dragOffsetY = 0;
+    private double dragStartX = 0;
+    private double dragStartY = 0;
+    private boolean movedFarEnoughToDrag = false;
 
     public MenuHUD(String menuName) {
         this.config = MenuHUDLoader.getMenuHUDConfig(menuName);
@@ -46,24 +52,86 @@ public class MenuHUD {
         }
     }
 
+    public boolean isMouseOver(double mouseX, double mouseY) {
+        return mouseX >= config.x && mouseX <= config.x + config.windowWidth &&
+                mouseY >= config.y && mouseY <= config.y + config.windowHeight;
+    }
+
     public void onMouseClick(double mouseX, double mouseY) {
+        dragStartX = mouseX;
+        dragStartY = mouseY;
+        dragOffsetX = (int) (mouseX - config.x);
+        dragOffsetY = (int) (mouseY - config.y);
+        dragging = true;
+        movedFarEnoughToDrag = false;
+
         MenuHUDConfig config = MenuHUDLoader.getMenuHUDConfig("MainMenu"); // or dynamic name
         if (config == null) return;
+        int baseX = config.x;
+        int baseY = config.y;
+
+        // Reset any active slider
+        activeSlider = null;
 
         for (Map<String, Object> widgetData : config.widgets) {
             MenuWidget widget = MenuWidgetFactory.createWidget(widgetData);
             if (widget instanceof ButtonWidget button) {
-                if (button.isMouseOver(mouseX, mouseY, config.x, config.y)) {
+                if (button.isMouseOver(mouseX, mouseY, baseX, baseY)) {
                     handleAction(button.getAction());
                 }
             }
-            if (widget instanceof CheckBoxWidget checkBox) {
-                if (checkBox.isMouseOver(mouseX, mouseY, config.x, config.y)) {
+            else if (widget instanceof CheckBoxWidget checkBox) {
+                if (checkBox.isMouseOver(mouseX, mouseY, baseX, baseY)) {
                     checkBox.setChecked(!checkBox.isChecked());
                     handleAction(checkBox.getAction());
                 }
             }
+            else if (widget instanceof SliderWidget slider) {
+                if (slider.isMouseOver(mouseX, mouseY, baseX, baseY)) {
+                    activeSlider = slider;
+                    slider.setDragging(true);
+                    slider.onDrag(mouseX, baseX);
+                    handleSliderAction(slider.getAction(), slider.getValue());
+                }
+            }
+
         }
+    }
+
+    public void onMouseHold(double mouseX, double mouseY) {
+        MenuHUDConfig config = MenuHUDLoader.getMenuHUDConfig("MainMenu"); // or dynamic name
+        if (config == null) return;
+
+        if (dragging && activeSlider == null) {
+            double dx = Math.abs(mouseX - dragStartX);
+            double dy = Math.abs(mouseY - dragStartY);
+            if (!movedFarEnoughToDrag && (dx > 5 || dy > 5)) {
+                movedFarEnoughToDrag = true;
+            }
+
+            if (movedFarEnoughToDrag) {
+                config.x = (int) mouseX - dragOffsetX;
+                config.y = (int) mouseY - dragOffsetY;
+            }
+        }
+
+        if (activeSlider != null) {
+            activeSlider.onDrag(mouseX, config.x);
+            handleSliderAction(activeSlider.getAction(), activeSlider.getValue());
+        }
+    }
+
+    public void onMouseRelease() {
+        dragging = false;
+        movedFarEnoughToDrag = false;
+        if (activeSlider != null) {
+            activeSlider.setDragging(false);
+            activeSlider = null;
+        }
+    }
+
+    public boolean isDragging() {
+        return dragging;
     }
 
     private void handleAction(String action) {
@@ -80,5 +148,11 @@ public class MenuHUD {
             EntityOutlinerManager.toggleOutlining();
         }
         // Add more actions here later
+    }
+
+    private void handleSliderAction(String action, float value) {
+        if ("detectionRadius".equalsIgnoreCase(action)) {
+            TestRender.setDetectionRadius((int) value);
+        }
     }
 }

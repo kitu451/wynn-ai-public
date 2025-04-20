@@ -14,6 +14,7 @@ public class MenuHUDLoader {
 
     // Tracks current state of checkboxes (action → checked)
     private static final Map<String, Boolean> checkboxStates = new HashMap<>();
+    private static final Map<String, Float> sliderValues = new HashMap<>();
 
     static {
         try (InputStream inputStream = MenuHUDLoader.class.getClassLoader().getResourceAsStream("assets/wynn_ai/menuhudconfig.json")) {
@@ -33,6 +34,14 @@ public class MenuHUDLoader {
         } catch (Exception e) {
             LOGGER.error("Failed to load menu layouts", e);
         }
+    }
+
+    public static float getSliderValueOrDefault(String action, float defaultValue) {
+        return sliderValues.getOrDefault(action, defaultValue);
+    }
+
+    public static void setSliderValue(String action, float value) {
+        sliderValues.put(action, value);
     }
 
     public static boolean getCheckboxState(String action) {

@@ -180,16 +180,12 @@ public class MainMenuScreen extends Screen {
 
         LOGGER.info("Button action: {}", action);
 
-        switch (action) {
-            case "close":
-                this.close();
-                break;
+        if (action.equals("close")) {
+            this.close();
 
-            // Add other actions as needed
-
-            default:
-                LOGGER.warn("Unknown button action: {}", action);
-                break;
+            // Add other actions as needed (change to case if you will add)
+        } else {
+            LOGGER.warn("Unknown button action: {}", action);
         }
     }
 
@@ -214,7 +210,7 @@ public class MainMenuScreen extends Screen {
             // Add other actions as needed
 
             default:
-                LOGGER.warn("Unknown button action: {}", action);
+                LOGGER.warn("Unknown checkbox action: {}", action);
                 break;
         }
     }
@@ -224,28 +220,23 @@ public class MainMenuScreen extends Screen {
 
         LOGGER.info("Slider action: {}, value: {}", action, value);
 
-        switch (action) {
-            case "detectionRadius":
-                // Determine the current detection radius
-                int currentRadius = TestRender.getDetectionRadius();
+        if (action.equals("detectionRadius")) {// Determine the current detection radius
+            int currentRadius = TestRender.getDetectionRadius();
 
-                // Recalculate slider value if necessary
-                if (value == 0.0) { // Assume slider starts at 0.0 if unset
-                    value = normalizeRadius(currentRadius);
-                }
+            // Recalculate slider value if necessary
+            if (value == 0.0) { // Assume slider starts at 0.0 if unset
+                value = normalizeRadius(currentRadius);
+            }
 
-                // Update the detection radius with the slider value
-                int updatedRadius = denormalizeRadius(value);
-                TestRender.setDetectionRadius(updatedRadius);
+            // Update the detection radius with the slider value
+            int updatedRadius = denormalizeRadius(value);
+            TestRender.setDetectionRadius(updatedRadius);
 
-                LOGGER.info("Detection radius updated to: {}", updatedRadius);
-                break;
+            LOGGER.info("Detection radius updated to: {}", updatedRadius);
 
-            // Add other slider-related actions if needed
-
-            default:
-                LOGGER.warn("Unknown slider action: {}", action);
-                break;
+            // Add other slider-related actions if needed (change to case if you will add)
+        } else {
+            LOGGER.warn("Unknown slider action: {}", action);
         }
     }
 
@@ -441,11 +432,6 @@ public class MainMenuScreen extends Screen {
 
         // Get Minecraft client instance
         net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
-
-        // Make sure the mouse is locked (so player can move camera)
-        if (!client.mouse.isCursorLocked()) {
-            //client.mouse.lockCursor(); // This re-locks the mouse to the game window
-        }
 
         // Unpause key bindings for movement
         KeyBinding[] movementKeys = {

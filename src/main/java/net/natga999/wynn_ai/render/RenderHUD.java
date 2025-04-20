@@ -61,12 +61,12 @@ public class RenderHUD {
                     }
 
                     // Dynamically calculate the distance to the player
-                    int distance = (int) entity.distanceTo(client.player);
+                    float distance = (float) entity.distanceTo(client.player);
 
                     // Use cached values for rendering
                     drawContext.drawText(
                         client.textRenderer,
-                        cachedInfo.displayName + " (" + distance + "m)", // Combine cached name and dynamic distance
+                        cachedInfo.displayName + " (" + String.format("%.2f", distance) + "m)", // Combine cached name and dynamic distance
                         centerX - (cachedInfo.nameWidth / 2), // Align text to the center using cached width
                         yOffset,
                         DEFAULT_TEXT_COLOR, // Text color: white

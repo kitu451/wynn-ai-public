@@ -45,7 +45,7 @@ public class TestRender implements ClientModInitializer {
             LayoutManager.loadLayouts("assets/wynn_ai/menuconfig.json");
             LOGGER.info("Menu layouts loaded successfully");
         } catch (IOException e) {
-            LOGGER.error("Failed to load menu layouts");
+            LOGGER.error("Failed to load menu layouts: {}", String.valueOf(e));
         }
 
         // Initialize renderer managers
@@ -75,23 +75,23 @@ public class TestRender implements ClientModInitializer {
         });
     }
 
-    // Getter for detection radius
-    public static int getDetectionRadius() {
-        return detectionRadius;
-    }
-
     public static List<Entity> getCachedNearbyEntities() {
         return INSTANCE.cachedNearbyEntities;
     }
 
     // Setter for detection radius with validation
     public static void setDetectionRadius(int radius) {
-        // Ensure radius is within reasonable bounds (e.g., between 1 and 512)
-        detectionRadius = Math.max(1, Math.min(512, radius));
+        LOGGER.info("Updating detection radius to: {}", radius);
+        detectionRadius = radius;
 
         if (INSTANCE != null && INSTANCE.entityDetector != null) {
             INSTANCE.entityDetector.updateDetectionRadius(detectionRadius);
         }
+    }
+
+    // Getter for detection radius
+    public static int getDetectionRadius() {
+        return detectionRadius;
     }
 
     private void updateCachedNearbyEntities(MinecraftClient client) {

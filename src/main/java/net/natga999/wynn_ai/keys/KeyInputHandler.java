@@ -1,6 +1,7 @@
 package net.natga999.wynn_ai.keys;
 
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
+import net.natga999.wynn_ai.managers.MenuHUDManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 
 import net.minecraft.client.option.KeyBinding;
@@ -11,6 +12,7 @@ import net.minecraft.text.Text;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.natga999.wynn_ai.menus.MainMenuScreen;
+import net.natga999.wynn_ai.menus.huds.MenuHUD;
 import org.lwjgl.glfw.GLFW;
 
 public class KeyInputHandler {
@@ -67,6 +69,7 @@ public class KeyInputHandler {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (toggleMenuHUDKey.wasPressed()) {
                 RenderManager.getInstance().toggleMenuHUD();
+                MenuHUDManager.registerMenu(new MenuHUD("MainMenu"));
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("Menu HUD: " + (RenderManager.isMenuHUDEnabled() ? "ON" : "OFF")), true);
             }

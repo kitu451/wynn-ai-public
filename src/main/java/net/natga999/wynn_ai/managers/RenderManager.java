@@ -131,8 +131,7 @@ public class RenderManager {
             return;
         }
 
-        MenuHUD menuHUD = new MenuHUD(menuName); // Instantiate MenuHUD with the given name
-        menuHUD.renderMenuHUD(drawContext, client); // Render the MenuHUD
+        MenuHUDManager.renderAll(drawContext, client);
     }
 
     /**
