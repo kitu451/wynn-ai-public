@@ -4,7 +4,7 @@
       "x": 50,
       "y": 50,
       "windowWidth": 120,
-      "windowHeight": 155,
+      "windowHeight": 185,
       "title": "Main Menu",
       "widgets": [
         {
@@ -56,65 +56,13 @@
           "y": 130,
           "width": 110,
           "height": 20,
-          "text": "Close",
-          "action": "close"
-        }
-      ]
-    },
-    "MainMenu2": {
-      "x": 300,
-      "y": 50,
-      "windowWidth": 120,
-      "windowHeight": 155,
-      "title": "Main Menu",
-      "widgets": [
-        {
-          "type": "slider",
-          "x": 5,
-          "y": 25,
-          "width": 110,
-          "height": 20,
-          "text": "Detect radius",
-          "action": "detectionRadius",
-          "value": 16,
-          "min": 0,
-          "max": 500,
-          "step": 1
-        },
-        {
-          "type": "checkbox",
-          "x": 5,
-          "y": 50,
-          "width": 110,
-          "height": 20,
-          "text": "show HUD",
-          "action": "showHUD",
-          "checked": false
-        },
-        {
-          "type": "checkbox",
-          "x": 5,
-          "y": 75,
-          "width": 110,
-          "height": 20,
-          "text": "show boxes",
-          "action": "showBoxes",
-          "checked": false
-        },
-        {
-          "type": "checkbox",
-          "x": 5,
-          "y": 100,
-          "width": 110,
-          "height": 20,
-          "text": "show outlines",
-          "action": "showOutlines",
-          "checked": false
+          "text": "New menu!",
+          "action": "newMenu"
         },
         {
           "type": "button",
           "x": 5,
-          "y": 130,
+          "y": 160,
           "width": 110,
           "height": 20,
           "text": "Close",

@@ -93,19 +93,29 @@ public class KeyInputHandler {
 
             if (toggleBoxesKey.wasPressed()) {
                 RenderManager.getInstance().toggleBox();
+                for (MenuHUD menu : MenuHUDManager.getMenus()) {
+                    menu.toggleCheckbox("showBoxes");
+                }
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("Entity boxes: " + (RenderManager.isBoxEnabled() ? "ON" : "OFF")), true);
             }
 
             if (toggleOutlineKey.wasPressed()) {
+                //to-do: replace logic to json
                 EntityOutlinerManager.outlinedEntityTypes.put(EntityType.ZOMBIE, 0xFF0000);
                 boolean newState = EntityOutlinerManager.toggleOutlining();
+                for (MenuHUD menu : MenuHUDManager.getMenus()) {
+                    menu.toggleCheckbox("showOutlines");
+                }
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("Entity outlining: " + (newState ? "ON" : "OFF")), true);
             }
 
             if (toggleHudKey.wasPressed()) {
                 RenderManager.getInstance().toggleHud();
+                for (MenuHUD menu : MenuHUDManager.getMenus()) {
+                    menu.toggleCheckbox("showHUD");
+                }
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("HUD: " + (RenderManager.isHudEnabled() ? "ON" : "OFF")), true);
             }

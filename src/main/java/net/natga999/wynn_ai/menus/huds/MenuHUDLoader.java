@@ -12,7 +12,7 @@ public class MenuHUDLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(MenuHUDLoader.class);
     private static final Map<String, MenuHUDConfig> loadedHUDMenus = new HashMap<>();
 
-    // Tracks current state of checkboxes (action → checked)
+    // Tracks current state of checkboxes (action → checked) and sliders (action → value)
     private static final Map<String, Boolean> checkboxStates = new HashMap<>();
     private static final Map<String, Float> sliderValues = new HashMap<>();
 

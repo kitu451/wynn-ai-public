@@ -2,6 +2,7 @@ package net.natga999.wynn_ai.menus.huds;
 
 import net.natga999.wynn_ai.TestRender;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
+import net.natga999.wynn_ai.managers.MenuHUDManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.menus.huds.widgets.*;
 
@@ -65,16 +66,15 @@ public class MenuHUD {
         dragging = true;
         movedFarEnoughToDrag = false;
 
-        MenuHUDConfig config = MenuHUDLoader.getMenuHUDConfig("MainMenu"); // or dynamic name
-        if (config == null) return;
+        //MenuHUDConfig config = MenuHUDLoader.getMenuHUDConfig("MainMenu"); // or dynamic name
+        //if (config == null) return;
         int baseX = config.x;
         int baseY = config.y;
 
         // Reset any active slider
         activeSlider = null;
 
-        for (Map<String, Object> widgetData : config.widgets) {
-            MenuWidget widget = MenuWidgetFactory.createWidget(widgetData);
+        for (MenuWidget widget : widgets) {
             if (widget instanceof ButtonWidget button) {
                 if (button.isMouseOver(mouseX, mouseY, baseX, baseY)) {
                     handleAction(button.getAction());
@@ -99,7 +99,7 @@ public class MenuHUD {
     }
 
     public void onMouseHold(double mouseX, double mouseY) {
-        MenuHUDConfig config = MenuHUDLoader.getMenuHUDConfig("MainMenu"); // or dynamic name
+        //MenuHUDConfig config = MenuHUDLoader.getMenuHUDConfig("MainMenu"); // or dynamic name
         if (config == null) return;
 
         if (dragging && activeSlider == null) {
@@ -135,9 +135,6 @@ public class MenuHUD {
     }
 
     private void handleAction(String action) {
-        if ("close".equalsIgnoreCase(action)) {
-            RenderManager.setMenuHUDEnabled(false);
-        }
         if ("showHUD".equalsIgnoreCase(action)) {
             RenderManager.setHudEnabled(!RenderManager.isHudEnabled());
         }
@@ -147,7 +144,22 @@ public class MenuHUD {
         if ("showOutlines".equalsIgnoreCase(action)) {
             EntityOutlinerManager.toggleOutlining();
         }
+        if ("newMenu".equalsIgnoreCase(action)) {
+            MenuHUDManager.registerMenu(new MenuHUD("MainMenu2"));
+        }
+        if ("close".equalsIgnoreCase(action)) {
+            RenderManager.setMenuHUDEnabled(false);
+        }
         // Add more actions here later
+    }
+
+    public void toggleCheckbox(String action) {
+        for (MenuWidget widget : widgets) {
+            if (widget instanceof CheckBoxWidget checkbox && checkbox.getAction().equals(action)) {
+                checkbox.setChecked(!checkbox.isChecked());
+                break;
+            }
+        }
     }
 
     private void handleSliderAction(String action, float value) {

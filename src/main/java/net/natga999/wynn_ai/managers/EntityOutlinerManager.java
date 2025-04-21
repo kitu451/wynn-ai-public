@@ -87,8 +87,14 @@ public class EntityOutlinerManager {
             return true;
         }
 
-        return outlinedEntityTypes.containsKey(entity.getType()) ||
-                outlinedEntities.containsKey(entity.getId());
+        // Restrict outlined entity types to nearby entities
+        if (outlinedEntityTypes.containsKey(entity.getType())
+                && TestRender.getCachedNearbyEntities().contains(entity)) {
+            return true;
+        }
+
+        // Check for manually added specific entities
+        return outlinedEntities.containsKey(entity.getId());
     }
 
     /**
