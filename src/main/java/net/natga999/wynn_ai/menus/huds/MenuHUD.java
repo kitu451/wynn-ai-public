@@ -8,12 +8,16 @@ import net.natga999.wynn_ai.menus.huds.widgets.*;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class MenuHUD {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MenuHUD.class);
+
     private final List<MenuWidget> widgets = new ArrayList<>();
     private final MenuHUDConfig config;
     private SliderWidget activeSlider = null;
@@ -28,7 +32,13 @@ public class MenuHUD {
     public MenuHUD(String menuName) {
         this.config = MenuHUDLoader.getMenuHUDConfig(menuName);
 
-        if (config != null && config.widgets != null) {
+
+        if (this.config == null) {
+            LOGGER.error("[MenuHUD] Failed to load config for: {}", menuName);
+            return;
+        }
+
+        if (config.widgets != null) {
             for (Map<String, Object> widgetData : config.widgets) {
                 MenuWidget widget = MenuWidgetFactory.createWidget(widgetData);
                 if (widget != null) widgets.add(widget);
@@ -54,11 +64,13 @@ public class MenuHUD {
     }
 
     public boolean isMouseOver(double mouseX, double mouseY) {
+        if (config == null) return false; // prevent NPE
         return mouseX >= config.x && mouseX <= config.x + config.windowWidth &&
                 mouseY >= config.y && mouseY <= config.y + config.windowHeight;
     }
 
     public void onMouseClick(double mouseX, double mouseY) {
+        if (config == null) return; // prevent NPE
         dragStartX = mouseX;
         dragStartY = mouseY;
         dragOffsetX = (int) (mouseX - config.x);
@@ -66,12 +78,9 @@ public class MenuHUD {
         dragging = true;
         movedFarEnoughToDrag = false;
 
-        //MenuHUDConfig config = MenuHUDLoader.getMenuHUDConfig("MainMenu"); // or dynamic name
-        //if (config == null) return;
         int baseX = config.x;
         int baseY = config.y;
 
-        // Reset any active slider
         activeSlider = null;
 
         for (MenuWidget widget : widgets) {
@@ -99,7 +108,6 @@ public class MenuHUD {
     }
 
     public void onMouseHold(double mouseX, double mouseY) {
-        //MenuHUDConfig config = MenuHUDLoader.getMenuHUDConfig("MainMenu"); // or dynamic name
         if (config == null) return;
 
         if (dragging && activeSlider == null) {
@@ -166,5 +174,9 @@ public class MenuHUD {
         if ("detectionRadius".equalsIgnoreCase(action)) {
             TestRender.setDetectionRadius((int) value);
         }
+    }
+
+    public String getTitle() {
+        return config != null ? config.title : "Unknown";
     }
 }

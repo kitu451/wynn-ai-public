@@ -18,15 +18,29 @@ public class MenuHUDManager {
         menus.remove(menu);
     }
 
+    public static void clearMenus() {
+        menus.clear();
+    }
+
     public static void renderAll(DrawContext context, MinecraftClient client) {
         for (MenuHUD menu : menus) {
             menu.renderMenuHUD(context, client);
         }
     }
 
+    public static boolean menuExists(String title) {
+        for (MenuHUD menu : menus) {
+            if (menu.getTitle().equals(title)) { // You handle null safely inside MenuHUD
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void handleClick(double mouseX, double mouseY) {
         for (int i = menus.size() - 1; i >= 0; i--) {
             MenuHUD menu = menus.get(i);
+            if (menu == null) continue;
             if (menu.isMouseOver(mouseX, mouseY)) {
                 menu.onMouseClick(mouseX, mouseY);
 
@@ -41,6 +55,7 @@ public class MenuHUDManager {
     public static void handleDrag(double mouseX, double mouseY) {
         for (int i = menus.size() - 1; i >= 0; i--) {
             MenuHUD menu = menus.get(i);
+            if (menu == null) continue;
             if (menu.isDragging()) {
                 menu.onMouseHold(mouseX, mouseY);
                 break;

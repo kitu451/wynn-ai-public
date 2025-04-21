@@ -68,8 +68,14 @@ public class KeyInputHandler {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (toggleMenuHUDKey.wasPressed()) {
+                if (!MenuHUDManager.menuExists("Main Menu")) {
+                    MenuHUD menu = new MenuHUD("MainMenu");
+                    if (!menu.getTitle().equals("Unknown")) {
+                        MenuHUDManager.registerMenu(menu);
+                    }
+                }
+
                 RenderManager.getInstance().toggleMenuHUD();
-                MenuHUDManager.registerMenu(new MenuHUD("MainMenu"));
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("Menu HUD: " + (RenderManager.isMenuHUDEnabled() ? "ON" : "OFF")), true);
             }
