@@ -14,8 +14,15 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.natga999.wynn_ai.menus.MainMenuScreen;
 import net.natga999.wynn_ai.menus.huds.MenuHUD;
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static net.natga999.wynn_ai.menus.huds.MenuHUDLoader.setCheckboxState;
 
 public class KeyInputHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(KeyInputHandler.class);
+
     private static KeyBinding toggleInteractionModeKey;
     private static KeyBinding togglePersistentMenuKey;
     private static KeyBinding toggleMenuHUDKey;
@@ -68,10 +75,11 @@ public class KeyInputHandler {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (toggleMenuHUDKey.wasPressed()) {
-                if (!MenuHUDManager.menuExists("Main Menu")) {
+                if (MenuHUDManager.hasNoMenus()) {
                     MenuHUD menu = new MenuHUD("MainMenu");
                     if (!menu.getTitle().equals("Unknown")) {
-                        MenuHUDManager.registerMenu(menu);
+                        MenuHUD newMenu = MenuHUD.createNewInstance("MainMenu"); // base name
+                        MenuHUDManager.registerMenu(newMenu);
                     }
                 }
 
@@ -91,25 +99,43 @@ public class KeyInputHandler {
                 client.player.sendMessage(Text.literal("Persistent menu: " + (RenderManager.isMenuVisible() ? "ON" : "OFF")), true);
             }
 
-            if (toggleInteractionModeKey.wasPressed()) {
-                RenderManager.toggleInteractionMode();
-                assert client.player != null;
-                client.player.sendMessage(Text.literal("Mouse interaction: " + (RenderManager.isInteractionMode() ? "ON" : "OFF")), true);
+            if (toggleInteractionModeKey.isPressed()) {
+                if (!RenderManager.isInteractionMode()) {
+                    RenderManager.setInteractionMode(true);
+                    LOGGER.error("Interaction mode enabled");
+                    assert client.player != null;
+                    client.player.sendMessage(Text.literal("Mouse interaction: " + (RenderManager.isInteractionMode() ? "ON" : "OFF")), true);
+                }
+            } else {
+                if (RenderManager.isInteractionMode()) {
+                    RenderManager.setInteractionMode(false);
+                    LOGGER.error("Interaction mode disabled");
+                    assert client.player != null;
+                    client.player.sendMessage(Text.literal("Mouse interaction: " + (RenderManager.isInteractionMode() ? "ON" : "OFF")), true);
+                }
             }
 
             if (toggleBoxesKey.wasPressed()) {
                 RenderManager.getInstance().toggleBox();
+                boolean newState = RenderManager.isBoxEnabled();
+
+                setCheckboxState("showBoxes", newState);
+
                 for (MenuHUD menu : MenuHUDManager.getMenus()) {
                     menu.toggleCheckbox("showBoxes");
                 }
                 assert client.player != null;
-                client.player.sendMessage(Text.literal("Entity boxes: " + (RenderManager.isBoxEnabled() ? "ON" : "OFF")), true);
+                client.player.sendMessage(Text.literal("Entity boxes: " + (newState ? "ON" : "OFF")), true);
             }
 
             if (toggleOutlineKey.wasPressed()) {
                 //to-do: replace logic to json
                 EntityOutlinerManager.outlinedEntityTypes.put(EntityType.ZOMBIE, 0xFF0000);
-                boolean newState = EntityOutlinerManager.toggleOutlining();
+                EntityOutlinerManager.toggleOutlining();
+                boolean newState = EntityOutlinerManager.isOutliningEnabled();
+
+                setCheckboxState("showOutlines", newState);
+
                 for (MenuHUD menu : MenuHUDManager.getMenus()) {
                     menu.toggleCheckbox("showOutlines");
                 }
@@ -119,11 +145,15 @@ public class KeyInputHandler {
 
             if (toggleHudKey.wasPressed()) {
                 RenderManager.getInstance().toggleHud();
+                boolean newState = RenderManager.isHudEnabled();
+
+                setCheckboxState("showHUD", newState);
+
                 for (MenuHUD menu : MenuHUDManager.getMenus()) {
                     menu.toggleCheckbox("showHUD");
                 }
                 assert client.player != null;
-                client.player.sendMessage(Text.literal("HUD: " + (RenderManager.isHudEnabled() ? "ON" : "OFF")), true);
+                client.player.sendMessage(Text.literal("HUD: " + (newState ? "ON" : "OFF")), true);
             }
         });
     }

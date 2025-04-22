@@ -31,6 +31,13 @@ dependencies {
     runtimeOnly 'ch.qos.logback:logback-classic:1.4.12'
 
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation "com.fasterxml.jackson.core:jackson-core:2.15.2"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:2.15.2"
+
+    // Shade Jackson so it’s available at runtime:
+    include "com.fasterxml.jackson.core:jackson-databind:2.15.2"
+    include "com.fasterxml.jackson.core:jackson-core:2.15.2"
+    include "com.fasterxml.jackson.core:jackson-annotations:2.15.2"
 }
 
 processResources {
@@ -57,7 +64,6 @@ tasks.withType(JavaCompile).configureEach {
         it.options.release.set(targetJavaVersion)
     }
 }
-
 java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     if (JavaVersion.current() < javaVersion) {

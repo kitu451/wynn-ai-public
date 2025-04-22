@@ -31,15 +31,13 @@ public class EntityOutlinerManager {
     public static void setOutliningEnabled(boolean value) {
         outlineAllEntities = value;
     }
-    public static boolean toggleOutlining() {
+    public static void toggleOutlining() {
         outlineAllEntities = !outlineAllEntities;
 
         if (!outlineAllEntities) {
             outlinedEntityTypes.clear();
             outlinedEntities.clear();
         }
-
-        return outlineAllEntities;
     }
 
     /**

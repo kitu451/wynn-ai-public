@@ -19,6 +19,8 @@ public class MenuHUD {
     private static final Logger LOGGER = LoggerFactory.getLogger(MenuHUD.class);
 
     private final List<MenuWidget> widgets = new ArrayList<>();
+    private final String menuId;
+    private final String baseMenuName;
     private final MenuHUDConfig config;
     private SliderWidget activeSlider = null;
 
@@ -29,12 +31,20 @@ public class MenuHUD {
     private double dragStartY = 0;
     private boolean movedFarEnoughToDrag = false;
 
-    public MenuHUD(String menuName) {
-        this.config = MenuHUDLoader.getMenuHUDConfig(menuName);
+    public MenuHUD(String menuId) {
+        this.menuId = menuId;
+        this.baseMenuName = menuId.contains("#") ? menuId.substring(0, menuId.indexOf('#')) : menuId;
 
+        // Clone the config to allow independent x/y etc
+        MenuHUDConfig baseConfig = MenuHUDLoader.getMenuHUDConfig(baseMenuName);
+        if (baseConfig != null) {
+            this.config = cloneConfig(baseConfig); // deep copy
+        } else {
+            this.config = null;
+        }
 
         if (this.config == null) {
-            LOGGER.error("[MenuHUD] Failed to load config for: {}", menuName);
+            LOGGER.error("[MenuHUD] Failed to load config for: {}", menuId);
             return;
         }
 
@@ -153,10 +163,14 @@ public class MenuHUD {
             EntityOutlinerManager.toggleOutlining();
         }
         if ("newMenu".equalsIgnoreCase(action)) {
-            MenuHUDManager.registerMenu(new MenuHUD("MainMenu2"));
+            MenuHUD newMenu = MenuHUD.createNewInstance("MainMenu2"); // base name
+            newMenu.getConfig().x = config.x + 10; // Offset slightly to avoid overlapping
+            newMenu.getConfig().y = config.y + 10;
+            MenuHUDManager.registerMenu(newMenu);
+            MenuHUDManager.bringToFront(newMenu);
         }
         if ("close".equalsIgnoreCase(action)) {
-            RenderManager.setMenuHUDEnabled(false);
+            MenuHUDManager.removeMenu(this);
         }
         // Add more actions here later
     }
@@ -176,7 +190,27 @@ public class MenuHUD {
         }
     }
 
+    private MenuHUDConfig cloneConfig(MenuHUDConfig original) {
+        MenuHUDConfig copy = new MenuHUDConfig();
+        copy.x = original.x;
+        copy.y = original.y;
+        copy.windowWidth = original.windowWidth;
+        copy.windowHeight = original.windowHeight;
+        copy.title = original.title;
+        copy.widgets = original.widgets != null ? new ArrayList<>(original.widgets) : null;
+        return copy;
+    }
+
+    public static MenuHUD createNewInstance(String baseName) {
+        String uuid = java.util.UUID.randomUUID().toString().substring(0, 6);
+        return new MenuHUD(baseName + "#" + uuid);
+    }
+
     public String getTitle() {
         return config != null ? config.title : "Unknown";
+    }
+
+    public MenuHUDConfig getConfig() {
+        return config;
     }
 }

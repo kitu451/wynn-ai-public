@@ -104,6 +104,17 @@ public class RenderManager {
         return interactionMode;
     }
 
+    public static void setInteractionMode(Boolean value) {
+        interactionMode = value;
+
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (interactionMode) {
+            client.mouse.unlockCursor();
+        } else {
+            client.mouse.lockCursor();
+        }
+    }
+
     public static void toggleInteractionMode() {
         interactionMode = !interactionMode;
 
