@@ -1,5 +1,7 @@
 package net.natga999.wynn_ai.mixin;
 
+import net.natga999.wynn_ai.managers.EntityOutlinerManager;
+
 import net.minecraft.client.render.OutlineVertexConsumerProvider;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.WorldRenderer;
@@ -8,7 +10,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.scoreboard.AbstractTeam;
-import net.natga999.wynn_ai.managers.EntityOutlinerManager;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

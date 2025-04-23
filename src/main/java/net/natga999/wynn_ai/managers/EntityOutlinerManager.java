@@ -1,8 +1,9 @@
 package net.natga999.wynn_ai.managers;
 
+import net.natga999.wynn_ai.TestRender;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.natga999.wynn_ai.TestRender;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -114,5 +115,4 @@ public class EntityOutlinerManager {
         // Default color
         return DEFAULT_OUTLINE_COLOR;
     }
-
 }

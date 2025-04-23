@@ -1,8 +1,10 @@
 package net.natga999.wynn_ai.input;
 
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.natga999.wynn_ai.managers.MenuHUDManager;
 import net.natga999.wynn_ai.managers.RenderManager;
+
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

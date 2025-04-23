@@ -1,30 +1,28 @@
-package net.natga999.wynn_ai.keys;
+package net.natga999.wynn_ai.input;
 
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.MenuHUDManager;
 import net.natga999.wynn_ai.managers.RenderManager;
+import net.natga999.wynn_ai.menus.MenuHUD;
+
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.EntityType;
 import net.minecraft.text.Text;
 
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.natga999.wynn_ai.menus.MainMenuScreen;
-import net.natga999.wynn_ai.menus.huds.MenuHUD;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static net.natga999.wynn_ai.menus.huds.MenuHUDLoader.setCheckboxState;
+import static net.natga999.wynn_ai.menus.MenuHUDLoader.setCheckboxState;
 
 public class KeyInputHandler {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyInputHandler.class);
 
     private static KeyBinding toggleInteractionModeKey;
-    private static KeyBinding togglePersistentMenuKey;
     private static KeyBinding toggleMenuHUDKey;
     private static KeyBinding toggleBoxesKey;
     private static KeyBinding toggleOutlineKey;
@@ -42,13 +40,6 @@ public class KeyInputHandler {
                 "key.wynn_ai.toggle_interaction_mode",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_8,
-                "category.wynn_ai.keys"
-        ));
-
-        togglePersistentMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.wynn_ai.toggle_persistent_menu",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_KP_9,
                 "category.wynn_ai.keys"
         ));
 
@@ -76,9 +67,13 @@ public class KeyInputHandler {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (toggleMenuHUDKey.wasPressed()) {
                 if (MenuHUDManager.hasNoMenus()) {
+                    if (RenderManager.isMenuHUDEnabled()) {
+                        RenderManager.getInstance().toggleMenuHUD();
+                    }
                     MenuHUD menu = new MenuHUD("MainMenu");
                     if (!menu.getTitle().equals("Unknown")) {
                         MenuHUD newMenu = MenuHUD.createNewInstance("MainMenu"); // base name
+                        LOGGER.debug("[MenuHUDManager] Default menu created: MainMenu{}", newMenu.getMenuId());
                         MenuHUDManager.registerMenu(newMenu);
                     }
                 }
@@ -88,28 +83,17 @@ public class KeyInputHandler {
                 client.player.sendMessage(Text.literal("Menu HUD: " + (RenderManager.isMenuHUDEnabled() ? "ON" : "OFF")), true);
             }
 
-            if (togglePersistentMenuKey.wasPressed()) {
-                RenderManager.toggleMenuVisible();
-                assert client.player != null;
-                if (client.currentScreen == null) {
-                    client.setScreen(new MainMenuScreen(Text.of("WYNN AI Menu"),togglePersistentMenuKey, "MainMenu"));
-                } else if (client.currentScreen instanceof MainMenuScreen) {
-                    client.setScreen(null);
-                }
-                client.player.sendMessage(Text.literal("Persistent menu: " + (RenderManager.isMenuVisible() ? "ON" : "OFF")), true);
-            }
-
             if (toggleInteractionModeKey.isPressed()) {
                 if (!RenderManager.isInteractionMode()) {
                     RenderManager.setInteractionMode(true);
-                    LOGGER.error("Interaction mode enabled");
+                    LOGGER.debug("Interaction mode enabled");
                     assert client.player != null;
                     client.player.sendMessage(Text.literal("Mouse interaction: " + (RenderManager.isInteractionMode() ? "ON" : "OFF")), true);
                 }
             } else {
                 if (RenderManager.isInteractionMode()) {
                     RenderManager.setInteractionMode(false);
-                    LOGGER.error("Interaction mode disabled");
+                    LOGGER.debug("Interaction mode disabled");
                     assert client.player != null;
                     client.player.sendMessage(Text.literal("Mouse interaction: " + (RenderManager.isInteractionMode() ? "ON" : "OFF")), true);
                 }
@@ -124,6 +108,7 @@ public class KeyInputHandler {
                 for (MenuHUD menu : MenuHUDManager.getMenus()) {
                     menu.toggleCheckbox("showBoxes");
                 }
+                LOGGER.debug("Entity boxes: {}", newState ? "ON" : "OFF");
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("Entity boxes: " + (newState ? "ON" : "OFF")), true);
             }
@@ -139,6 +124,7 @@ public class KeyInputHandler {
                 for (MenuHUD menu : MenuHUDManager.getMenus()) {
                     menu.toggleCheckbox("showOutlines");
                 }
+                LOGGER.debug("Entity outlining: {}", newState ? "ON" : "OFF");
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("Entity outlining: " + (newState ? "ON" : "OFF")), true);
             }
@@ -152,6 +138,7 @@ public class KeyInputHandler {
                 for (MenuHUD menu : MenuHUDManager.getMenus()) {
                     menu.toggleCheckbox("showHUD");
                 }
+                LOGGER.debug("HUD: {}", newState ? "ON" : "OFF");
                 assert client.player != null;
                 client.player.sendMessage(Text.literal("HUD: " + (newState ? "ON" : "OFF")), true);
             }

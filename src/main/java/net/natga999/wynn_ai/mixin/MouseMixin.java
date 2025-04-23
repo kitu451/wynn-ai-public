@@ -4,14 +4,17 @@ import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.managers.MenuHUDManager;
 
 import net.minecraft.client.Mouse;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
 import static org.lwjgl.glfw.GLFW.glfwGetCursorPos;
 
 @Mixin(Mouse.class)
 public class MouseMixin {
+
     @Inject(
             method = "onMouseButton",
             at = @At("HEAD"),

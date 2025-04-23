@@ -2,7 +2,7 @@ package net.natga999.wynn_ai;
 
 import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.input.MouseInputHandler;
-import net.natga999.wynn_ai.keys.KeyInputHandler;
+import net.natga999.wynn_ai.input.KeyInputHandler;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 
@@ -14,11 +14,9 @@ import net.minecraft.entity.Entity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
 
-import net.natga999.wynn_ai.menus.LayoutManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,13 +38,6 @@ public class TestRender implements ClientModInitializer {
         INSTANCE = this;
 
         entityDetector = new EntityDetector(detectionRadius);
-
-        try {
-            LayoutManager.loadLayouts("assets/wynn_ai/menuconfig.json");
-            LOGGER.info("Menu layouts loaded successfully");
-        } catch (IOException e) {
-            LOGGER.error("Failed to load menu layouts: {}", String.valueOf(e));
-        }
 
         // Initialize renderer managers
         RenderManager.init();

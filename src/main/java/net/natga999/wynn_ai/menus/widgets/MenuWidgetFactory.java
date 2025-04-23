@@ -1,4 +1,4 @@
-package net.natga999.wynn_ai.menus.huds.widgets;
+package net.natga999.wynn_ai.menus.widgets;
 
 import java.util.Map;
 

@@ -61,7 +61,7 @@ public class RenderHUD {
                     }
 
                     // Dynamically calculate the distance to the player
-                    float distance = (float) entity.distanceTo(client.player);
+                    float distance = entity.distanceTo(client.player);
 
                     // Use cached values for rendering
                     drawContext.drawText(

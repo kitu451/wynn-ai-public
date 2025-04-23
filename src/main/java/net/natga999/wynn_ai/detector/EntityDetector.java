@@ -15,7 +15,7 @@ public class EntityDetector {
         this.detectionRadius = detectionRadius;
     }
 
-    // Add a method to update the detection radius
+    // method to update the detection radius
     public void updateDetectionRadius(int radius) {
         this.detectionRadius = radius;
     }

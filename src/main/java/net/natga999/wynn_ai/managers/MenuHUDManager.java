@@ -1,9 +1,9 @@
 package net.natga999.wynn_ai.managers;
 
+import net.natga999.wynn_ai.menus.MenuHUD;
+
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.natga999.wynn_ai.keys.KeyInputHandler;
-import net.natga999.wynn_ai.menus.huds.MenuHUD;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,8 +1,10 @@
-package net.natga999.wynn_ai.menus.huds;
+package net.natga999.wynn_ai.menus;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -10,6 +12,7 @@ import java.util.Map;
 
 public class MenuHUDLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(MenuHUDLoader.class);
+
     private static final Map<String, MenuHUDConfig> loadedHUDMenus = new HashMap<>();
 
     // Tracks current state of checkboxes (action → checked) and sliders (action → value)

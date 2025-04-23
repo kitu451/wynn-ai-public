@@ -1,6 +1,5 @@
 package net.natga999.wynn_ai.managers;
 
-import net.natga999.wynn_ai.menus.huds.MenuHUD;
 import net.natga999.wynn_ai.render.BoxMarkerRenderer;
 import net.natga999.wynn_ai.render.ItemMarkerRenderer;
 import net.natga999.wynn_ai.render.MarkerRenderer;
@@ -29,8 +28,6 @@ public class RenderManager {
     // Rendering configuration flags
     private static boolean hudEnabled = false;
     private static boolean boxesEnabled = false;
-
-    private static boolean menuVisible = false;
     private static boolean menuHUDVisible = false;
     private static boolean interactionMode = false;
 
@@ -88,15 +85,6 @@ public class RenderManager {
     }
     public void toggleMenuHUD() {
         menuHUDVisible = !menuHUDVisible;
-    }
-
-    // Menu visibility
-    public static boolean isMenuVisible() {
-        return menuVisible;
-    }
-
-    public static void toggleMenuVisible() {
-        menuVisible = !menuVisible;
     }
 
     // Interaction mode (cursor unlock)
@@ -178,10 +166,6 @@ public class RenderManager {
                         context.consumers()
                 );
             }
-//            else if (entity instanceof DisplayEntity.ItemDisplayEntity itemDisplayEntity) {
-//                NbtCompound nbt = itemDisplayEntity.writeNbt(new NbtCompound());
-//                LOGGER.error("nbt: " + nbt);
-//            }
         }
     }
 }

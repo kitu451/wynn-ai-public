@@ -1,10 +1,10 @@
-package net.natga999.wynn_ai.menus.huds.widgets;
+package net.natga999.wynn_ai.menus.widgets;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 
-import static net.natga999.wynn_ai.menus.huds.MenuHUDLoader.getSliderValueOrDefault;
-import static net.natga999.wynn_ai.menus.huds.MenuHUDLoader.setSliderValue;
+import static net.natga999.wynn_ai.menus.MenuHUDLoader.getSliderValueOrDefault;
+import static net.natga999.wynn_ai.menus.MenuHUDLoader.setSliderValue;
 
 public class SliderWidget implements MenuWidget {
     private final int x, y, width, height;

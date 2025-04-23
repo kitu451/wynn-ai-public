@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class ItemConfigRegistry {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(ItemConfigRegistry.class);
 
     private static final Map<String, ItemConfig> CONFIG_MAP = new HashMap<>();
@@ -28,7 +27,7 @@ public class ItemConfigRegistry {
     static {
         try {
             // Load the itemconfig.json file
-            InputStream inputStream = ItemConfigRegistry.class.getClassLoader().getResourceAsStream("itemconfig.json");
+            InputStream inputStream = ItemConfigRegistry.class.getClassLoader().getResourceAsStream("assets/wynn_ai/itemconfig.json");
 
             if (inputStream == null) {
                 throw new RuntimeException("itemconfig.json file not found in classpath.");

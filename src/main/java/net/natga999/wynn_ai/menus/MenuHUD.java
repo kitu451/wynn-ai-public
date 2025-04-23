@@ -1,13 +1,14 @@
-package net.natga999.wynn_ai.menus.huds;
+package net.natga999.wynn_ai.menus;
 
 import net.natga999.wynn_ai.TestRender;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.MenuHUDManager;
 import net.natga999.wynn_ai.managers.RenderManager;
-import net.natga999.wynn_ai.menus.huds.widgets.*;
+import net.natga999.wynn_ai.menus.widgets.*;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +114,6 @@ public class MenuHUD {
                     handleSliderAction(slider.getAction(), slider.getValue());
                 }
             }
-
         }
     }
 
@@ -208,6 +208,10 @@ public class MenuHUD {
 
     public String getTitle() {
         return config != null ? config.title : "Unknown";
+    }
+
+    public String getMenuId() {
+        return menuId;
     }
 
     public MenuHUDConfig getConfig() {

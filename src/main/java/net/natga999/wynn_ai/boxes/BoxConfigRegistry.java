@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class BoxConfigRegistry {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(BoxConfigRegistry.class); // Logger instance
 
     private static final Map<String, BoxConfig> CONFIG_MAP = new HashMap<>();
@@ -28,7 +27,7 @@ public class BoxConfigRegistry {
     static {
         try {
             // Load the boxconfig.json file
-            InputStream inputStream = BoxConfigRegistry.class.getClassLoader().getResourceAsStream("boxconfig.json");
+            InputStream inputStream = BoxConfigRegistry.class.getClassLoader().getResourceAsStream("assets/wynn_ai/boxconfig.json");
 
             if (inputStream == null) {
                 throw new RuntimeException("boxconfig.json file not found in classpath.");
