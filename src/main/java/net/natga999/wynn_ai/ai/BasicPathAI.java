@@ -41,7 +41,7 @@ public class BasicPathAI {
         this.target = currentTarget;
 
         Vec3d aimPoint = currentTarget.subtract(0, 1.0, 0);
-        rotateCameraToward(aimPoint, client);
+        rotateCameraToward(aimPoint.add(0,2,0), client);
         updateMovementToward(aimPoint, client);
 
         double distance = player.getPos().distanceTo(currentTarget);
