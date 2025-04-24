@@ -64,4 +64,8 @@ public class ResourceNodeManager {
                 .min(Comparator.comparingDouble(n -> n.distanceTo(fromPos)))
                 .orElse(null);
     }
+
+    public static void clearNodes() {
+        keywordToNodes.clear();
+    }
 }

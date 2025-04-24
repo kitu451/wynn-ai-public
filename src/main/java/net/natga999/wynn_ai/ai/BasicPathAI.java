@@ -4,9 +4,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
-import net.natga999.wynn_ai.input.KeyInputHandler;
+
+import net.natga999.wynn_ai.managers.PathingManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,40 +28,47 @@ public class BasicPathAI {
     private boolean followingPath = false;
 
     public void tick() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        ClientPlayerEntity player = client.player;
-        if (player == null) return;
+        if (PathingManager.getInstance().isPathing()) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            ClientPlayerEntity player = client.player;
+            if (player == null) return;
 
-        if (!followingPath || path == null || currentPathIndex >= path.size()) {
-            //stop();
-            return;
-        }
-
-        Vec3d currentTarget = path.get(currentPathIndex);
-        this.target = currentTarget;
-
-        Vec3d aimPoint = currentTarget.subtract(0, 1.0, 0);
-        rotateCameraToward(aimPoint.add(0,2,0), client);
-        updateMovementToward(aimPoint, client);
-
-        double distance = player.getPos().distanceTo(currentTarget);
-
-        if (distance < reachThreshold) {
-            currentPathIndex++;
-
-            // Reached the last point
-            if (currentPathIndex >= path.size()) {
-                stop();
-                player.sendMessage(Text.literal("Path complete."), false);
+            if (!followingPath || path == null || currentPathIndex >= path.size()) {
+                //stop();
                 return;
             }
 
-            this.target = path.get(currentPathIndex); // Move to next target
+            Vec3d currentTarget = path.get(currentPathIndex);
+            this.target = currentTarget;
+
+            Vec3d aimPoint = currentTarget.subtract(0, 1.0, 0);
+            rotateCameraToward(aimPoint.add(0, 2, 0), client);
+            updateMovementToward(aimPoint, client);
+
+            double distance = player.getPos().distanceTo(currentTarget);
+
+            if (distance < reachThreshold) {
+                currentPathIndex++;
+
+                if (currentPathIndex + 1 < path.size()) {
+                    currentPathIndex++;
+                }
+
+                // Reached the last point
+                if (currentPathIndex >= path.size()) {
+                    stop();
+                    player.sendMessage(Text.literal("Path complete."), false);
+                    return;
+                }
+
+                this.target = path.get(currentPathIndex); // Move to next target
+            }
+
+            player.sendMessage(Text.literal("Moving to: " + target + " | Distance: " + distance), false);
+        } else {
+            path = null;
         }
-
-        player.sendMessage(Text.literal("Moving to: " + target + " | Distance: " + distance), false);
     }
-
 
     public void updateMovementToward(Vec3d targetPos, MinecraftClient client) {
         if (client.player == null || client.options == null) return;

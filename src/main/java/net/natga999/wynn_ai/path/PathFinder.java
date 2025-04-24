@@ -1,23 +1,23 @@
 package net.natga999.wynn_ai.path;
+
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.block.FarmlandBlock;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
+
+import java.util.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.PriorityQueue;
 
 public class PathFinder {
     private static final Logger LOGGER = LoggerFactory.getLogger(PathFinder.class);
     private final ClientWorld world;
     private final ChunkCache cache;
     private final int maxDrop;  // maximum safe drop height
-    private static final int MAX_PATH_LENGTH = 1000; // Maximum number of nodes to explore
+    private static final int MAX_PATH_LENGTH = 300; // Maximum number of nodes to explore
 
     public PathFinder(ClientWorld world, int cacheRadius, BlockPos start) {
         this(world, cacheRadius, start, 3); // Default max drop of 3 blocks
@@ -32,6 +32,9 @@ public class PathFinder {
 
     public List<BlockPos> findPath(BlockPos start, BlockPos goal) {
         LOGGER.error("Finding path from {} to {}", start, goal);
+
+        Map<BlockPos, Double> gScore = new HashMap<>();
+        gScore.put(start, 0.0);
 
         // Check if start and goal are within cache bounds
         if (!cache.isWithinCacheBounds(start)) {
@@ -106,6 +109,10 @@ public class PathFinder {
 
                 validNeighbors++;
                 double tentativeG = current.getG() + movementCost(current.getPos(), candidate);
+                if (gScore.containsKey(candidate) && tentativeG >= gScore.get(candidate)) {
+                    continue; // We've already found a better or equal path
+                }
+                gScore.put(candidate, tentativeG);
                 openSet.add(new Node(candidate, tentativeG, estimateDistance(candidate, goal), current));
             }
 
@@ -163,7 +170,11 @@ public class PathFinder {
                 return null;
             }
 
-            if (bs.isSideSolidFullSquare(world, below, Direction.UP)) {
+            // treat either a full‐square solid face or tilled farmland as ground
+            boolean isSolidFace   = bs.isSideSolidFullSquare(world, below, Direction.UP);
+            boolean isFarmland     = bs.getBlock() instanceof FarmlandBlock;
+
+            if (isSolidFace || isFarmland) {
                 BlockPos result = below.up();
                 LOGGER.error("Found ground at {} ({}), returning position just above: {}", below, bs, result);
                 return result;  // return the block just above that ground
@@ -186,19 +197,24 @@ public class PathFinder {
             return false;
         }
 
+        // Fetch the BlockStates
         BlockState blockAt = cache.getBlockState(pos);
-        if (blockAt == null) {
-            LOGGER.error("No block state for position {}", pos);
-            return false;
-        }
-
         BlockState blockAbove = cache.getBlockState(pos.up());
-        if (blockAbove == null) {
-            LOGGER.error("No block state for position {}", pos.up());
+        if (blockAt == null || blockAbove == null) {
+            LOGGER.error("Missing block state at {} or {}", pos, pos.up());
             return false;
         }
 
-        boolean result = blockAt.isAir() && blockAbove.isAir();
+
+        // Treat air, wheat or potatoes as “empty” at both positions
+        boolean feetClear = blockAt.isAir()
+                || blockAt.getBlock() == Blocks.WHEAT
+                || blockAt.getBlock() == Blocks.POTATOES;
+        boolean headClear = blockAbove.isAir()
+                || blockAbove.getBlock() == Blocks.WHEAT
+                || blockAbove.getBlock() == Blocks.POTATOES;
+
+        boolean result = feetClear && headClear;
         if (!result) {
             LOGGER.error("Space not clear at {}: block at position is {}, block above is {}",
                     pos, blockAt, blockAbove);

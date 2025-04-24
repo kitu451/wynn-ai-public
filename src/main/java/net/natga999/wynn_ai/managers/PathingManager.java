@@ -60,7 +60,11 @@ public class PathingManager {
                         nav.setCanSwim(true);
 
                         // Set up the goal position
-                        BlockPos goalPos = new BlockPos((int) pos.getX(), (int) pos.getY() - 3, (int) pos.getZ());
+                        BlockPos goalPos = new BlockPos(
+                                (int)Math.floor(pos.getX()),
+                                (int)Math.floor(pos.getY()) - 2,
+                                (int)Math.floor(pos.getZ())
+                        );
 
                         // Log current start and end positions for debugging
                         MinecraftClient.getInstance().player.sendMessage(
@@ -84,6 +88,7 @@ public class PathingManager {
 
         } else {
             BasicPathAI.getInstance().stop();
+            ResourceNodeManager.clearNodes();
         }
     }
 
