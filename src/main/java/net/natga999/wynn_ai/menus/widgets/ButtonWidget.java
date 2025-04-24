@@ -23,7 +23,7 @@ public class ButtonWidget implements MenuWidget {
         int drawY = parentY + y;
         context.drawBorder(drawX, drawY, width, height, 0xFFFFFFFF);
         context.fill(drawX, drawY, drawX + width, drawY + height, 0x80000000); // Semi-transparent box
-        context.drawText(client.textRenderer, text, drawX + (width - client.textRenderer.getWidth(text)
+        context.drawText(client.textRenderer, text, drawX + (width - client.textRenderer.getWidth(text) + 1
         ) / 2, drawY + (height - client.textRenderer.fontHeight + 1) / 2, 0xFFFFFF, false);
     }
 

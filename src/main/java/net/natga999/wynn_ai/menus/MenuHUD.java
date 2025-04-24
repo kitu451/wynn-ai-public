@@ -1,6 +1,6 @@
 package net.natga999.wynn_ai.menus;
 
-import net.natga999.wynn_ai.TestRender;
+import net.natga999.wynn_ai.WynnAIClient;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.MenuHUDManager;
 import net.natga999.wynn_ai.managers.RenderManager;
@@ -67,7 +67,7 @@ public class MenuHUD {
 
         context.fill(x, y, x + width, y + height, 0xAA000000);
         context.drawBorder(x, y, width, height, 0xFFFFFFFF);
-        context.drawText(client.textRenderer, config.title, x + 8, y + 8, 0xFFFFFF, false);
+        context.drawText(client.textRenderer, config.title, x + 5, y + 5, 0xFFFFFF, false);
 
         for (MenuWidget widget : widgets) {
             widget.render(context, client, x, y);
@@ -162,10 +162,10 @@ public class MenuHUD {
         if ("showOutlines".equalsIgnoreCase(action)) {
             EntityOutlinerManager.toggleOutlining();
         }
-        if ("newMenu".equalsIgnoreCase(action)) {
-            MenuHUD newMenu = MenuHUD.createNewInstance("MainMenu2"); // base name
-            newMenu.getConfig().x = config.x + 10; // Offset slightly to avoid overlapping
-            newMenu.getConfig().y = config.y + 10;
+        if ("EntityListMain".equalsIgnoreCase(action)) {
+            MenuHUD newMenu = MenuHUD.createNewInstance(action); // base name
+            //newMenu.getConfig().x = config.x + 10; // Offset slightly to avoid overlapping
+            //newMenu.getConfig().y = config.y + 10;
             MenuHUDManager.registerMenu(newMenu);
             MenuHUDManager.bringToFront(newMenu);
         }
@@ -186,7 +186,7 @@ public class MenuHUD {
 
     private void handleSliderAction(String action, float value) {
         if ("detectionRadius".equalsIgnoreCase(action)) {
-            TestRender.setDetectionRadius((int) value);
+            WynnAIClient.setDetectionRadius((int) value);
         }
     }
 

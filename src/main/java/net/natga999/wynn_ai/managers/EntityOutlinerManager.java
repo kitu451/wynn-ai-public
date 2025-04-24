@@ -1,6 +1,6 @@
 package net.natga999.wynn_ai.managers;
 
-import net.natga999.wynn_ai.TestRender;
+import net.natga999.wynn_ai.WynnAIClient;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
@@ -82,13 +82,13 @@ public class EntityOutlinerManager {
      * @return True if the entity should be outlined
      */
     public static boolean shouldOutline(Entity entity) {
-        if (outlineAllEntities && TestRender.getCachedNearbyEntities().contains(entity)) {
+        if (outlineAllEntities && WynnAIClient.getCachedNearbyEntities().contains(entity)) {
             return true;
         }
 
         // Restrict outlined entity types to nearby entities
         if (outlinedEntityTypes.containsKey(entity.getType())
-                && TestRender.getCachedNearbyEntities().contains(entity)) {
+                && WynnAIClient.getCachedNearbyEntities().contains(entity)) {
             return true;
         }
 

@@ -16,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 
+import static net.natga999.wynn_ai.managers.ResourceNodeManager.scanAndStore;
+
 /**
  * Manages all rendering-related settings and operations
  */
@@ -165,6 +167,7 @@ public class RenderManager {
                         context.matrixStack(),
                         context.consumers()
                 );
+                scanAndStore(nbt, "Wheat");
             }
         }
     }

@@ -1,10 +1,12 @@
 package net.natga999.wynn_ai;
 
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.input.MouseInputHandler;
 import net.natga999.wynn_ai.input.KeyInputHandler;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.RenderManager;
+import net.natga999.wynn_ai.ai.BasicPathAI;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -20,11 +22,11 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 
-public class TestRender implements ClientModInitializer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestRender.class);
+public class WynnAIClient implements ClientModInitializer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(WynnAIClient.class);
 
     // Static reference to the current instance
-    private static TestRender INSTANCE;
+    private static WynnAIClient INSTANCE;
 
     private static int detectionRadius = 16; // Radius to detect entities
     private EntityDetector entityDetector;
@@ -63,6 +65,13 @@ public class TestRender implements ClientModInitializer {
             MinecraftClient client = MinecraftClient.getInstance();
             updateCachedNearbyEntities(client); // Update the cache once
             renderDetectedNearbyEntitiesBox(context, client);
+        });
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            if (client.player == null || client.world == null) return;
+
+            // Example: Run AI movement logic
+            BasicPathAI.getInstance().tick();
         });
     }
 

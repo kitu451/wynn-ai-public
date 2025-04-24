@@ -56,8 +56,8 @@
           "y": 130,
           "width": 110,
           "height": 20,
-          "text": "New menu!",
-          "action": "newMenu"
+          "text": "Entity list",
+          "action": "EntityListMain"
         },
         {
           "type": "button",
@@ -94,6 +94,24 @@
           "width": 80,
           "height": 20,
           "text": "Close",
+          "action": "close"
+        }
+      ]
+    },
+    "EntityListMain": {
+      "x": 200,
+      "y": 50,
+      "windowWidth": 200,
+      "windowHeight": 17,
+      "title": "Entity List",
+      "widgets": [
+        {
+          "type": "button",
+          "x": 185,
+          "y": 2,
+          "width": 13,
+          "height": 13,
+          "text": "x",
           "action": "close"
         }
       ]

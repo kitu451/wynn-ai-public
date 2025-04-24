@@ -1,5 +1,6 @@
 package net.natga999.wynn_ai.mixin;
 
+import net.natga999.wynn_ai.input.KeyInputHandler;
 import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.managers.MenuHUDManager;
 
@@ -33,7 +34,8 @@ public class MouseMixin {
         double mouseY = yPos[0] / scale;
 
         // If not clicking on any menu, let Minecraft handle it
-        if (!MenuHUDManager.wasClickOnMenu() && !MenuHUDManager.isClickInsideAnyMenu(mouseX, mouseY)) {
+        if (!MenuHUDManager.wasClickOnMenu() && !MenuHUDManager.isClickInsideAnyMenu(mouseX, mouseY) && !KeyInputHandler.isHoldInteractionOn()) {
+            KeyInputHandler.setToggleInteractionOn(false);
             RenderManager.toggleInteractionMode();
             return;
         }
