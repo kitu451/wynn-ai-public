@@ -65,7 +65,7 @@ public class BasicPathAI {
                 this.target = path.get(currentPathIndex); // Move to next target
             }
 
-            player.sendMessage(Text.literal("Moving to: " + target + " | Distance: " + distance), false);
+            //player.sendMessage(Text.literal("Moving to: " + target + " | Distance: " + distance), false);
         } else {
             path = null;
         }

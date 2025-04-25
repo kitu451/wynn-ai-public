@@ -121,7 +121,7 @@ public class PathFinder {
             if (cache.isWithinCacheBounds(upPos) && !closedSet.contains(upPos)) {
                 // Can only jump up from a solid block
                 BlockState currentBlock = cache.getBlockState(current.getPos().down());
-                if (currentBlock != null && currentBlock.isSideSolidFullSquare(world, current.getPos().down(), Direction.UP)) {
+                if (canJumpFrom(currentBlock)) {
                     // Check if space above is clear for jumping
                     if (isSpaceClear(upPos)) {
                         validNeighbors++;
@@ -147,6 +147,13 @@ public class PathFinder {
 
         LOGGER.error("No path found after {} iterations, {} nodes expanded", iterations, nodesExpanded);
         return null; // No path found
+    }
+
+    private boolean canJumpFrom(BlockState state) {
+        if (state == null) return false;
+
+        return state.isSideSolidFullSquare(world, BlockPos.ORIGIN, Direction.UP)
+                || state.getBlock() instanceof FarmlandBlock;
     }
 
     /** If horiz has no solid block beneath, scan down up to maxDrop. */
