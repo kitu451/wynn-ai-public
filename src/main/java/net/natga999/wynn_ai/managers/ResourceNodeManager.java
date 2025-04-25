@@ -14,7 +14,7 @@ public class ResourceNodeManager {
         if (!nbt.contains("text")) return;
 
         String text = nbt.getString("text");
-        if (text.contains(keyword)) {
+        if (text.contains(keyword) && text.contains("Lv. Min:")) {
             Vec3d pos = extractPositionFromNbt(nbt);
             if (pos != null) {
                 keywordToNodes.computeIfAbsent(keyword, k -> new ArrayList<>()).add(pos);

@@ -56,6 +56,7 @@ public class BasicPathAI {
 
                 // Reached the last point
                 if (currentPathIndex >= path.size()) {
+                    PathingManager.getInstance().setPathComplete(true);
                     stop();
                     player.sendMessage(Text.literal("Path complete."), false);
                     return;
@@ -209,5 +210,9 @@ public class BasicPathAI {
             client.options.leftKey.setPressed(false);
             client.options.rightKey.setPressed(false);
         }
+    }
+
+    public Vec3d getTarget() {
+        return this.target;
     }
 }

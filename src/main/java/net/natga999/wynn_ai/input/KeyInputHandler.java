@@ -1,9 +1,6 @@
 package net.natga999.wynn_ai.input;
 
-import net.natga999.wynn_ai.managers.EntityOutlinerManager;
-import net.natga999.wynn_ai.managers.MenuHUDManager;
-import net.natga999.wynn_ai.managers.PathingManager;
-import net.natga999.wynn_ai.managers.RenderManager;
+import net.natga999.wynn_ai.managers.*;
 import net.natga999.wynn_ai.menus.MenuHUD;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;

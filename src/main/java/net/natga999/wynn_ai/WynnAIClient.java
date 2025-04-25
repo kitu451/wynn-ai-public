@@ -1,16 +1,17 @@
 package net.natga999.wynn_ai;
 
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.input.MouseInputHandler;
 import net.natga999.wynn_ai.input.KeyInputHandler;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
+import net.natga999.wynn_ai.managers.PathingManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.client.MinecraftClient;
@@ -72,6 +73,7 @@ public class WynnAIClient implements ClientModInitializer {
 
             // Example: Run AI movement logic
             BasicPathAI.getInstance().tick();
+            PathingManager.getInstance().tick();
         });
     }
 
