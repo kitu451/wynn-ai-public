@@ -7,6 +7,7 @@ import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.PathingManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.ai.BasicPathAI;
+import net.natga999.wynn_ai.render.PathRenderer;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -16,6 +17,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.BlockPos;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +68,15 @@ public class WynnAIClient implements ClientModInitializer {
             MinecraftClient client = MinecraftClient.getInstance();
             updateCachedNearbyEntities(client); // Update the cache once
             renderDetectedNearbyEntitiesBox(context, client);
+        });
+
+        WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
+            List<BlockPos> path = PathingManager.getInstance().getCurrentPath();
+            if (path == null || path.size() < 2) {
+                LOGGER.debug("Path is null or too short to render: {}", path);
+                return;
+            }
+            PathRenderer.renderPath(context.matrixStack(), context.camera().getPos(), path);
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

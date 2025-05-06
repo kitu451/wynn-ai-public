@@ -17,7 +17,7 @@ public class PathFinder {
     private final ClientWorld world;
     private final ChunkCache cache;
     private final int maxDrop;  // maximum safe drop height
-    private static final int MAX_PATH_LENGTH = 300; // Maximum number of nodes to explore
+    private static final int MAX_PATH_LENGTH = 1000; // Maximum number of nodes to explore
 
     public PathFinder(ClientWorld world, int cacheRadius, BlockPos start) {
         this(world, cacheRadius, start, 3); // Default max drop of 3 blocks
@@ -27,28 +27,28 @@ public class PathFinder {
         this.world = world;
         this.cache = new ChunkCache(world, start, cacheRadius);
         this.maxDrop = maxDrop;
-        LOGGER.error("PathFinder initialized with cache radius {} and max drop {}", cacheRadius, maxDrop);
+        LOGGER.debug("PathFinder initialized with cache radius {} and max drop {}", cacheRadius, maxDrop);
     }
 
     public List<BlockPos> findPath(BlockPos start, BlockPos goal) {
-        LOGGER.error("Finding path from {} to {}", start, goal);
+        LOGGER.debug("Finding path from {} to {}", start, goal);
 
         Map<BlockPos, Double> gScore = new HashMap<>();
         gScore.put(start, 0.0);
 
         // Check if start and goal are within cache bounds
         if (!cache.isWithinCacheBounds(start)) {
-            LOGGER.error("Start position {} is outside cache bounds", start);
+            LOGGER.debug("Start position {} is outside cache bounds", start);
             return null;
         }
 
         if (!cache.isWithinCacheBounds(goal)) {
-            LOGGER.error("Goal position {} is outside cache bounds", goal);
+            LOGGER.debug("Goal position {} is outside cache bounds", goal);
             return null;
         }
 
         // Nodes to explore and the ones already explored
-        PriorityQueue<Node> openSet = new PriorityQueue<>((a, b) -> Double.compare(a.getF(), b.getF()));
+        PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingDouble(Node::getF));
         HashSet<BlockPos> closedSet = new HashSet<>();
 
         // Start node
@@ -64,7 +64,7 @@ public class PathFinder {
 
             // Check if we've explored too many nodes
             if (closedSet.size() > MAX_PATH_LENGTH) {
-                LOGGER.error("Path search aborted - exceeded maximum path length ({} nodes explored)", MAX_PATH_LENGTH);
+                LOGGER.debug("Path search aborted - exceeded maximum path length ({} nodes explored)", MAX_PATH_LENGTH);
                 return null; // Path too long, abort
             }
 
@@ -74,7 +74,7 @@ public class PathFinder {
             // Check if goal is found
             if (current.getPos().equals(goal)) {
                 List<BlockPos> path = reconstructPath(current);
-                LOGGER.error("Path found! Length: {}, Nodes expanded: {}, Iterations: {}", path.size(), nodesExpanded, iterations);
+                LOGGER.debug("Path found! Length: {}, Nodes expanded: {}, Iterations: {}", path.size(), nodesExpanded, iterations);
                 return path;
             }
 
@@ -87,23 +87,23 @@ public class PathFinder {
 
                 // Check if within cache bounds
                 if (!cache.isWithinCacheBounds(horiz)) {
-                    LOGGER.error("Neighbor {} is outside cache bounds", horiz);
+                    LOGGER.debug("Neighbor {} is outside cache bounds", horiz);
                     continue;
                 }
 
                 BlockPos candidate = findGroundBelow(horiz);
                 if (candidate == null) {
-                    LOGGER.error("No valid ground below {} (offset from {} in direction {})", horiz, current.getPos(), dir);
+                    LOGGER.debug("No valid ground below {} (offset from {} in direction {})", horiz, current.getPos(), dir);
                     continue;            // too tall a drop or no ground
                 }
 
                 if (closedSet.contains(candidate)) {
-                    LOGGER.error("Candidate {} already explored", candidate);
+                    LOGGER.debug("Candidate {} already explored", candidate);
                     continue;
                 }
 
                 if (!isSpaceClear(candidate)) {
-                    LOGGER.error("No clear space at candidate {}", candidate);
+                    LOGGER.debug("No clear space at candidate {}", candidate);
                     continue;
                 }
 
@@ -128,19 +128,19 @@ public class PathFinder {
                         double jumpCost = current.getG() + 1.5; // Jumping costs more
                         openSet.add(new Node(upPos, jumpCost, estimateDistance(upPos, goal), current));
                     } else {
-                        LOGGER.error("Can't jump up at {} - space not clear", current.getPos());
+                        LOGGER.debug("Can't jump up at {} - space not clear", current.getPos());
                     }
                 } else {
-                    LOGGER.error("Can't jump up at {} - not standing on solid block", current.getPos());
+                    LOGGER.debug("Can't jump up at {} - not standing on solid block", current.getPos());
                 }
             }
 
             if (validNeighbors == 0 && iterations % 100 == 0) {
-                LOGGER.error("No valid neighbors for position {} after {} iterations", current.getPos(), iterations);
+                LOGGER.debug("No valid neighbors for position {} after {} iterations", current.getPos(), iterations);
             }
 
             if (iterations % 1000 == 0) {
-                LOGGER.error("Pathfinding in progress - {} iterations, {} nodes in closed set, {} nodes in open set",
+                LOGGER.debug("Pathfinding in progress - {} iterations, {} nodes in closed set, {} nodes in open set",
                         iterations, closedSet.size(), openSet.size());
             }
         }
@@ -161,13 +161,13 @@ public class PathFinder {
         for (int d = 0; d <= maxDrop; d++) {
             BlockPos below = horiz.down(d + 1);
             if (below.getY() < -64) {
-                LOGGER.error("Position {} is below world level", below);
+                LOGGER.debug("Position {} is below world level", below);
                 break;
             }
 
             // Check if this position is within our cache
             if (!cache.isWithinCacheBounds(below)) {
-                LOGGER.error("Position {} is outside cache bounds", below);
+                LOGGER.debug("Position of ground below {} is outside cache bounds", below);
                 return null;
             }
 
@@ -178,16 +178,16 @@ public class PathFinder {
             }
 
             // treat either a full‐square solid face or tilled farmland as ground
-            boolean isSolidFace   = bs.isSideSolidFullSquare(world, below, Direction.UP);
-            boolean isFarmland     = bs.getBlock() instanceof FarmlandBlock;
+            boolean isSolidFace = bs.isSideSolidFullSquare(world, below, Direction.UP);
+            boolean isFarmland = bs.getBlock() instanceof FarmlandBlock;
 
             if (isSolidFace || isFarmland) {
                 BlockPos result = below.up();
-                LOGGER.error("Found ground at {} ({}), returning position just above: {}", below, bs, result);
+                LOGGER.debug("Found ground at {} ({}), returning position just above: {}", below, bs, result);
                 return result;  // return the block just above that ground
             }
         }
-        LOGGER.error("No suitable ground found below {} within max drop {}", horiz, maxDrop);
+        LOGGER.debug("No suitable ground found below {} within max drop {}", horiz, maxDrop);
         return null;  // too far to drop or no ground found
     }
 
@@ -195,12 +195,12 @@ public class PathFinder {
     private boolean isSpaceClear(BlockPos pos) {
         // Check if positions are within cache bounds
         if (!cache.isWithinCacheBounds(pos)) {
-            LOGGER.error("Position {} is outside cache bounds", pos);
+            LOGGER.debug("Position (isSpaceClear) {} is outside cache bounds", pos);
             return false;
         }
 
         if (!cache.isWithinCacheBounds(pos.up())) {
-            LOGGER.error("Position above {} is outside cache bounds", pos);
+            LOGGER.debug("Position above {} is outside cache bounds", pos);
             return false;
         }
 
@@ -208,7 +208,7 @@ public class PathFinder {
         BlockState blockAt = cache.getBlockState(pos);
         BlockState blockAbove = cache.getBlockState(pos.up());
         if (blockAt == null || blockAbove == null) {
-            LOGGER.error("Missing block state at {} or {}", pos, pos.up());
+            LOGGER.debug("Missing block state at {} or {}", pos, pos.up());
             return false;
         }
 
@@ -223,7 +223,7 @@ public class PathFinder {
 
         boolean result = feetClear && headClear;
         if (!result) {
-            LOGGER.error("Space not clear at {}: block at position is {}, block above is {}",
+            LOGGER.debug("Space not clear at {}: block at position is {}, block above is {}",
                     pos, blockAt, blockAbove);
         }
 
@@ -249,7 +249,7 @@ public class PathFinder {
             finalCost = baseCost;
         }
 
-        LOGGER.error("Movement cost from {} to {}: {}. Base cost: {}, Y diff: {}",
+        LOGGER.debug("Movement cost from {} to {}: {}. Base cost: {}, Y diff: {}",
                 from, to, finalCost, baseCost, yDiff);
         return finalCost;
     }
@@ -263,10 +263,10 @@ public class PathFinder {
         List<BlockPos> path = new ArrayList<>();
         Node current = goalNode;
         while (current != null) {
-            path.add(0, current.getPos());
+            path.addFirst(current.getPos());
             current = current.getParent();
         }
-        LOGGER.error("Reconstructed path of length {}", path.size());
+        LOGGER.debug("Reconstructed path of length {}", path.size());
         return path;
     }
 

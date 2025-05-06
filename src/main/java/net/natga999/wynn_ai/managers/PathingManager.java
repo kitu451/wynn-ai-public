@@ -1,7 +1,5 @@
 package net.natga999.wynn_ai.managers;
 
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.Direction;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.path.PathFinder;
 
@@ -11,6 +9,8 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.Hand;
+import net.minecraft.util.math.Direction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,7 @@ public class PathingManager {
     private boolean pathComplete = false;
 
     private int waitTicks = 0;
-    private static final int MAX_WAIT_TICKS = 100; // 5 seconds if 20 tps
+    private static final int MAX_WAIT_TICKS = 20; // 5 seconds if 20 tps
 
     // Node harvesting states
     private enum HarvestState {
@@ -76,9 +76,11 @@ public class PathingManager {
 
             case HARVESTING:
                 if (pathComplete) {
+                    this.path = null;
                     // Simulate click or trigger your "use" action here
                     assert MinecraftClient.getInstance().interactionManager != null;
                     MinecraftClient.getInstance().interactionManager.attackBlock(goalPos, Direction.DOWN);
+                    assert MinecraftClient.getInstance().player != null;
                     MinecraftClient.getInstance().player.swingHand(Hand.MAIN_HAND); // visual arm swing
                     currentState = HarvestState.WAITING;
                     waitTicks = 0;
@@ -141,5 +143,13 @@ public class PathingManager {
 
     public boolean isPathing() {
         return active;
+    }
+
+    public List<BlockPos> getCurrentPath() {
+        return this.path;
+    }
+
+    public boolean isMovingToNode() {
+        return currentState == HarvestState.MOVING_TO_NODE;
     }
 }
