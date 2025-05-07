@@ -12,9 +12,12 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Direction;
 
+import net.natga999.wynn_ai.utility.CatmullRomSpline;
+import net.natga999.wynn_ai.utility.FunnelSmoother;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +29,7 @@ public class PathingManager {
 
     private boolean active = false;
     private List<BlockPos> path = null;
+    private List<Vec3d> splinePath = null;
     private BlockPos goalPos = null;
     private boolean isFounding = false;
     private boolean pathComplete = false;
@@ -69,7 +73,43 @@ public class PathingManager {
 
             case MOVING_TO_NODE: if (path != null) {
                 LOGGER.error("Path found: {}", path);
-                BasicPathAI.getInstance().goAlongPathBlockPos(path.stream().map(BlockPos::toImmutable).collect(Collectors.toList()));
+
+                // Step 1: Apply Funnel Algorithm
+                List<Vec3d> funnelPath = FunnelSmoother.smoothPath(path.stream()
+                        .map(BlockPos::toImmutable)
+                        .collect(Collectors.toList()));
+
+                LOGGER.error("Funnel path size: {}", funnelPath.size());
+
+                // Step 2: Apply Catmull-Rom Spline (4 segments between points)
+                List<Vec3d> splinePath = CatmullRomSpline.createSpline(funnelPath, 4);
+
+                LOGGER.error("Spline path size: {}", splinePath.size());
+
+                // Add slight jitter to spline points
+                splinePath = splinePath.stream()
+                        .map(v -> v.add(
+                                (Math.random() - 0.5) * 0.3,
+                                0,
+                                (Math.random() - 0.5) * 0.3
+                        )).toList();
+
+                  // NO FUNNELING
+//                // Convert BlockPos path to Vec3d path
+//                List<Vec3d> vecPath = path.stream()
+//                        .map(BlockPos::toCenterPos)
+//                        .collect(Collectors.toList());
+//
+//                LOGGER.error("Vec3d path size: {}", vecPath.size());
+//
+//                // Skip funnel algorithm for now
+//                List<Vec3d> splinePath = CatmullRomSpline.createSpline(vecPath, 4);
+//
+//                LOGGER.error("Spline path size: {}", splinePath.size());
+
+                this.splinePath = new ArrayList<>(splinePath);
+
+                BasicPathAI.getInstance().goAlongPathBlockPos(splinePath);
             }
             currentState = HarvestState.HARVESTING;
             break;
@@ -147,6 +187,10 @@ public class PathingManager {
 
     public List<BlockPos> getCurrentPath() {
         return this.path;
+    }
+
+    public List<Vec3d> getSplinePath() {
+        return this.splinePath;
     }
 
     public boolean isMovingToNode() {

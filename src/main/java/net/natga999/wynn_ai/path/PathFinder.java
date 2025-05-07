@@ -97,6 +97,10 @@ public class PathFinder {
                     continue;            // too tall a drop or no ground
                 }
 
+                if (!isSpaceClear(horiz.up())) {
+                    continue;
+                }
+
                 if (closedSet.contains(candidate)) {
                     LOGGER.debug("Candidate {} already explored", candidate);
                     continue;
@@ -259,15 +263,35 @@ public class PathFinder {
         return Math.sqrt(start.getSquaredDistance(end));
     }
 
+    private boolean isOnGround(BlockPos pos) {
+        BlockPos below = pos.down();
+        if (!cache.isWithinCacheBounds(below)) {
+            return false;
+        }
+
+        BlockState state = cache.getBlockState(below);
+        return state.isSideSolidFullSquare(world, below, Direction.UP)
+                || state.getBlock() instanceof FarmlandBlock;
+    }
+
     private List<BlockPos> reconstructPath(Node goalNode) {
-        List<BlockPos> path = new ArrayList<>();
+        List<BlockPos> rawPath = new ArrayList<>();
         Node current = goalNode;
         while (current != null) {
-            path.addFirst(current.getPos());
+            rawPath.addFirst(current.getPos());
             current = current.getParent();
         }
-        LOGGER.debug("Reconstructed path of length {}", path.size());
-        return path;
+
+        // Filter out mid-air nodes
+        List<BlockPos> groundPath = new ArrayList<>();
+        for (BlockPos pos : rawPath) {
+            if (isOnGround(pos)) {
+                groundPath.add(pos);
+            }
+        }
+
+        LOGGER.debug("Reconstructed path of length {}", groundPath.size());
+        return groundPath;
     }
 
     // Node class for A* algorithm
