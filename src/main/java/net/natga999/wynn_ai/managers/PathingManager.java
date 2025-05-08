@@ -74,38 +74,38 @@ public class PathingManager {
             case MOVING_TO_NODE: if (path != null) {
                 LOGGER.error("Path found: {}", path);
 
-                // Step 1: Apply Funnel Algorithm
-                List<Vec3d> funnelPath = FunnelSmoother.smoothPath(path.stream()
-                        .map(BlockPos::toImmutable)
-                        .collect(Collectors.toList()));
-
-                LOGGER.error("Funnel path size: {}", funnelPath.size());
-
-                // Step 2: Apply Catmull-Rom Spline (4 segments between points)
-                List<Vec3d> splinePath = CatmullRomSpline.createSpline(funnelPath, 4);
-
-                LOGGER.error("Spline path size: {}", splinePath.size());
-
-                // Add slight jitter to spline points
-                splinePath = splinePath.stream()
-                        .map(v -> v.add(
-                                (Math.random() - 0.5) * 0.3,
-                                0,
-                                (Math.random() - 0.5) * 0.3
-                        )).toList();
-
-                  // NO FUNNELING
-//                // Convert BlockPos path to Vec3d path
-//                List<Vec3d> vecPath = path.stream()
-//                        .map(BlockPos::toCenterPos)
-//                        .collect(Collectors.toList());
+//                // Step 1: Apply Funnel Algorithm
+//                List<Vec3d> funnelPath = FunnelSmoother.smoothPath(path.stream()
+//                        .map(BlockPos::toImmutable)
+//                        .collect(Collectors.toList()));
 //
-//                LOGGER.error("Vec3d path size: {}", vecPath.size());
+//                LOGGER.error("Funnel path size: {}", funnelPath.size());
 //
-//                // Skip funnel algorithm for now
-//                List<Vec3d> splinePath = CatmullRomSpline.createSpline(vecPath, 4);
+//                // Step 2: Apply Catmull-Rom Spline (4 segments between points)
+//                List<Vec3d> splinePath = CatmullRomSpline.createSpline(funnelPath, 4);
 //
 //                LOGGER.error("Spline path size: {}", splinePath.size());
+//
+//                // Add slight jitter to spline points
+//                splinePath = splinePath.stream()
+//                        .map(v -> v.add(
+//                                (Math.random() - 0.5) * 0.3,
+//                                0,
+//                                (Math.random() - 0.5) * 0.3
+//                        )).toList();
+
+                // NO FUNNELING
+                // Convert BlockPos path to Vec3d path
+                List<Vec3d> vecPath = path.stream()
+                        .map(BlockPos::toCenterPos)
+                        .collect(Collectors.toList());
+
+                LOGGER.error("Vec3d path size: {}", vecPath.size());
+
+                // Skip funnel algorithm for now
+                List<Vec3d> splinePath = CatmullRomSpline.createSpline(vecPath, 4);
+
+                LOGGER.error("Spline path size: {}", splinePath.size());
 
                 this.splinePath = new ArrayList<>(splinePath);
 

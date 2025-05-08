@@ -5,7 +5,6 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.managers.PathingManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,12 +19,11 @@ public class PathRenderer {
     private static final float LINE_WIDTH = 2.0f;
 
     public static void renderSplinePath(MatrixStack matrices, Vec3d cameraPos, List<Vec3d> splinePath) {
-        // Only render when in MOVING_TO_NODE state
-        if (splinePath == null || splinePath.size() < 2 || !PathingManager.getInstance().isMovingToNode()) {
-            //return;
+        if (splinePath == null || splinePath.size() < 2) {
+            return;
         }
 
-        LOGGER.error("Rendering spline path with {} points", splinePath.size());
+        LOGGER.debug("Rendering spline path with {} points", splinePath.size());
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -125,7 +123,7 @@ public class PathRenderer {
         // Additionally, render the spline path if available
         List<Vec3d> splinePath = PathingManager.getInstance().getSplinePath();
         if (splinePath != null && !splinePath.isEmpty()) {
-            LOGGER.error("Spline path exists with {} points", splinePath.size());
+            LOGGER.debug("Spline path exists with {} points", splinePath.size());
             renderSplinePath(matrices, cameraPos, splinePath);
         }
     }

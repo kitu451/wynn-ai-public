@@ -72,10 +72,17 @@ public class PathFinder {
             nodesExpanded++;
 
             // Check if goal is found
+//            if (current.getPos().equals(goal)) {
+//                List<BlockPos> path = reconstructPath(current);
+//                LOGGER.debug("Path found! Length: {}, Nodes expanded: {}, Iterations: {}", path.size(), nodesExpanded, iterations);
+//                return path;
+//            }
+
             if (current.getPos().equals(goal)) {
-                List<BlockPos> path = reconstructPath(current);
-                LOGGER.debug("Path found! Length: {}, Nodes expanded: {}, Iterations: {}", path.size(), nodesExpanded, iterations);
-                return path;
+                List<BlockPos> rawPath = reconstructPath(current);
+                List<BlockPos> simplifiedPath = simplifyPath(rawPath);
+                LOGGER.debug("Simplified path from {} to {} nodes", rawPath.size(), simplifiedPath.size());
+                return simplifiedPath;
             }
 
             closedSet.add(current.getPos());
@@ -151,6 +158,125 @@ public class PathFinder {
 
         LOGGER.error("No path found after {} iterations, {} nodes expanded", iterations, nodesExpanded);
         return null; // No path found
+    }
+
+    public List<BlockPos> simplifyPath(List<BlockPos> rawPath) {
+        if (rawPath.size() <= 2) return rawPath;
+
+        List<BlockPos> simplified = new ArrayList<>();
+        simplified.add(rawPath.getFirst());
+
+        int currentIndex = 0;
+        while (currentIndex < rawPath.size() - 1) {
+            int farthestValid = currentIndex + 1;
+
+            // Find the farthest node reachable via a straight line
+            for (int i = currentIndex + 1; i < rawPath.size(); i++) {
+                BlockPos current = simplified.getLast();
+                BlockPos candidate = rawPath.get(i);
+
+                if (isRaycastWalkable(current, candidate)) {
+                    farthestValid = i;
+                } else {
+                    break;
+                }
+            }
+
+            if (farthestValid > currentIndex) {
+                simplified.add(rawPath.get(farthestValid));
+                currentIndex = farthestValid;
+            } else {
+                // Fallback: move to the next node
+                simplified.add(rawPath.get(currentIndex + 1));
+                currentIndex++;
+            }
+        }
+
+        return simplified;
+    }
+
+    private boolean isRaycastWalkable(BlockPos start, BlockPos end) {
+        List<BlockPos> line = getBlocksBetween(start, end);
+        for (BlockPos pos : line) {
+            // Ensure position is within cached chunks
+            if (!cache.isWithinCacheBounds(pos)) {
+                return false;
+            }
+
+            // Check ground stability (block below must be solid/farmland)
+            BlockPos groundPos = pos.down();
+            if (!isGroundWalkable(groundPos)) {
+                return false;
+            }
+
+            // Check if the space at this position is clear (feet and head)
+            if (!isSpaceClear(pos)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isGroundWalkable(BlockPos pos) {
+        BlockState state = cache.getBlockState(pos);
+        return state != null &&
+                (state.isSideSolidFullSquare(world, pos, Direction.UP) ||
+                        state.getBlock() instanceof FarmlandBlock);
+    }
+
+    /**
+     * Accurate voxel traversal algorithm for raycasting.
+     * Based on "A Fast Voxel Traversal Algorithm for Ray Tracing" (Amanatides & Woo).
+     */
+    private List<BlockPos> getBlocksBetween(BlockPos start, BlockPos end) {
+        List<BlockPos> blocks = new ArrayList<>();
+        double x = start.getX() + 0.5; // Center of block
+        double y = start.getY() + 0.5;
+        double z = start.getZ() + 0.5;
+        double dx = end.getX() - start.getX();
+        double dy = end.getY() - start.getY();
+        double dz = end.getZ() - start.getZ();
+
+        int stepX = dx > 0 ? 1 : -1;
+        int stepY = dy > 0 ? 1 : -1;
+        int stepZ = dz > 0 ? 1 : -1;
+
+        double tDeltaX = Math.abs(1 / dx);
+        double tDeltaY = Math.abs(1 / dy);
+        double tDeltaZ = Math.abs(1 / dz);
+
+        double tMaxX = (stepX > 0) ? (Math.floor(x) + 1 - x) * tDeltaX : (x - Math.floor(x)) * tDeltaX;
+        double tMaxY = (stepY > 0) ? (Math.floor(y) + 1 - y) * tDeltaY : (y - Math.floor(y)) * tDeltaY;
+        double tMaxZ = (stepZ > 0) ? (Math.floor(z) + 1 - z) * tDeltaZ : (z - Math.floor(z)) * tDeltaZ;
+
+        int currentX = start.getX();
+        int currentY = start.getY();
+        int currentZ = start.getZ();
+
+        while (true) {
+            blocks.add(new BlockPos(currentX, currentY, currentZ));
+
+            if (currentX == end.getX() && currentY == end.getY() && currentZ == end.getZ()) break;
+
+            if (tMaxX < tMaxY) {
+                if (tMaxX < tMaxZ) {
+                    tMaxX += tDeltaX;
+                    currentX += stepX;
+                } else {
+                    tMaxZ += tDeltaZ;
+                    currentZ += stepZ;
+                }
+            } else {
+                if (tMaxY < tMaxZ) {
+                    tMaxY += tDeltaY;
+                    currentY += stepY;
+                } else {
+                    tMaxZ += tDeltaZ;
+                    currentZ += stepZ;
+                }
+            }
+        }
+        return blocks;
     }
 
     private boolean canJumpFrom(BlockState state) {
