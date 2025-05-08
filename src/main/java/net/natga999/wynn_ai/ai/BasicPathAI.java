@@ -1,7 +1,5 @@
 package net.natga999.wynn_ai.ai;
 
-import net.minecraft.block.Blocks;
-import net.minecraft.util.math.MathHelper;
 import net.natga999.wynn_ai.managers.PathingManager;
 
 import net.minecraft.block.BlockState;
@@ -10,6 +8,8 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.math.MathHelper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +25,7 @@ public class BasicPathAI {
     public static BasicPathAI getInstance() { return INSTANCE; }
 
     private Vec3d target = null;
-    private final double reachThresholdXZ = 0.5;
+    private final double reachThresholdXZ = 0.6;
     private final double reachThresholdY = 1.0;
 
     private int jumpCooldown = 0;
@@ -139,7 +139,7 @@ public class BasicPathAI {
         }
 
         // Random "bunny hop" (5% chance)
-        if (Math.random() < 0.05 && client.player.isOnGround()) {
+        if (Math.random() < 0.005 && client.player.isOnGround()) {
             client.options.jumpKey.setPressed(true);
         }
     }
@@ -180,7 +180,7 @@ public class BasicPathAI {
         float currentPitch = player.getPitch();
 
         // Detect actual falling via vertical velocity
-        LOGGER.error("velocity: {}", player.getVelocity());
+        LOGGER.debug("velocity: {}", player.getVelocity());
         boolean isFalling = player.getVelocity().y < -0.38;
 
         float newYaw;
@@ -259,7 +259,13 @@ public class BasicPathAI {
         if (jumpCooldown > 0 || !Objects.requireNonNull(client.player).isOnGround()) return;
 
         Vec3d lookVec = client.player.getRotationVec(1.0f);
-        BlockPos checkPos = BlockPos.ofFloored(client.player.getPos()
+        BlockPos clientPos = client.player.getBlockPos();
+        Vec3d clientVecPos = client.player.getPos();
+        assert client.world != null;
+        if ( client.world.getBlockState(clientPos).getBlock() == Blocks.FARMLAND) {
+            clientVecPos = client.player.getPos().add(0,1,0);
+        }
+        BlockPos checkPos = BlockPos.ofFloored(clientVecPos
                 .add(lookVec.multiply(JUMP_CHECK_DISTANCE).x, 0, lookVec.multiply(JUMP_CHECK_DISTANCE).z));
 
         // Check if obstacle in movement direction
@@ -270,10 +276,9 @@ public class BasicPathAI {
         boolean isCropBlock = state.getBlock() == Blocks.WHEAT || state.getBlock() == Blocks.POTATOES;
 
         // Only consider it an obstacle if it's not air and not a crop block
-        boolean needsJump = !state.isAir() && !isCropBlock &&
-                client.world.getBlockState(checkPos.up()).isAir();
+        boolean needsJump = !state.isAir() && !isCropBlock;
 
-        LOGGER.error("Obstacle detected: {}", needsJump);
+        LOGGER.debug("Obstacle detected: {} - {} - {}", needsJump, state.getBlock(), clientVecPos);
 
         // 80% chance to jump if obstacle detected
         if (needsJump && Math.random() < 0.8) {

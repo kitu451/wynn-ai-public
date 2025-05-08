@@ -2,7 +2,6 @@ package net.natga999.wynn_ai.managers;
 
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.path.PathFinder;
-
 import net.natga999.wynn_ai.utility.CatmullRomSpline;
 
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -34,7 +33,7 @@ public class PathingManager {
     private boolean pathComplete = false;
 
     private int waitTicks = 0;
-    private static final int MAX_WAIT_TICKS = 20; // 5 seconds if 20 tps
+    private static final int MAX_WAIT_TICKS = 5; // 0.25 seconds if 20 tps
 
     // Node harvesting states
     private enum HarvestState {
@@ -64,14 +63,14 @@ public class PathingManager {
         switch (currentState) {
             case FINDING_NODE:
                 if (!isFounding) {
-                    LOGGER.error("FOUNDing");
+                    LOGGER.debug("FOUNDing");
                     isFounding = true;
                     findAndStartPath();
                 }
                 break;
 
             case MOVING_TO_NODE: if (path != null) {
-                LOGGER.error("Path found: {}", path);
+                LOGGER.debug("Path found: {}", path);
 
 //                // Step 1: Apply Funnel Algorithm
 //                List<Vec3d> funnelPath = FunnelSmoother.smoothPath(path.stream()
@@ -97,13 +96,13 @@ public class PathingManager {
                 // Convert BlockPos path to Vec3d path
                 List<Vec3d> vecPath = path;
 
-                LOGGER.error("Vec3d path size: {}", vecPath.size());
+                LOGGER.debug("Vec3d path size: {}", vecPath.size());
 
                 // Skip funnel algorithm for now
                 int segments = vecPath.size() <= 3 ? 8 : 4;
                 List<Vec3d> splinePath = CatmullRomSpline.createSpline(vecPath, segments);
 
-                LOGGER.error("Spline path size: {}", splinePath.size());
+                LOGGER.debug("Spline path size: {}", splinePath.size());
 
                 this.splinePath = new ArrayList<>(splinePath);
 
@@ -174,7 +173,7 @@ public class PathingManager {
             this.path = rawPath;
             currentState = HarvestState.MOVING_TO_NODE;
         } else {
-            LOGGER.error("Pathfinding failed: No path to goal {}", goalPos);
+            LOGGER.debug("Pathfinding failed: No path to goal {}", goalPos);
             currentState = HarvestState.WAITING; // delay retry
         }
         isFounding = false;
