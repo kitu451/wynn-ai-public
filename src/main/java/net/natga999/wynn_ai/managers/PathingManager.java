@@ -3,6 +3,8 @@ package net.natga999.wynn_ai.managers;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.path.PathFinder;
 
+import net.natga999.wynn_ai.utility.CatmullRomSpline;
+
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
@@ -12,14 +14,11 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Direction;
 
-import net.natga999.wynn_ai.utility.CatmullRomSpline;
-import net.natga999.wynn_ai.utility.FunnelSmoother;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class PathingManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(PathingManager.class);
@@ -28,7 +27,7 @@ public class PathingManager {
     public static PathingManager getInstance() { return INSTANCE; }
 
     private boolean active = false;
-    private List<BlockPos> path = null;
+    private List<Vec3d> path = null;
     private List<Vec3d> splinePath = null;
     private BlockPos goalPos = null;
     private boolean isFounding = false;
@@ -96,14 +95,13 @@ public class PathingManager {
 
                 // NO FUNNELING
                 // Convert BlockPos path to Vec3d path
-                List<Vec3d> vecPath = path.stream()
-                        .map(BlockPos::toCenterPos)
-                        .collect(Collectors.toList());
+                List<Vec3d> vecPath = path;
 
                 LOGGER.error("Vec3d path size: {}", vecPath.size());
 
                 // Skip funnel algorithm for now
-                List<Vec3d> splinePath = CatmullRomSpline.createSpline(vecPath, 4);
+                int segments = vecPath.size() <= 3 ? 8 : 4;
+                List<Vec3d> splinePath = CatmullRomSpline.createSpline(vecPath, segments);
 
                 LOGGER.error("Spline path size: {}", splinePath.size());
 
@@ -167,8 +165,13 @@ public class PathingManager {
 
         // Create a pathfinder with a cache
         PathFinder pathFinder = new PathFinder(world, 4, player.getBlockPos()); // Cache radius of 4 chunks
-        path = pathFinder.findPath(player.getBlockPos(), goalPos);
-        if (path != null) {
+        List<Vec3d> rawPath = pathFinder.findPath(player.getBlockPos(), goalPos);
+        if (rawPath != null && !rawPath.isEmpty()) {
+            // Replace the very first waypoint with the player's current exact cords
+            Vec3d playerPos = player.getPos();
+            rawPath.set(0, new Vec3d(playerPos.x, playerPos.y + 0.5, playerPos.z));
+
+            this.path = rawPath;
             currentState = HarvestState.MOVING_TO_NODE;
         } else {
             LOGGER.error("Pathfinding failed: No path to goal {}", goalPos);
@@ -185,7 +188,7 @@ public class PathingManager {
         return active;
     }
 
-    public List<BlockPos> getCurrentPath() {
+    public List<Vec3d> getCurrentPath() {
         return this.path;
     }
 

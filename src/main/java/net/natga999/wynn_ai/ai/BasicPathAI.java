@@ -25,12 +25,11 @@ public class BasicPathAI {
     public static BasicPathAI getInstance() { return INSTANCE; }
 
     private Vec3d target = null;
-    private final double reachThresholdXY = 0.4;
-    private final double reachThresholdZ = 0.7;
+    private final double reachThresholdXZ = 0.5;
+    private final double reachThresholdY = 1.0;
 
-    private Double lastTargetY = null;
-    private float pitchSmoothing = 0.25f; // Adjust this for responsiveness
     private int jumpCooldown = 0;
+    private int lastJump= 0;
     private static final int JUMP_COOLDOWN_TICKS = 8;
     private static final double JUMP_CHECK_DISTANCE = 0.7;
 
@@ -42,6 +41,7 @@ public class BasicPathAI {
     public void tick() {
         if (PathingManager.getInstance().isPathing()) {
             if (jumpCooldown > 0) jumpCooldown--;
+            lastJump++;
             MinecraftClient client = MinecraftClient.getInstance();
             ClientPlayerEntity player = client.player;
             if (player == null) return;
@@ -59,14 +59,14 @@ public class BasicPathAI {
             updateMovementToward(aimPoint, client);
 
             // Calculate horizontal (XY) and vertical (Z) distances separately
-            double distanceXY = Math.sqrt(
+            double distanceXZ = Math.sqrt(
                     Math.pow(player.getX() - currentTarget.x, 2) +
                             Math.pow(player.getZ() - currentTarget.z, 2)
             );
-            double distanceZ = Math.abs(player.getY() - currentTarget.y);
+            double distanceY = Math.abs(player.getY() - currentTarget.y);
 
             // Check if we're close enough using separate thresholds
-            if (distanceXY < reachThresholdXY && distanceZ < reachThresholdZ) {
+            if (distanceXZ < reachThresholdXZ && distanceY < reachThresholdY) {
 
                 currentPathIndex++;
 
@@ -100,6 +100,7 @@ public class BasicPathAI {
         client.options.leftKey.setPressed(false);
         client.options.rightKey.setPressed(false);
         client.options.jumpKey.setPressed(false);
+        client.options.sprintKey.setPressed(false);
 
         // World-space difference
         Vec3d playerPos = client.player.getPos();
@@ -133,65 +134,116 @@ public class BasicPathAI {
 
         checkAndJump(client);
 
+        if (lastJump > 20) {
+            client.options.sprintKey.setPressed(true);
+        }
+
         // Random "bunny hop" (5% chance)
-//        if (Math.random() < 0.005 && client.player.isOnGround()) {
-//            client.options.jumpKey.setPressed(true);
-//        }
+        if (Math.random() < 0.05 && client.player.isOnGround()) {
+            client.options.jumpKey.setPressed(true);
+        }
     }
 
     private void rotateCameraToward(Vec3d targetPos, MinecraftClient client) {
         ClientPlayerEntity player = client.player;
         if (player == null) return;
 
+        // 1) Get eye position and full delta
         Vec3d eyePos = player.getCameraPosVec(1.0f);
-        Vec3d delta = targetPos.subtract(eyePos);
-        double distXZ = Math.hypot(delta.x, delta.z);
+        Vec3d delta  = targetPos.subtract(eyePos);
 
-        // Calculate raw angles
-        float desiredYaw = (float) Math.toDegrees(Math.atan2(delta.z, delta.x)) - 90.0f;
-        float desiredPitch = (float) -Math.toDegrees(Math.atan2(delta.y, distXZ));
+        // 2) Extract horizontal (XZ) component and length
+        Vec3d deltaXZ = new Vec3d(delta.x, 0, delta.z);
+        double distXZ = deltaXZ.length();
 
-        // Vertical movement analysis
-        boolean verticalChange = lastTargetY == null || Math.abs(targetPos.y - lastTargetY) > 0.2;
-        lastTargetY = targetPos.y;
-
-        // Horizontal movement stabilization
-        if (!verticalChange) {
-            // When moving on flat ground, blend pitch toward horizon
-            float horizonPitch = 25.0f; // Slightly below horizon for natural look
-            desiredPitch = lerpAngle(desiredPitch, horizonPitch, 0.7f);
-            pitchSmoothing = 0.35f; // Slower pitch adjustments
+        // 3) Compute a “look-ahead” vector one block past the target on the same line
+        Vec3d lookVector;
+        if (distXZ > 1e-6) {
+            Vec3d normXZ     = deltaXZ.multiply(1.0 / distXZ);
+            lookVector       = deltaXZ.add(normXZ);  // 1 block further
         } else {
-            pitchSmoothing = 0.25f; // Normal speed for vertical changes
+            lookVector = deltaXZ; // basically zero; you’ll fall back to current yaw
         }
 
-        // Reduced jitter when on flat terrain
-        float yawJitter = verticalChange ?
-                (float) ((Math.random() - 0.5) * 1.5) :
-                (float) ((Math.random() - 0.5) * 0.8);
+        // 4) Compute rawYaw from the extended lookVector
+        float rawYaw;
+        if (lookVector.length() > 1e-6) {
+            rawYaw = (float) Math.toDegrees(Math.atan2(lookVector.z, lookVector.x)) - 90.0f;
+        } else {
+            rawYaw = player.getYaw();
+        }
 
-        float pitchJitter = verticalChange ?
-                (float) ((Math.random() - 0.5) * 1.2) :
-                (float) ((Math.random() - 0.5) * 0.5);
+        float rawPitch = (float) -Math.toDegrees(Math.atan2(delta.y, distXZ));
 
-        // Smooth interpolation
+        // Get current view
         float currentYaw = player.getYaw();
         float currentPitch = player.getPitch();
 
-        float newYaw = lerpAngle(currentYaw, desiredYaw + yawJitter, 0.25f);
-        float newPitch = lerpAngle(currentPitch, desiredPitch + pitchJitter, pitchSmoothing);
+        // Detect actual falling via vertical velocity
+        LOGGER.error("velocity: {}", player.getVelocity());
+        boolean isFalling = player.getVelocity().y < -0.38;
 
-        // Horizon preservation
-        if (!verticalChange && distXZ < 3.0) {
-            // Keep pitch within ±15 degrees when moving horizontally
-            newPitch = MathHelper.clamp(newPitch, -15.0f, 15.0f);
+        float newYaw;
+        float newPitch;
+
+        if (isFalling) {
+            // --- LOCK YAW ---
+            newYaw = currentYaw;
+
+            // --- ONLY ADJUST PITCH toward raw target ---
+            float targetPitch = lerpAngle(currentPitch, rawPitch, 0.25f);
+
+            // Clamp so you never look more than 50° below the horizon
+            // (i.e. max pitch = 28+-2°)
+            newPitch = MathHelper.clamp(targetPitch, -90.0f, 28.0f + (float)((Math.random() - 0.5) * 4));
+        } else {
+            // --- NORMAL BEHAVIOR WHEN NOT FALLING ---
+            // Clamp pitch toward horizon if on flat ground
+            float desiredPitch = lerpAngle(rawPitch, 25.0f, 0.7f);
+            float pitchSpeed = 0.35f;
+
+            // Small jitter for natural look
+            float yawJitter   = 0; //(float)((Math.random() - 0.5) * 0.4);
+            float pitchJitter = (float)((Math.random() - 0.5) * 0.25);
+
+            // compute raw yaw error in [–180;+180)
+            float dynamicT = getDynamicT(rawYaw, currentYaw);
+
+            // finally lerp with the dynamic t
+            newYaw = lerpAngle(currentYaw, rawYaw + yawJitter, dynamicT);
+
+            // Interpolate yaw and pitch
+            newPitch = lerpAngle(currentPitch, desiredPitch + pitchJitter, pitchSpeed);
+
+            // Keep pitch from tilting too far when very close
+            if (distXZ < 3.0) {
+                newPitch = MathHelper.clamp(newPitch, -15.0f, 15.0f);
+            }
         }
 
         player.setYaw(newYaw);
         player.setPitch(newPitch);
     }
 
-// Keep the existing lerpAngle implementation
+    private static float getDynamicT(float rawYaw, float currentYaw) {
+        float rawDelta = ((rawYaw - currentYaw + 540f) % 360f) - 180f;
+        float absDelta = Math.abs(rawDelta);
+
+        // parameters
+        float minT = 0.05f;   // base speed when almost aligned
+        float maxT = 0.20f;   // top speed when way off
+        float maxAngleForFullSpeed = 60f;
+
+        // compute a normalized error in [0..1]
+        float normalized = Math.min(absDelta / maxAngleForFullSpeed, 1f);
+
+        // apply a non-linear curve: square it (you could also use Math.pow(normalized, 3) for cubic)
+        float curve = (float) Math.sin(normalized * (float)Math.PI/2);
+
+        // blend between minT and maxT via the curve
+
+        return minT + (maxT - minT) * curve;
+    }
 
     /**
      * Interpolates angles correctly across the ±180° wrap.
@@ -226,12 +278,9 @@ public class BasicPathAI {
         // 80% chance to jump if obstacle detected
         if (needsJump && Math.random() < 0.8) {
             client.options.jumpKey.setPressed(true);
+            lastJump = 0;
             jumpCooldown = JUMP_COOLDOWN_TICKS;
         }
-    }
-
-    public void goTo(Vec3d pos) {
-        this.target = pos;
     }
 
     public void goAlongPathBlockPos(List<Vec3d> blockPath) {
@@ -240,12 +289,6 @@ public class BasicPathAI {
             stop();
             return;
         }
-
-        // Convert BlockPos to Vec3d using center of block
-//        List<Vec3d> waypoints = blockPath.stream()
-//                .map(BlockPos::toCenterPos)
-//                .toList();
-
 
         goAlongPath(blockPath);
     }
@@ -287,10 +330,12 @@ public class BasicPathAI {
             client.options.backKey.setPressed(false);
             client.options.leftKey.setPressed(false);
             client.options.rightKey.setPressed(false);
+            client.options.jumpKey.setPressed(false);
+            client.options.sprintKey.setPressed(false);
         }
     }
 
     public Vec3d getTarget() {
-        return this.target;
+        return target;
     }
 }

@@ -17,7 +17,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.BlockPos;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +70,7 @@ public class WynnAIClient implements ClientModInitializer {
         });
 
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
-            List<BlockPos> path = PathingManager.getInstance().getCurrentPath();
+            List<Vec3d> path = PathingManager.getInstance().getCurrentPath();
             if (path == null || path.size() < 2) {
                 LOGGER.debug("Path is null or too short to render: {}", path);
                 return;

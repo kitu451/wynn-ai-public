@@ -1,5 +1,6 @@
 package net.natga999.wynn_ai.path;
 
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.FarmlandBlock;
@@ -18,6 +19,7 @@ public class PathFinder {
     private final ChunkCache cache;
     private final int maxDrop;  // maximum safe drop height
     private static final int MAX_PATH_LENGTH = 1000; // Maximum number of nodes to explore
+    private static final double CORNER_OFFSET = 0.2; // amount to soften 90° turns
 
     public PathFinder(ClientWorld world, int cacheRadius, BlockPos start) {
         this(world, cacheRadius, start, 3); // Default max drop of 3 blocks
@@ -30,7 +32,7 @@ public class PathFinder {
         LOGGER.debug("PathFinder initialized with cache radius {} and max drop {}", cacheRadius, maxDrop);
     }
 
-    public List<BlockPos> findPath(BlockPos start, BlockPos goal) {
+    public List<Vec3d> findPath(BlockPos start, BlockPos goal) {
         LOGGER.debug("Finding path from {} to {}", start, goal);
 
         Map<BlockPos, Double> gScore = new HashMap<>();
@@ -72,56 +74,52 @@ public class PathFinder {
             nodesExpanded++;
 
             // Check if goal is found
-//            if (current.getPos().equals(goal)) {
-//                List<BlockPos> path = reconstructPath(current);
-//                LOGGER.debug("Path found! Length: {}, Nodes expanded: {}, Iterations: {}", path.size(), nodesExpanded, iterations);
-//                return path;
-//            }
-
             if (current.getPos().equals(goal)) {
                 List<BlockPos> rawPath = reconstructPath(current);
-                List<BlockPos> simplifiedPath = simplifyPath(rawPath);
-                LOGGER.debug("Simplified path from {} to {} nodes", rawPath.size(), simplifiedPath.size());
-                return simplifiedPath;
+                List<Vec3d> simplifiedPath = simplifyPath(rawPath);
+                List<Vec3d> curvedPath = postProcessCorners(simplifiedPath);
+                LOGGER.debug("Simplified path from {} to {} nodes", rawPath.size(), curvedPath.size());
+                return curvedPath;
             }
 
             closedSet.add(current.getPos());
 
-            // Explore horizontal neighbors (N, S, E, W)
+            // Explore 8 planar neighbors (N, NE, E, SE, S, SW, W, NW)
             int validNeighbors = 0;
-            for (Direction dir : Direction.Type.HORIZONTAL) {
-                BlockPos horiz = current.getPos().offset(dir);
+            // Offsets for the 8 directions in XZ plane
+            int[] dx = {  0,  1,  1,  1,  0, -1, -1, -1 };
+            int[] dz = {  1,  1,  0, -1, -1, -1,  0,  1 };
 
-                // Check if within cache bounds
-                if (!cache.isWithinCacheBounds(horiz)) {
-                    LOGGER.debug("Neighbor {} is outside cache bounds", horiz);
-                    continue;
-                }
+            for (int i = 0; i < 8; i++) {
+                BlockPos horiz = current.getPos().add(dx[i], 0, dz[i]);
 
+                // within cache?
+                if (!cache.isWithinCacheBounds(horiz)) continue;
+
+                // drop to ground if needed
                 BlockPos candidate = findGroundBelow(horiz);
-                if (candidate == null) {
-                    LOGGER.debug("No valid ground below {} (offset from {} in direction {})", horiz, current.getPos(), dir);
-                    continue;            // too tall a drop or no ground
-                }
+                if (candidate == null) continue;
 
-                if (!isSpaceClear(horiz.up())) {
-                    continue;
-                }
+                // headspace at original horizontal must be clear (for jumps)
+                if (!isSpaceClear(horiz.up())) continue;
 
-                if (closedSet.contains(candidate)) {
-                    LOGGER.debug("Candidate {} already explored", candidate);
-                    continue;
-                }
+                // avoid re‐exploring
+                if (closedSet.contains(candidate)) continue;
 
-                if (!isSpaceClear(candidate)) {
-                    LOGGER.debug("No clear space at candidate {}", candidate);
-                    continue;
+                // ensure target feet & head are clear
+                if (!isSpaceClear(candidate)) continue;
+
+                // corner‐cut prevention: when moving diagonally, both axis steps must be clear
+                if (Math.abs(dx[i]) == 1 && Math.abs(dz[i]) == 1) {
+                    BlockPos sideA = current.getPos().add(dx[i], 0, 0);
+                    BlockPos sideB = current.getPos().add(0, 0, dz[i]);
+                    if (!isSpaceClear(sideA) || !isSpaceClear(sideB)) continue;
                 }
 
                 validNeighbors++;
                 double tentativeG = current.getG() + movementCost(current.getPos(), candidate);
                 if (gScore.containsKey(candidate) && tentativeG >= gScore.get(candidate)) {
-                    continue; // We've already found a better or equal path
+                    continue;
                 }
                 gScore.put(candidate, tentativeG);
                 openSet.add(new Node(candidate, tentativeG, estimateDistance(candidate, goal), current));
@@ -160,39 +158,118 @@ public class PathFinder {
         return null; // No path found
     }
 
-    public List<BlockPos> simplifyPath(List<BlockPos> rawPath) {
-        if (rawPath.size() <= 2) return rawPath;
+    public List<Vec3d> simplifyPath(List<BlockPos> rawPath) {
+        // Early exit: if too few waypoints, convert all to Vec3d and return
+        if (rawPath.size() <= 2) {
+            List<Vec3d> direct = new ArrayList<>(rawPath.size());
+            for (BlockPos p : rawPath) direct.add(toVec3(p));
+            return direct;
+        }
 
-        List<BlockPos> simplified = new ArrayList<>();
-        simplified.add(rawPath.getFirst());
+        // We'll build directly a Vec3d list so we can use fractional offsets
+        List<Vec3d> simplified = new ArrayList<>();
+        // Start with first point
+        Vec3d lastVec = toVec3(rawPath.getFirst());
+        simplified.add(lastVec);
 
         int currentIndex = 0;
         while (currentIndex < rawPath.size() - 1) {
             int farthestValid = currentIndex + 1;
+            BlockPos lastAddedBlock = rawPath.get(currentIndex);
+            lastVec = simplified.getLast();
 
-            // Find the farthest node reachable via a straight line
+            // 1) Find the farthest straight-line reach
             for (int i = currentIndex + 1; i < rawPath.size(); i++) {
-                BlockPos current = simplified.getLast();
                 BlockPos candidate = rawPath.get(i);
-
-                if (isRaycastWalkable(current, candidate)) {
+                if (isRaycastWalkable(lastAddedBlock, candidate)) {
                     farthestValid = i;
                 } else {
                     break;
                 }
             }
 
-            if (farthestValid > currentIndex) {
-                simplified.add(rawPath.get(farthestValid));
-                currentIndex = farthestValid;
-            } else {
-                // Fallback: move to the next node
-                simplified.add(rawPath.get(currentIndex + 1));
-                currentIndex++;
+            // 2) Next block target
+            BlockPos nextBlock = rawPath.get(farthestValid);
+            Vec3d nextVec = toVec3(nextBlock);
+
+            // 3) Handle big drops: detect using block Y
+            int dy = lastAddedBlock.getY() - nextBlock.getY();
+            if (dy >= 2) {
+                // Compute a 50% offset in Vec3d space
+                Vec3d direction = nextVec.subtract(lastVec);
+                Vec3d edgeVec = lastVec.add(direction.multiply(0.5));
+                edgeVec = new Vec3d(edgeVec.x, lastVec.y, edgeVec.z);
+                simplified.add(edgeVec);
+
+                // Adjust nextVec toward nextNext if exists
+                if (farthestValid + 1 < rawPath.size()) {
+                    BlockPos nextNextBlock = rawPath.get(farthestValid + 1);
+                    Vec3d nextNextVec = toVec3(nextNextBlock);
+
+                    // Compute full vector, then drop the Y component
+                    Vec3d toNextNext = nextNextVec.subtract(nextVec);
+                    Vec3d toNextNextXZ = new Vec3d(toNextNext.x, 0, toNextNext.z);
+
+                    double horizontalDist = Math.hypot(toNextNextXZ.x, toNextNextXZ.z);
+                    if (horizontalDist > 0) {
+                        // e.g. move 50% of one block toward nextNext in XZ
+                        double fraction = 1.0;
+                        Vec3d offset = toNextNextXZ.multiply(fraction / horizontalDist);
+
+                        // Only adjust X and Z—keep Y the same
+                        nextVec = new Vec3d(
+                                nextVec.x + offset.x,
+                                nextVec.y,
+                                nextVec.z + offset.z
+                        );
+                    }
+                }
             }
+
+            // 4) Add the actual next
+            simplified.add(nextVec);
+            currentIndex = farthestValid;
         }
 
         return simplified;
+    }
+
+    /**
+     * Convert BlockPos to Vec3d, centering within the block
+     */
+    private Vec3d toVec3(BlockPos pos) {
+        return new Vec3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+    }
+
+    /**
+     * Post-process waypoints to soften 90° corners by replacing the corner point
+     * with a point offset from the corner in both directions.
+     */
+    private List<Vec3d> postProcessCorners(List<Vec3d> path) {
+        if (path.size() < 3) return path;
+        List<Vec3d> result = new ArrayList<>();
+        result.add(path.getFirst());
+
+        for (int i = 1; i < path.size() - 1; i++) {
+            Vec3d prev = path.get(i - 1);
+            Vec3d curr = path.get(i);
+            Vec3d next = path.get(i + 1);
+            Vec3d dirPrev = curr.subtract(prev).normalize();
+            Vec3d dirNext = next.subtract(curr).normalize();
+
+            // Detect orthogonal turn (dot product ~0)
+            if (Math.abs(dirPrev.dotProduct(dirNext)) < 0.01) {
+                // Replace corner with a single point offset from both directions
+                Vec3d offset = curr.subtract(dirPrev.multiply(CORNER_OFFSET))
+                        .add(dirNext.multiply(CORNER_OFFSET));
+                result.add(offset);
+            } else {
+                result.add(curr);
+            }
+        }
+
+        result.add(path.getLast());
+        return result;
     }
 
     private boolean isRaycastWalkable(BlockPos start, BlockPos end) {
@@ -225,57 +302,79 @@ public class PathFinder {
     }
 
     /**
-     * Accurate voxel traversal algorithm for raycasting.
-     * Based on "A Fast Voxel Traversal Algorithm for Ray Tracing" (Amanatides & Woo).
+     * Voxel traversal that never skips orthogonal neighbors on diagonal moves.
+     * Based on Amanatides & Woo, but handles ties by inserting both axis‐steps.
      */
     private List<BlockPos> getBlocksBetween(BlockPos start, BlockPos end) {
         List<BlockPos> blocks = new ArrayList<>();
-        double x = start.getX() + 0.5; // Center of block
-        double y = start.getY() + 0.5;
-        double z = start.getZ() + 0.5;
+        double x0 = start.getX() + 0.5, y0 = start.getY() + 0.5, z0 = start.getZ() + 0.5;
         double dx = end.getX() - start.getX();
         double dy = end.getY() - start.getY();
         double dz = end.getZ() - start.getZ();
 
-        int stepX = dx > 0 ? 1 : -1;
-        int stepY = dy > 0 ? 1 : -1;
-        int stepZ = dz > 0 ? 1 : -1;
+        int stepX = dx>0?1:-1, stepY = dy>0?1:-1, stepZ = dz>0?1:-1;
+        double tDeltaX = Math.abs(1.0 / dx);
+        double tDeltaY = Math.abs(1.0 / dy);
+        double tDeltaZ = Math.abs(1.0 / dz);
 
-        double tDeltaX = Math.abs(1 / dx);
-        double tDeltaY = Math.abs(1 / dy);
-        double tDeltaZ = Math.abs(1 / dz);
+        double tMaxX = (stepX>0
+                ? (Math.floor(x0)+1 - x0) * tDeltaX
+                : (x0 - Math.floor(x0))   * tDeltaX);
+        double tMaxY = (stepY>0
+                ? (Math.floor(y0)+1 - y0) * tDeltaY
+                : (y0 - Math.floor(y0))   * tDeltaY);
+        double tMaxZ = (stepZ>0
+                ? (Math.floor(z0)+1 - z0) * tDeltaZ
+                : (z0 - Math.floor(z0))   * tDeltaZ);
 
-        double tMaxX = (stepX > 0) ? (Math.floor(x) + 1 - x) * tDeltaX : (x - Math.floor(x)) * tDeltaX;
-        double tMaxY = (stepY > 0) ? (Math.floor(y) + 1 - y) * tDeltaY : (y - Math.floor(y)) * tDeltaY;
-        double tMaxZ = (stepZ > 0) ? (Math.floor(z) + 1 - z) * tDeltaZ : (z - Math.floor(z)) * tDeltaZ;
-
-        int currentX = start.getX();
-        int currentY = start.getY();
-        int currentZ = start.getZ();
+        int ix = start.getX(), iy = start.getY(), iz = start.getZ();
 
         while (true) {
-            blocks.add(new BlockPos(currentX, currentY, currentZ));
+            blocks.add(new BlockPos(ix, iy, iz));
+            if (ix==end.getX() && iy==end.getY() && iz==end.getZ()) break;
 
-            if (currentX == end.getX() && currentY == end.getY() && currentZ == end.getZ()) break;
+            // Find the smallest tMax
+            double min = Math.min(tMaxX, Math.min(tMaxY, tMaxZ));
 
-            if (tMaxX < tMaxY) {
-                if (tMaxX < tMaxZ) {
-                    tMaxX += tDeltaX;
-                    currentX += stepX;
-                } else {
-                    tMaxZ += tDeltaZ;
-                    currentZ += stepZ;
-                }
-            } else {
-                if (tMaxY < tMaxZ) {
-                    tMaxY += tDeltaY;
-                    currentY += stepY;
-                } else {
-                    tMaxZ += tDeltaZ;
-                    currentZ += stepZ;
-                }
+            boolean stepXNow = tMaxX == min;
+            boolean stepYNow = tMaxY == min;
+            boolean stepZNow = tMaxZ == min;
+
+            // If two (or three) axes tie, we’ll step each—and insert the orthogonal blocks first.
+            // e.g. stepping X and Z diagonally, insert (ix+stepX,iy,iz) and (ix,iy,iz+stepZ)
+            if (stepXNow && stepYNow) {
+                // insert both axis edges
+                blocks.add(new BlockPos(ix + stepX, iy, iz));
+                blocks.add(new BlockPos(ix, iy + stepY, iz));
+                ix += stepX; iy += stepY;
+                tMaxX += tDeltaX; tMaxY += tDeltaY;
+            }
+            else if (stepXNow && stepZNow) {
+                blocks.add(new BlockPos(ix + stepX, iy, iz));
+                blocks.add(new BlockPos(ix, iy, iz + stepZ));
+                ix += stepX; iz += stepZ;
+                tMaxX += tDeltaX; tMaxZ += tDeltaZ;
+            }
+            else if (stepYNow && stepZNow) {
+                blocks.add(new BlockPos(ix, iy + stepY, iz));
+                blocks.add(new BlockPos(ix, iy, iz + stepZ));
+                iy += stepY; iz += stepZ;
+                tMaxY += tDeltaY; tMaxZ += tDeltaZ;
+            }
+            else if (stepXNow) {
+                tMaxX += tDeltaX;
+                ix += stepX;
+            }
+            else if (stepYNow) {
+                tMaxY += tDeltaY;
+                iy += stepY;
+            }
+            else { // stepZNow
+                tMaxZ += tDeltaZ;
+                iz += stepZ;
             }
         }
+
         return blocks;
     }
 

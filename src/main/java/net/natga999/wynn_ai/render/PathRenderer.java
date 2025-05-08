@@ -1,11 +1,12 @@
 package net.natga999.wynn_ai.render;
 
+import net.natga999.wynn_ai.managers.PathingManager;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.natga999.wynn_ai.managers.PathingManager;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +71,7 @@ public class PathRenderer {
         RenderSystem.disableBlend();
     }
 
-    public static void renderPath(MatrixStack matrices, Vec3d cameraPos, List<BlockPos> path) {
+    public static void renderPath(MatrixStack matrices, Vec3d cameraPos, List<Vec3d> path) {
         // Only render when in MOVING_TO_NODE state
         if (path == null || path.size() < 2 || PathingManager.getInstance().isMovingToNode()) {
             return;
@@ -98,8 +99,8 @@ public class PathRenderer {
         MatrixStack.Entry entry = matrices.peek();
 
         for (int i = 0; i < path.size() - 1; i++) {
-            Vec3d start = Vec3d.ofCenter(path.get(i)).subtract(cameraPos);
-            Vec3d end = Vec3d.ofCenter(path.get(i + 1)).subtract(cameraPos);
+            Vec3d start = path.get(i).subtract(cameraPos);
+            Vec3d end = path.get(i + 1).subtract(cameraPos);
             Vec3d normalized = new Vec3d(end.x - start.x, end.y - start.y, end.z - start.z).normalize();
 
             // Draw lines using modern approach
