@@ -73,7 +73,7 @@ public class PathRenderer {
 
     public static void renderPath(MatrixStack matrices, Vec3d cameraPos, List<Vec3d> path) {
         // Only render when in MOVING_TO_NODE state
-        if (path == null || path.size() < 2 || PathingManager.getInstance().isMovingToNode()) {
+        if (path == null || path.size() < 2) {
             return;
         }
 

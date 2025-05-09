@@ -167,7 +167,7 @@ public class RenderManager {
                         context.matrixStack(),
                         context.consumers()
                 );
-                scanAndStore(nbt, "Wheat");
+                scanAndStore(nbt, "Malt");
             }
         }
     }

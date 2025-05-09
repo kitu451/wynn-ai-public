@@ -5,7 +5,7 @@ import java.util.*;
 
 public class CatmullRomSpline {
     private static final double TENSION = 0.5;
-    private static final double DROP_THRESHOLD = 0.9; // Blocks drop
+    private static final double DROP_THRESHOLD = 1.0; // Blocks drop
     private static final double DIST_THRESHOLD = 1.0; // Blocks distance
 
     public static List<Vec3d> createSpline(List<Vec3d> points, int segments) {
@@ -42,7 +42,7 @@ public class CatmullRomSpline {
             Vec3d p3 = extended.get(i + 2);
 
             // Detect a steep drop: if p1 to p2 drops more than threshold
-            if (p1.y - p2.y > DROP_THRESHOLD) {
+            if ((p1.y - p2.y > DROP_THRESHOLD) || (p2.y - p1.y >= DROP_THRESHOLD)) {
                 // Add only start and end of drop to create a single straight segment
                 spline.add(p1);
                 spline.add(p2);

@@ -1,9 +1,12 @@
 package net.natga999.wynn_ai.managers;
 
+import net.minecraft.block.BlockState;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.path.PathFinder;
 import net.natga999.wynn_ai.utility.CatmullRomSpline;
 
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
@@ -33,11 +36,12 @@ public class PathingManager {
     private boolean pathComplete = false;
 
     private int waitTicks = 0;
-    private static final int MAX_WAIT_TICKS = 5; // 0.25 seconds if 20 tps
+    private static final int MAX_WAIT_TICKS = 80; // 4 seconds if 20 tps
 
     // Node harvesting states
     private enum HarvestState {
         FINDING_NODE,
+        START_PATH,
         MOVING_TO_NODE,
         HARVESTING,
         WAITING
@@ -63,69 +67,43 @@ public class PathingManager {
         switch (currentState) {
             case FINDING_NODE:
                 if (!isFounding) {
-                    LOGGER.debug("FOUNDing");
+                    LOGGER.debug("Founding node");
                     isFounding = true;
                     findAndStartPath();
                 }
                 break;
 
-            case MOVING_TO_NODE: if (path != null) {
-                LOGGER.debug("Path found: {}", path);
-
-//                // Step 1: Apply Funnel Algorithm
-//                List<Vec3d> funnelPath = FunnelSmoother.smoothPath(path.stream()
-//                        .map(BlockPos::toImmutable)
-//                        .collect(Collectors.toList()));
-//
-//                LOGGER.error("Funnel path size: {}", funnelPath.size());
-//
-//                // Step 2: Apply Catmull-Rom Spline (4 segments between points)
-//                List<Vec3d> splinePath = CatmullRomSpline.createSpline(funnelPath, 4);
-//
-//                LOGGER.error("Spline path size: {}", splinePath.size());
-//
-//                // Add slight jitter to spline points
-//                splinePath = splinePath.stream()
-//                        .map(v -> v.add(
-//                                (Math.random() - 0.5) * 0.3,
-//                                0,
-//                                (Math.random() - 0.5) * 0.3
-//                        )).toList();
-
-                // NO FUNNELING
-                // Convert BlockPos path to Vec3d path
-                List<Vec3d> vecPath = path;
-
-                LOGGER.debug("Vec3d path size: {}", vecPath.size());
-
-                // Skip funnel algorithm for now
-                int segments = vecPath.size() <= 3 ? 8 : 4;
-                List<Vec3d> splinePath = CatmullRomSpline.createSpline(vecPath, segments);
-
-                LOGGER.debug("Spline path size: {}", splinePath.size());
-
-                this.splinePath = new ArrayList<>(splinePath);
-
-                BasicPathAI.getInstance().goAlongPathBlockPos(splinePath);
-            }
-            currentState = HarvestState.HARVESTING;
-            break;
-
-            case HARVESTING:
-                if (pathComplete) {
-                    this.path = null;
-                    // Simulate click or trigger your "use" action here
-                    assert MinecraftClient.getInstance().interactionManager != null;
-                    MinecraftClient.getInstance().interactionManager.attackBlock(goalPos, Direction.DOWN);
-                    assert MinecraftClient.getInstance().player != null;
-                    MinecraftClient.getInstance().player.swingHand(Hand.MAIN_HAND); // visual arm swing
-                    currentState = HarvestState.WAITING;
-                    waitTicks = 0;
+            case START_PATH:
+                LOGGER.debug("START PATH");
+                if (splinePath != null) {
                     pathComplete = false;
+                    BasicPathAI.getInstance().goAlongPathBlockPos(splinePath);
+                    currentState = HarvestState.MOVING_TO_NODE;
                 }
                 break;
 
+            case MOVING_TO_NODE:
+                LOGGER.debug("MOVING TO NODE");
+                if (pathComplete) {
+                    path = null;
+                    splinePath = null;
+                    currentState = HarvestState.HARVESTING;
+                }
+                break;
+
+            case HARVESTING:
+                LOGGER.debug("HARVESTING");
+                currentState = HarvestState.WAITING;
+                // Simulate click or trigger your "use" action here
+                assert MinecraftClient.getInstance().interactionManager != null;
+                MinecraftClient.getInstance().interactionManager.attackBlock(goalPos, Direction.DOWN);
+                assert MinecraftClient.getInstance().player != null;
+                MinecraftClient.getInstance().player.swingHand(Hand.MAIN_HAND); // visual arm swing
+                waitTicks = 0;
+                break;
+
             case WAITING:
+                LOGGER.debug("WAITING");
                 waitTicks++;
                 if (waitTicks >= MAX_WAIT_TICKS) {
                     currentState = HarvestState.FINDING_NODE;
@@ -137,7 +115,7 @@ public class PathingManager {
 
     private void findAndStartPath() {
         // Get nearest resource node (e.g., from marker system)
-        Vec3d pos = ResourceNodeManager.getClosestNode("Wheat");
+        Vec3d pos = ResourceNodeManager.getClosestNode("Malt");
         if (pos == null) {
             isFounding = false;
             return;
@@ -164,14 +142,53 @@ public class PathingManager {
 
         // Create a pathfinder with a cache
         PathFinder pathFinder = new PathFinder(world, 4, player.getBlockPos()); // Cache radius of 4 chunks
-        List<Vec3d> rawPath = pathFinder.findPath(player.getBlockPos(), goalPos);
+        BlockPos playerPos = player.getBlockPos();
+        Block blockBelow = world.getBlockState(playerPos).getBlock();
+
+        // If standing on farmland, raise start position by 1
+        if (blockBelow == Blocks.FARMLAND) {
+            playerPos = playerPos.up(); // Adds +1 to the Y coordinate
+        }
+
+        List<Vec3d> rawPath = pathFinder.findPath(playerPos, goalPos);
         if (rawPath != null && !rawPath.isEmpty()) {
             // Replace the very first waypoint with the player's current exact cords
-            Vec3d playerPos = player.getPos();
-            rawPath.set(0, new Vec3d(playerPos.x, playerPos.y + 0.5, playerPos.z));
+            Vec3d playerPosVec = player.getPos();
+
+            // Figure out which block‐cell those cords live in
+            BlockPos footPos = new BlockPos(
+                    (int) playerPosVec.x,
+                    (int) (playerPosVec.y - 0.5),   // since Vec3d y is centered at feet+0.5
+                    (int) playerPosVec.z
+            );
+
+            // Look at the block at that position
+            BlockState footState = world.getBlockState(footPos.down());
+
+            // If that block is “empty” (air) or a shallow crop, lower you by one
+            if ( footState.isAir()
+                    || footState.getBlock() == Blocks.WHEAT
+                    || footState.getBlock() == Blocks.POTATOES
+                    || footState.getBlock() == Blocks.SHORT_GRASS ) {
+                playerPosVec = playerPosVec.subtract(0, 1.0, 0);
+            }
+
+            rawPath.set(0, new Vec3d(playerPosVec.x, playerPosVec.y + 0.5, playerPosVec.z));
 
             this.path = rawPath;
-            currentState = HarvestState.MOVING_TO_NODE;
+
+            // NO FUNNELING
+            LOGGER.debug("Vec3d path size: {}", path.size());
+
+            int segments = path.size() <= 3 ? 16 : 8;
+            this.splinePath = new ArrayList<>(CatmullRomSpline.createSpline(path, segments));
+
+            LOGGER.debug("Spline path size: {}", splinePath.size());
+            LOGGER.debug("Path found: {}, Spline path: {}", path, splinePath);
+
+            pathComplete = false;
+
+            currentState = HarvestState.START_PATH;
         } else {
             LOGGER.debug("Pathfinding failed: No path to goal {}", goalPos);
             currentState = HarvestState.WAITING; // delay retry
@@ -181,6 +198,10 @@ public class PathingManager {
 
     public void setPathComplete(Boolean complete) {
         pathComplete = complete;
+    }
+
+    public boolean isPathComplete() {
+        return pathComplete;
     }
 
     public boolean isPathing() {

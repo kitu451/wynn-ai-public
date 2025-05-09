@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 
 public class BasicPathAI {
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicPathAI.class);
@@ -46,7 +47,7 @@ public class BasicPathAI {
             ClientPlayerEntity player = client.player;
             if (player == null) return;
 
-            if (!followingPath || path == null || currentPathIndex >= path.size()) {
+            if (!followingPath || path == null || currentPathIndex >= path.size() || PathingManager.getInstance().isPathComplete()) {
                 //stop();
                 return;
             }
@@ -65,30 +66,66 @@ public class BasicPathAI {
             );
             double distanceY = Math.abs(player.getY() - currentTarget.y);
 
-            // Check if we're close enough using separate thresholds
-            if (distanceXZ < reachThresholdXZ && distanceY < reachThresholdY) {
+            boolean reachedCurrent = distanceXZ < reachThresholdXZ && distanceY < reachThresholdY;
+            boolean reachedNext = isReachedNext(player);
 
-                currentPathIndex++;
+            // Decide how far to advance
+            if (reachedNext) {
+                // Skip current and go straight to the one after next
+                currentPathIndex += 2;
+            } else if (reachedCurrent) {
+                // Normal single-step advance
+                currentPathIndex ++;
+            }
 
-//                if (currentPathIndex + 1 < path.size()) {
-//                    currentPathIndex++;
-//                }
+            // Reached the last point
+            if (currentPathIndex >= path.size()) {
+                PathingManager.getInstance().setPathComplete(true);
+                stop();
+                player.sendMessage(Text.literal("Path complete."), false);
+                return;
+            }
 
-                // Reached the last point
-                if (currentPathIndex >= path.size()) {
+            // Check if we're close enough to the final goal
+            Vec3d finalTarget = path.getLast();
+            double finalDistanceXZ = Math.sqrt(
+                    Math.pow(player.getX() - finalTarget.x, 2) +
+                            Math.pow(player.getZ() - finalTarget.z, 2)
+            );
+            double finalDistanceY = Math.abs(player.getY() - finalTarget.y);
+
+            //to-do implement shorter XZ if trying to reach same goal > 3 in a row
+            Random rand = new Random();
+            double randomFactor = 0.9 + rand.nextDouble() * (1.6 - 0.9);
+            if (finalDistanceXZ < randomFactor && finalDistanceY < 1.0) {
+                if (!PathingManager.getInstance().isPathComplete()) {
                     PathingManager.getInstance().setPathComplete(true);
                     stop();
-                    player.sendMessage(Text.literal("Path complete."), false);
+                    player.sendMessage(Text.literal("Path complete (close to goal)."), false);
                     return;
                 }
-
-                this.target = path.get(currentPathIndex); // Move to next target
             }
+
+            this.target = path.get(currentPathIndex); // Move to next target
 
             //player.sendMessage(Text.literal("Moving to: " + target + " | Distance: " + distance), false);
         } else {
             path = null;
         }
+    }
+
+    private boolean isReachedNext(ClientPlayerEntity player) {
+        boolean reachedNext = false;
+        if (currentPathIndex + 1 < path.size()) {
+            Vec3d nextTarget = path.get(currentPathIndex + 1);
+            double nextDistXZ = Math.hypot(
+                    player.getX() - nextTarget.x,
+                    player.getZ() - nextTarget.z
+            );
+            double nextDistY = Math.abs(player.getY() - nextTarget.y);
+            reachedNext = nextDistXZ < reachThresholdXZ && nextDistY < reachThresholdY;
+        }
+        return reachedNext;
     }
 
     public void updateMovementToward(Vec3d targetPos, MinecraftClient client) {
@@ -132,7 +169,9 @@ public class BasicPathAI {
             client.options.leftKey.setPressed(true);
         }
 
-        checkAndJump(client);
+        if (PathingManager.getInstance().isMovingToNode()) {
+            checkAndJump(client);
+        }
 
         if (lastJump > 20) {
             client.options.sprintKey.setPressed(true);
@@ -271,13 +310,16 @@ public class BasicPathAI {
         // Check if obstacle in movement direction
         assert client.world != null;
         BlockState state = client.world.getBlockState(checkPos);
+        BlockState stateUp = client.world.getBlockState(checkPos.up());
 
         // Check if the block is wheat or potatoes, treat them as air
-        boolean isCropBlock = state.getBlock() == Blocks.WHEAT || state.getBlock() == Blocks.POTATOES;
+        boolean isCropBlock = state.getBlock() == Blocks.WHEAT || state.getBlock() == Blocks.POTATOES || state.getBlock() == Blocks.SHORT_GRASS;
+        boolean isCropBlockUp = stateUp.getBlock() == Blocks.WHEAT || stateUp.getBlock() == Blocks.POTATOES || stateUp.getBlock() == Blocks.SHORT_GRASS;
 
         // Only consider it an obstacle if it's not air and not a crop block
-        boolean needsJump = !state.isAir() && !isCropBlock;
+        boolean needsJump = !state.isAir() && !isCropBlock && (stateUp.isAir() || isCropBlockUp);
 
+        //LOGGER.error("NEEDS JUMP: {} - {} - {} - {} - {} ({})", needsJump, !state.isAir(), !isCropBlock, stateUp.isAir(), isCropBlockUp, state.getBlock().getName());
         LOGGER.debug("Obstacle detected: {} - {} - {}", needsJump, state.getBlock(), clientVecPos);
 
         // 80% chance to jump if obstacle detected

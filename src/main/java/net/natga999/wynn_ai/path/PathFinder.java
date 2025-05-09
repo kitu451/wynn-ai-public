@@ -441,14 +441,15 @@ public class PathFinder {
             return false;
         }
 
-
         // Treat air, wheat or potatoes as “empty” at both positions
         boolean feetClear = blockAt.isAir()
                 || blockAt.getBlock() == Blocks.WHEAT
-                || blockAt.getBlock() == Blocks.POTATOES;
+                || blockAt.getBlock() == Blocks.POTATOES
+                || blockAt.getBlock() == Blocks.SHORT_GRASS;
         boolean headClear = blockAbove.isAir()
                 || blockAbove.getBlock() == Blocks.WHEAT
-                || blockAbove.getBlock() == Blocks.POTATOES;
+                || blockAbove.getBlock() == Blocks.POTATOES
+                || blockAt.getBlock() == Blocks.SHORT_GRASS;
 
         boolean result = feetClear && headClear;
         if (!result) {
