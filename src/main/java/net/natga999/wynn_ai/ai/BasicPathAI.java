@@ -27,7 +27,7 @@ public class BasicPathAI {
 
     private Vec3d target = null;
     private final double reachThresholdXZ = 0.6;
-    private final double reachThresholdY = 1.0;
+    private final double reachThresholdY = 1.3;
 
     private int jumpCooldown = 0;
     private int lastJump= 0;

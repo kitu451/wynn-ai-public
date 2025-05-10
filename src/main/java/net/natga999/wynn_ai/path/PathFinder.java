@@ -1,9 +1,7 @@
 package net.natga999.wynn_ai.path;
 
+import net.minecraft.block.*;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.FarmlandBlock;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -280,7 +278,7 @@ public class PathFinder {
                 return false;
             }
 
-            // Check ground stability (block below must be solid/farmland)
+            // Check ground stability
             BlockPos groundPos = pos.down();
             if (!isGroundWalkable(groundPos)) {
                 return false;
@@ -297,8 +295,10 @@ public class PathFinder {
     private boolean isGroundWalkable(BlockPos pos) {
         BlockState state = cache.getBlockState(pos);
         return state != null &&
-                (state.isSideSolidFullSquare(world, pos, Direction.UP) ||
-                        state.getBlock() instanceof FarmlandBlock);
+                (state.isSideSolidFullSquare(world, pos, Direction.UP)
+                        || state.getBlock() instanceof StairsBlock
+                        || state.getBlock() instanceof SlabBlock
+                        || state.getBlock() instanceof FarmlandBlock);
     }
 
     /**
@@ -382,6 +382,7 @@ public class PathFinder {
         if (state == null) return false;
 
         return state.isSideSolidFullSquare(world, BlockPos.ORIGIN, Direction.UP)
+                || state.getBlock() instanceof StairsBlock
                 || state.getBlock() instanceof FarmlandBlock;
     }
 
@@ -400,19 +401,9 @@ public class PathFinder {
                 return null;
             }
 
-            BlockState bs = cache.getBlockState(below);
-            if (bs == null) {
-                LOGGER.error("No block state for position {}", below);
-                return null;
-            }
-
-            // treat either a full‐square solid face or tilled farmland as ground
-            boolean isSolidFace = bs.isSideSolidFullSquare(world, below, Direction.UP);
-            boolean isFarmland = bs.getBlock() instanceof FarmlandBlock;
-
-            if (isSolidFace || isFarmland) {
+            if (hasTopCollision(below)) {
                 BlockPos result = below.up();
-                LOGGER.debug("Found ground at {} ({}), returning position just above: {}", below, bs, result);
+                LOGGER.debug("Found ground at {}, returning position just above: {}", below, result);
                 return result;  // return the block just above that ground
             }
         }
@@ -460,6 +451,19 @@ public class PathFinder {
         return result;
     }
 
+    /**
+     * @return true if there is any collision geometry at this block's top face.
+     */
+    private boolean hasTopCollision(BlockPos pos) {
+        BlockState state = cache.getBlockState(pos);
+        if (state == null) return false;
+
+        return state.isSideSolidFullSquare(world, pos, Direction.UP)
+                || state.getBlock() instanceof FarmlandBlock
+                || state.getBlock() instanceof SlabBlock
+                || state.getBlock() instanceof StairsBlock;
+    }
+
     /** Cost: use Euclidean or custom if you want to penalize drops/jumps. */
     private double movementCost(BlockPos from, BlockPos to) {
         // Base cost is distance
@@ -497,6 +501,8 @@ public class PathFinder {
 
         BlockState state = cache.getBlockState(below);
         return state.isSideSolidFullSquare(world, below, Direction.UP)
+                || state.getBlock() instanceof StairsBlock
+                || state.getBlock() instanceof SlabBlock
                 || state.getBlock() instanceof FarmlandBlock;
     }
 
