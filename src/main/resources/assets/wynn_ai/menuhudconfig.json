@@ -56,8 +56,8 @@
           "y": 130,
           "width": 110,
           "height": 20,
-          "text": "Entity list",
-          "action": "EntityListMain"
+          "text": "Resource Manager",
+          "action": "ResourceManager"
         },
         {
           "type": "button",
@@ -113,6 +113,33 @@
           "height": 13,
           "text": "x",
           "action": "close"
+        }
+      ]
+    },
+    "ResourceManager": {
+      "x": 220,
+      "y": 25,
+      "windowWidth": 200,
+      "windowHeight": 100,
+      "title": "Resource Manager",
+      "widgets": [
+        {
+          "type": "button",
+          "x": 185,
+          "y": 2,
+          "width": 13,
+          "height": 13,
+          "text": "x",
+          "action": "close"
+        },
+        {
+          "type": "mouse_button",
+          "x": 10,
+          "y": 15,
+          "width": 40,
+          "height": 20,
+          "action": "toggleHarvestButton",
+          "defaultButton": "right"
         }
       ]
     }

@@ -37,6 +37,17 @@ public class MenuWidgetFactory {
             float step = ((Number) data.get("step")).floatValue();
             return new SliderWidget(x, y, width, height, text, action, value, min, max, step);
         }
+        if ("mouse_button".equalsIgnoreCase(type)) {
+            return new MouseButtonSwitchWidget(
+                    (int) data.get("x"),
+                    (int) data.get("y"),
+                    (int) data.get("width"),
+                    (int) data.get("height"),
+                    (String) data.get("action"),
+                    MouseButtonSwitchWidget.MouseButton.valueOf(
+                            ((String) data.get("defaultButton")).toUpperCase())
+            );
+        }
         return null;
     }
 }

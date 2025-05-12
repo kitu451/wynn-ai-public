@@ -2,6 +2,7 @@ package net.natga999.wynn_ai.menus;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import net.natga999.wynn_ai.menus.widgets.MouseButtonSwitchWidget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,7 @@ public class MenuHUDLoader {
     // Tracks current state of checkboxes (action → checked) and sliders (action → value)
     private static final Map<String, Boolean> checkboxStates = new HashMap<>();
     private static final Map<String, Float> sliderValues = new HashMap<>();
+    private static final Map<String, MouseButtonSwitchWidget.MouseButton> mouseButtonStates = new HashMap<>();
 
     static {
         try (InputStream inputStream = MenuHUDLoader.class.getClassLoader().getResourceAsStream("assets/wynn_ai/menuhudconfig.json")) {
@@ -57,5 +59,13 @@ public class MenuHUDLoader {
 
     public static MenuHUDConfig getMenuHUDConfig(String menuName) {
         return loadedHUDMenus.get(menuName);
+    }
+
+    public static MouseButtonSwitchWidget.MouseButton getMouseButtonState(String action, MouseButtonSwitchWidget.MouseButton defaultVal) {
+        return mouseButtonStates.getOrDefault(action, defaultVal);
+    }
+
+    public static void setMouseButtonState(String action, MouseButtonSwitchWidget.MouseButton state) {
+        mouseButtonStates.put(action, state);
     }
 }

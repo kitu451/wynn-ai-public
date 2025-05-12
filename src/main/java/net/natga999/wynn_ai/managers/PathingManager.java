@@ -1,5 +1,6 @@
 package net.natga999.wynn_ai.managers;
 
+import net.minecraft.util.math.Direction;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.path.PathFinder;
 import net.natga999.wynn_ai.utility.CatmullRomSpline;
@@ -33,6 +34,7 @@ public class PathingManager {
     private BlockPos goalPos = null;
     private boolean isFounding = false;
     private boolean pathComplete = false;
+    private boolean useRightClickHarvest = false;
 
     private int waitTicks = 0;
     private static final int MAX_WAIT_TICKS = 40; // 4 seconds if 20 tps
@@ -93,20 +95,7 @@ public class PathingManager {
             case HARVESTING:
                 LOGGER.debug("HARVESTING");
                 currentState = HarvestState.WAITING;
-
-                MinecraftClient mc = MinecraftClient.getInstance();
-                assert mc.interactionManager != null;
-                assert mc.player            != null;
-                assert mc.world             != null;
-
-                // Simulate click or trigger "use" action
-                //left click
-                //mc.interactionManager.attackBlock(goalPos, Direction.DOWN);
-
-                //right click
-                mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
-
-                mc.player.swingHand(Hand.MAIN_HAND); // visual arm swing
+                performHarvestAction();
                 waitTicks = 0;
                 break;
 
@@ -119,6 +108,22 @@ public class PathingManager {
                 }
                 break;
         }
+    }
+
+    private void performHarvestAction() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        assert mc.interactionManager != null;
+        assert mc.player            != null;
+        assert mc.world             != null;
+
+        if (useRightClickHarvest) {
+            //right click
+            mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+        } else {
+            //left click
+            mc.interactionManager.attackBlock(goalPos, Direction.DOWN);
+        }
+        mc.player.swingHand(Hand.MAIN_HAND); // visual arm swing
     }
 
     private void findAndStartPath() {
@@ -226,5 +231,9 @@ public class PathingManager {
 
     public boolean isMovingToNode() {
         return currentState == HarvestState.MOVING_TO_NODE;
+    }
+
+    public void setHarvestButton(boolean useRightClick) {
+        this.useRightClickHarvest = useRightClick;
     }
 }

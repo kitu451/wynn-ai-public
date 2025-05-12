@@ -3,6 +3,7 @@ package net.natga999.wynn_ai.menus;
 import net.natga999.wynn_ai.WynnAIClient;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.MenuHUDManager;
+import net.natga999.wynn_ai.managers.PathingManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.menus.widgets.*;
 
@@ -114,6 +115,12 @@ public class MenuHUD {
                     handleSliderAction(slider.getAction(), slider.getValue());
                 }
             }
+            else if (widget instanceof MouseButtonSwitchWidget buttonSwitch) {
+                if (buttonSwitch.isMouseOver(mouseX, mouseY, baseX, baseY)) {
+                    buttonSwitch.toggle();
+                    handleAction(buttonSwitch.getAction());
+                }
+            }
         }
     }
 
@@ -162,7 +169,7 @@ public class MenuHUD {
         if ("showOutlines".equalsIgnoreCase(action)) {
             EntityOutlinerManager.getInstance().toggleOutlining();
         }
-        if ("EntityListMain".equalsIgnoreCase(action)) {
+        if ("EntityListMain".equalsIgnoreCase(action) || "ResourceManager".equalsIgnoreCase(action)) {
             MenuHUD newMenu = MenuHUD.createNewInstance(action); // base name
             //newMenu.getConfig().x = config.x + 10; // Offset slightly to avoid overlapping
             //newMenu.getConfig().y = config.y + 10;
@@ -171,6 +178,10 @@ public class MenuHUD {
         }
         if ("close".equalsIgnoreCase(action)) {
             MenuHUDManager.removeMenu(this);
+        }
+        if ("toggleHarvestButton".equalsIgnoreCase(action)) {
+            boolean isRightClick = checkMouseButtonState(action);
+            updateHarvestBehavior(isRightClick);
         }
         // Add more actions here later
     }
@@ -188,6 +199,22 @@ public class MenuHUD {
         if ("detectionRadius".equalsIgnoreCase(action)) {
             WynnAIClient.setDetectionRadius((int) value);
         }
+    }
+
+
+    private boolean checkMouseButtonState(String action) {
+        for (MenuWidget widget : widgets) {
+            if (widget instanceof MouseButtonSwitchWidget switchWidget &&
+                    switchWidget.getAction().equalsIgnoreCase(action)) {
+                return switchWidget.getSelectedButton() == MouseButtonSwitchWidget.MouseButton.RIGHT;
+            }
+        }
+        return false;
+    }
+
+    private void updateHarvestBehavior(boolean useRightClick) {
+        // Example implementation - update your harvesting system
+        PathingManager.getInstance().setHarvestButton(useRightClick);
     }
 
     private MenuHUDConfig cloneConfig(MenuHUDConfig original) {
