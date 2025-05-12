@@ -36,6 +36,8 @@ public class PathingManager {
     private boolean pathComplete = false;
     private boolean useRightClickHarvest = false;
 
+    private ResourceNodeManager.ResourceNode currentTargetNode;
+
     private int waitTicks = 0;
     private static final int MAX_WAIT_TICKS = 40; // 4 seconds if 20 tps
 
@@ -104,8 +106,6 @@ public class PathingManager {
                 waitTicks++;
                 if (waitTicks >= MAX_WAIT_TICKS) {
                     currentState = HarvestState.FINDING_NODE;
-                    //todo remove below
-                    ResourceNodeManager.clearNodes();
                 }
                 break;
         }
@@ -125,15 +125,27 @@ public class PathingManager {
             mc.interactionManager.attackBlock(goalPos, Direction.DOWN);
         }
         mc.player.swingHand(Hand.MAIN_HAND); // visual arm swing
+
+        // Mark node as harvested
+        if (currentTargetNode != null) {
+            ResourceNodeManager.markHarvested(currentTargetNode);
+        }
     }
 
     private void findAndStartPath() {
-        // Get nearest resource node (e.g., from marker system)
-        Vec3d pos = ResourceNodeManager.getClosestNode("Wheat");
-        if (pos == null) {
+        // Get nearest resource node
+        currentTargetNode = ResourceNodeManager.getClosestNode("Wheat");
+        if (currentTargetNode == null) {
             isFounding = false;
             return;
         }
+
+        // Use the node's actual position
+        Vec3d pos = new Vec3d(
+                currentTargetNode.x,
+                currentTargetNode.y,
+                currentTargetNode.z
+        );
 
         MinecraftClient client = MinecraftClient.getInstance();
         ClientPlayerEntity player = client.player;
@@ -155,7 +167,7 @@ public class PathingManager {
         );
 
         // Create a pathfinder with a cache
-        PathFinder pathFinder = new PathFinder(world, 4, player.getBlockPos(), goalPos); // Cache radius of 4 chunks
+        PathFinder pathFinder = new PathFinder(world, 8, player.getBlockPos(), goalPos); // Cache radius of 4 chunks
         BlockPos playerPos = player.getBlockPos();
         Block blockBelow = world.getBlockState(playerPos).getBlock();
 

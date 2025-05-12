@@ -26,12 +26,14 @@ public class ResourceNodeManager {
     public static class ResourceNode {
         public final double x, y, z;
         public final String dimension;
+        public long lastHarvested;
 
         public ResourceNode(double x, double y, double z, String dim) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.dimension = dim;
+            this.lastHarvested = 0;
         }
     }
 
@@ -177,7 +179,7 @@ public class ResourceNodeManager {
      * @param keyword The keyword associated with the resource nodes.
      * @return The Vec3d position of the closest node, or null if no nodes exist for the given keyword.
      */
-    public static Vec3d getClosestNode(String keyword) {
+    public static ResourceNode getClosestNode(String keyword) {
         // Use the player’s current position as the “from”
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return null;
@@ -185,15 +187,17 @@ public class ResourceNodeManager {
         return getClosestNode(keyword, from);
     }
 
-    public static Vec3d getClosestNode(String keyword, Vec3d fromPos) {
+    public static ResourceNode getClosestNode(String keyword, Vec3d fromPos) {
         List<ResourceNode> nodes = getNodes(keyword);
+        long now = System.currentTimeMillis();
+
         if (nodes.isEmpty()) return null;
 
         return nodes.stream()
+                .filter(n -> (now - n.lastHarvested) > 60000) // 60-second cooldown
                 .min(Comparator.comparingDouble(n ->
                         new Vec3d(n.x, n.y, n.z).distanceTo(fromPos)
                 ))
-                .map(n -> new Vec3d(n.x, n.y, n.z))
                 .orElse(null);
     }
 
@@ -209,5 +213,9 @@ public class ResourceNodeManager {
         return Collections.unmodifiableList(
                 keywordToNodes.getOrDefault(keyword, Collections.emptyList())
         );
+    }
+
+    public static void markHarvested(ResourceNode node) {
+        node.lastHarvested = System.currentTimeMillis();
     }
 }
