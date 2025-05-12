@@ -192,7 +192,6 @@ public class ResourceNodeManager {
         long now = System.currentTimeMillis();
 
         if (nodes.isEmpty()) return null;
-
         return nodes.stream()
                 .filter(n -> (now - n.lastHarvested) > 60000) // 60-second cooldown
                 .min(Comparator.comparingDouble(n ->

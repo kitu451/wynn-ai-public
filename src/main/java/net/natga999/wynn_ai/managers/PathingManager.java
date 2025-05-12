@@ -1,7 +1,11 @@
 package net.natga999.wynn_ai.managers;
 
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Direction;
 import net.natga999.wynn_ai.ai.BasicPathAI;
+import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.path.PathFinder;
 import net.natga999.wynn_ai.utility.CatmullRomSpline;
 
@@ -21,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class PathingManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(PathingManager.class);
@@ -36,10 +41,13 @@ public class PathingManager {
     private boolean pathComplete = false;
     private boolean useRightClickHarvest = false;
 
+    private int dynamicWaitTicks;
+    private int verifyStartTick = 0;
+    private static final int MAX_VERIFY_ATTEMPTS = 20;
+
     private ResourceNodeManager.ResourceNode currentTargetNode;
 
     private int waitTicks = 0;
-    private static final int MAX_WAIT_TICKS = 40; // 4 seconds if 20 tps
 
     // Node harvesting states
     private enum HarvestState {
@@ -47,6 +55,7 @@ public class PathingManager {
         START_PATH,
         MOVING_TO_NODE,
         HARVESTING,
+        VERIFYING,
         WAITING
     }
 
@@ -96,19 +105,96 @@ public class PathingManager {
 
             case HARVESTING:
                 LOGGER.debug("HARVESTING");
-                currentState = HarvestState.WAITING;
                 performHarvestAction();
+                currentState = HarvestState.VERIFYING;
                 waitTicks = 0;
+                verifyStartTick = 0;
+                break;
+
+            case VERIFYING:
+                LOGGER.debug("VERIFYING HARVEST");
+
+                // Check nearby text entities for success indicators
+                boolean success = verifyHarvestSuccess();
+                boolean progress = verifyHarvestIndicator();
+
+                //todo clean uo
+                if (!progress && !success) {
+                    verifyStartTick++;
+                } else {
+                    verifyStartTick = 0;
+                }
+                if (verifyStartTick >= MAX_VERIFY_ATTEMPTS) {
+                    dynamicWaitTicks = new Random().nextInt(10);
+                    currentState = HarvestState.WAITING;
+                }
+                if (success) {
+                    // Mark node as harvested
+                    if (currentTargetNode != null) {
+                        ResourceNodeManager.markHarvested(currentTargetNode);
+                    }
+                    dynamicWaitTicks = 2 + new Random().nextInt(10);
+                    currentState = HarvestState.WAITING;
+                }
                 break;
 
             case WAITING:
                 LOGGER.debug("WAITING");
                 waitTicks++;
-                if (waitTicks >= MAX_WAIT_TICKS) {
+                if (waitTicks >= dynamicWaitTicks) {
                     currentState = HarvestState.FINDING_NODE;
                 }
                 break;
         }
+    }
+
+    private boolean verifyHarvestSuccess() {
+        // Get nearby text display entities
+        assert MinecraftClient.getInstance().player != null;
+        EntityDetector entityDetector = new EntityDetector(3);
+        List<Entity> entities = entityDetector.detectNearbyEntities(MinecraftClient.getInstance().player.getPos(), MinecraftClient.getInstance());
+
+        for (Entity entity : entities) {
+            if (entity instanceof DisplayEntity.TextDisplayEntity textEntity) {
+                NbtCompound nbt = new NbtCompound();
+                textEntity.writeNbt(nbt);
+
+                String text = nbt.getString("text").replaceAll("§.", "");
+
+                // Check for success indicators
+                if (text.contains("Farming XP")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean verifyHarvestIndicator() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player == null) return false;
+
+        // Scan nearby TextDisplayEntity instances
+        EntityDetector detector = new EntityDetector(3);
+        List<Entity> entities = detector.detectNearbyEntities(mc.player.getPos(), mc);
+
+        for (Entity e : entities) {
+            if (e instanceof DisplayEntity.TextDisplayEntity textEntity) {
+                NbtCompound nbt = new NbtCompound();
+                textEntity.writeNbt(nbt);
+
+                String txt = nbt.getString("text")
+                        .replaceAll("§.", "")
+                        .trim();
+
+                // must have [ and ] and Farming
+                if (txt.contains("[") && txt.contains("]") && txt.contains("Farming")) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private void performHarvestAction() {
@@ -125,16 +211,11 @@ public class PathingManager {
             mc.interactionManager.attackBlock(goalPos, Direction.DOWN);
         }
         mc.player.swingHand(Hand.MAIN_HAND); // visual arm swing
-
-        // Mark node as harvested
-        if (currentTargetNode != null) {
-            ResourceNodeManager.markHarvested(currentTargetNode);
-        }
     }
 
     private void findAndStartPath() {
         // Get nearest resource node
-        currentTargetNode = ResourceNodeManager.getClosestNode("Wheat");
+        currentTargetNode = ResourceNodeManager.getClosestNode("Malt");
         if (currentTargetNode == null) {
             isFounding = false;
             return;

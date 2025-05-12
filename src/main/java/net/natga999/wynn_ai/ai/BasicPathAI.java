@@ -102,6 +102,8 @@ public class BasicPathAI {
                     PathingManager.getInstance().setPathComplete(true);
                     stop();
                     player.sendMessage(Text.literal("Path complete (close to goal)."), false);
+                    aimPoint = path.getLast().subtract(0, 1.0, 0);
+                    rotateCameraToward(aimPoint.add(0, 2, 0), client);
                     return;
                 }
             }
