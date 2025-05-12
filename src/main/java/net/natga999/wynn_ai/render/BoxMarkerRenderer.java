@@ -2,80 +2,90 @@ package net.natga999.wynn_ai.render;
 
 import net.natga999.wynn_ai.boxes.BoxConfig;
 import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
-
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtDouble;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-
 import java.util.List;
 
 public class BoxMarkerRenderer implements MarkerRenderer {
+    // Default color for persistent nodes (green)
+    private static final int PERSISTENT_NODE_COLOR = 0xFF00FF00;
 
     @Override
-    public void renderMarker(NbtCompound nbt, Camera camera, MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
-        // Extract marker position and text from NBT
+    public void renderMarker(NbtCompound nbt, Camera camera, MatrixStack matrices,
+                             VertexConsumerProvider vertexConsumers) {
         Vec3d position = extractPositionFromNbt(nbt);
-        if (position == null) return; // Skip if no position available
+        if (position == null) return;
 
         String text = nbt.contains("text") ? nbt.getString("text") : "";
+        BoxConfig config = findMatchingConfig(text);
 
-        BoxConfig matchingConfig = null;
-
-        // Iterate through all registered keywords in BoxConfigRegistry
-        for (String keyword : BoxConfigRegistry.getRegisteredKeywords()) {
-            if (text.contains(keyword)) {
-                matchingConfig = BoxConfigRegistry.getConfig(keyword);
-                break;
-            }
-        }
-
-        // If no matching box configuration, skip rendering
-        if (matchingConfig == null) {
-            matchingConfig = BoxConfigRegistry.getDefaultConfig();
-        }
-
-        // Adjust position relative to camera
-        Vec3d relativePos = position.subtract(camera.getPos());
-
-        // Define the box
-        Box box = new Box(
-                relativePos.x - matchingConfig.sizeXZ(), relativePos.y + matchingConfig.minY(), relativePos.z - matchingConfig.sizeXZ(), // Bottom-left
-                relativePos.x + matchingConfig.sizeXZ(), relativePos.y + matchingConfig.maxY(), relativePos.z + matchingConfig.sizeXZ()  // Top-right
-        );
-
-        // Draw the box outline
-        VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.getLines());
-        drawBoxOutline(matrices, lines, box, matchingConfig.color(), 1.0f);
+        renderMarker(position, config, config.color(), camera, matrices, vertexConsumers);
     }
 
-    // Helper methods
+    @Override
+    public void renderMarker(Vec3d worldPos, int color, Camera camera,
+                             MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
+        renderMarker(worldPos, BoxConfigRegistry.getDefaultLoadNodeConfig(), color, camera, matrices, vertexConsumers);
+    }
+
+    private void renderMarker(Vec3d worldPos, BoxConfig config, int color,
+                              Camera camera, MatrixStack matrices,
+                              VertexConsumerProvider vertexConsumers) {
+        if (config == null) config = BoxConfigRegistry.getDefaultConfig();
+
+        Vec3d relativePos = worldPos.subtract(camera.getPos());
+        Box box = createBox(relativePos, config);
+        drawBoxOutline(matrices, vertexConsumers, box, color);
+    }
+
+    private BoxConfig findMatchingConfig(String text) {
+        return BoxConfigRegistry.getRegisteredKeywords().stream()
+                .filter(text::contains)
+                .findFirst()
+                .map(BoxConfigRegistry::getConfig)
+                .orElse(BoxConfigRegistry.getDefaultConfig());
+    }
+
+    private Box createBox(Vec3d relativePos, BoxConfig config) {
+        return new Box(
+                relativePos.x - config.sizeXZ(),
+                relativePos.y + config.minY(),
+                relativePos.z - config.sizeXZ(),
+                relativePos.x + config.sizeXZ(),
+                relativePos.y + config.maxY(),
+                relativePos.z + config.sizeXZ()
+        );
+    }
+
+    private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers,
+                                Box box, int color) {
+        VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
+        WorldRenderer.drawBox(
+                matrices,
+                lines,
+                box.minX, box.minY, box.minZ,
+                box.maxX, box.maxY, box.maxZ,
+                (color >> 16 & 0xFF) / 255f,
+                (color >> 8 & 0xFF) / 255f,
+                (color & 0xFF) / 255f,
+                1.0f
+        );
+    }
+
+    // Existing helper
     private Vec3d extractPositionFromNbt(NbtCompound nbt) {
-        if (nbt.contains("Pos")) { // Check if the NBT has a "Pos" element
+        if (nbt.contains("Pos")) {
             List<Double> posList = nbt.getList("Pos", 6).stream()
                     .map(tag -> ((NbtDouble) tag).doubleValue())
-                    .toList(); // Convert the NBTList to a list of doubles
-            if (posList.size() == 3) {
-                return new Vec3d(posList.get(0), posList.get(1), posList.get(2));
-            }
+                    .toList();
+            return posList.size() == 3 ?
+                    new Vec3d(posList.get(0), posList.get(1), posList.get(2)) :
+                    null;
         }
-        return null; // Return null if position is not found
-    }
-
-    private void drawBoxOutline(MatrixStack matrices, VertexConsumer lines, Box box, int color, float alpha) {
-        // Convert the color to RGB float components
-        float r = (color >> 16 & 0xFF) / 255.0f;
-        float g = (color >> 8 & 0xFF) / 255.0f;
-        float b = (color & 0xFF) / 255.0f;
-
-        WorldRenderer.drawBox(
-                matrices, // Pass the entire MatrixStack object
-                lines,    // VertexConsumer for the lines
-                box.minX, box.minY, box.minZ, // Box minimum
-                box.maxX, box.maxY, box.maxZ, // Box maximum
-                r, g, b, alpha // Color and alpha
-        );
+        return null;
     }
 }

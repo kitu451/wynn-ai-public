@@ -18,10 +18,17 @@ public class BoxConfigRegistry {
 
     // Define the default configuration as a static and reusable instance
     private static final BoxConfig DEFAULT_CONFIG = new BoxConfig(
-            0.0, // minYOffset: Half a block above
-            -1.9,  // maxYOffset: 1.5 blocks height
-            0.5,  // sizeXZOffset: Half a block width/length
+            0.0, // minYOffset
+            -1.9,  // maxYOffset
+            0.5,  // sizeXZOffset
             0xFFFFFF // Color: Default white
+    );
+
+    private static final BoxConfig DEFAULT_LOAD_NODE_CONFIG = new BoxConfig(
+            1.0,    // minY
+            -3.5,    // maxY
+            0.25f,   // sizeXZ
+            0xFF00FF00 // Green color for stored nodes
     );
 
     static {
@@ -61,6 +68,10 @@ public class BoxConfigRegistry {
 
     public static BoxConfig getDefaultConfig() {
         return DEFAULT_CONFIG;
+    }
+
+    public static BoxConfig getDefaultLoadNodeConfig() {
+        return DEFAULT_LOAD_NODE_CONFIG;
     }
 
     public static Set<String> getRegisteredKeywords() {

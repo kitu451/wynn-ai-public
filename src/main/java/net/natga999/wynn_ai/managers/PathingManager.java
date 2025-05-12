@@ -104,6 +104,7 @@ public class PathingManager {
                 waitTicks++;
                 if (waitTicks >= MAX_WAIT_TICKS) {
                     currentState = HarvestState.FINDING_NODE;
+                    //todo remove below
                     ResourceNodeManager.clearNodes();
                 }
                 break;
@@ -128,7 +129,7 @@ public class PathingManager {
 
     private void findAndStartPath() {
         // Get nearest resource node (e.g., from marker system)
-        Vec3d pos = ResourceNodeManager.getClosestNode("Malt");
+        Vec3d pos = ResourceNodeManager.getClosestNode("Wheat");
         if (pos == null) {
             isFounding = false;
             return;

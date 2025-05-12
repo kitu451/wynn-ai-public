@@ -35,6 +35,12 @@
     "sizeXZOffset": 1.0,
     "color": "#FFFF00"
   },
+  "Malt": {
+    "minYOffset": -2.5,
+    "maxYOffset": 0.0,
+    "sizeXZOffset": 1.0,
+    "color": "#FFFF00"
+  },
   "Copper": {
     "minYOffset": -2.0,
     "maxYOffset": 0.0,

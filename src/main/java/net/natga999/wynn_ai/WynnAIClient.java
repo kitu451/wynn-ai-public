@@ -7,6 +7,7 @@ import net.natga999.wynn_ai.managers.EntityOutlinerManager;
 import net.natga999.wynn_ai.managers.PathingManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.ai.BasicPathAI;
+import net.natga999.wynn_ai.managers.ResourceNodeManager;
 import net.natga999.wynn_ai.render.PathRenderer;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -46,6 +47,8 @@ public class WynnAIClient implements ClientModInitializer {
         // Initialize renderer managers
         RenderManager.init();
         EntityOutlinerManager.init();
+
+        ResourceNodeManager.loadFromFile();
 
         // Register key bindings
         KeyInputHandler.register();

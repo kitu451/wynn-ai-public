@@ -1,5 +1,7 @@
 package net.natga999.wynn_ai.managers;
 
+import net.minecraft.util.math.Vec3d;
+import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
 import net.natga999.wynn_ai.render.BoxMarkerRenderer;
 import net.natga999.wynn_ai.render.ItemMarkerRenderer;
 import net.natga999.wynn_ai.render.MarkerRenderer;
@@ -167,8 +169,25 @@ public class RenderManager {
                         context.matrixStack(),
                         context.consumers()
                 );
-                scanAndStore(nbt, "Malt");
+                scanAndStore(nbt);
             }
         }
+
+        // Render stored nodes from JSON
+        String currentDimension = ResourceNodeManager.getCurrentDimension();
+        ResourceNodeManager.getTrackedResources().forEach(resource -> {
+            ResourceNodeManager.getNodes(resource).stream()
+                    .filter(node -> node.dimension.equals(currentDimension))
+                    .forEach(node -> {
+                        Vec3d pos = new Vec3d(node.x, node.y, node.z);
+                        boxMarkerRenderer.renderMarker(
+                                pos,
+                                0xFF00FF00,
+                                context.camera(),
+                                context.matrixStack(),
+                                context.consumers()
+                        );
+                    });
+        });
     }
 }
