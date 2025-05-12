@@ -45,7 +45,7 @@ public class MenuHUDManager {
 
     public static void handleClick(double mouseX, double mouseY) {
         wasClickOnMenuThisTick = false;
-        if (!RenderManager.isInteractionMode()) {
+        if (!RenderManager.getInstance().isInteractionMode()) {
             return;
         }
         MenuHUD toFront = null;
@@ -66,7 +66,7 @@ public class MenuHUDManager {
     }
 
     public static void handleDrag(double mouseX, double mouseY) {
-        if (!RenderManager.isInteractionMode()) {
+        if (!RenderManager.getInstance().isInteractionMode()) {
             return;
         }
         for (int i = menus.size() - 1; i >= 0; i--) {
@@ -80,7 +80,7 @@ public class MenuHUDManager {
     }
 
     public static void handleRelease() {
-        if (!RenderManager.isInteractionMode()) {
+        if (!RenderManager.getInstance().isInteractionMode()) {
             return;
         }
         for (MenuHUD menu : menus) {

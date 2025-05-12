@@ -154,13 +154,13 @@ public class MenuHUD {
 
     private void handleAction(String action) {
         if ("showHUD".equalsIgnoreCase(action)) {
-            RenderManager.setHudEnabled(!RenderManager.isHudEnabled());
+            RenderManager.getInstance().setHudEnabled(!RenderManager.getInstance().isHudEnabled());
         }
         if ("showBoxes".equalsIgnoreCase(action)) {
-            RenderManager.setBoxEnabled(!RenderManager.isBoxEnabled());
+            RenderManager.getInstance().setBoxEnabled(!RenderManager.getInstance().isBoxEnabled());
         }
         if ("showOutlines".equalsIgnoreCase(action)) {
-            EntityOutlinerManager.toggleOutlining();
+            EntityOutlinerManager.getInstance().toggleOutlining();
         }
         if ("EntityListMain".equalsIgnoreCase(action)) {
             MenuHUD newMenu = MenuHUD.createNewInstance(action); // base name

@@ -22,7 +22,7 @@ public class MouseMixin {
             cancellable = true
     )
     private void onMouseButtonWindow(long window, int button, int action, int mods, CallbackInfo ci) {
-        if (!RenderManager.isInteractionMode()) return;
+        if (!RenderManager.getInstance().isInteractionMode()) return;
 
         // Only cancel if clicking on a menu
         double[] xPos = new double[1];
@@ -36,7 +36,7 @@ public class MouseMixin {
         // If not clicking on any menu, let Minecraft handle it
         if (!MenuHUDManager.wasClickOnMenu() && !MenuHUDManager.isClickInsideAnyMenu(mouseX, mouseY) && !KeyInputHandler.isHoldInteractionOn()) {
             KeyInputHandler.setToggleInteractionOn(false);
-            RenderManager.toggleInteractionMode();
+            RenderManager.getInstance().toggleInteractionMode();
             return;
         }
 

@@ -27,11 +27,7 @@ public class RenderManager {
     // Singleton instance
     private static RenderManager INSTANCE;
 
-    // Rendering configuration flags
-    private static boolean hudEnabled = false;
-    private static boolean boxesEnabled = false;
-    private static boolean menuHUDVisible = false;
-    private static boolean interactionMode = false;
+    private final RenderConfig config = new RenderConfig();
 
     // Renderers
     private final RenderHUD hudRenderer = new RenderHUD();
@@ -40,6 +36,10 @@ public class RenderManager {
 
     private RenderManager() {
         // Private constructor for singleton
+    }
+
+    public RenderConfig getRenderConfig() {
+        return config;
     }
 
     public static RenderManager getInstance() {
@@ -57,59 +57,59 @@ public class RenderManager {
     }
 
     // HUD visibility management
-    public static boolean isHudEnabled() {
-        return hudEnabled;
+    public boolean isHudEnabled() {
+        return config.isHudEnabled();
     }
-    public static void setHudEnabled(boolean value) {
-        hudEnabled = value;
+    public void setHudEnabled(boolean value) {
+        config.setHudEnabled(value);
     }
     public void toggleHud() {
-        hudEnabled = !hudEnabled;
+        config.setHudEnabled(!config.isHudEnabled());
     }
 
     // Box rendering management
-    public static boolean isBoxEnabled() {
-        return boxesEnabled;
+    public boolean isBoxEnabled() {
+        return config.isBoxesEnabled();
     }
-    public static void setBoxEnabled(boolean value) {
-        boxesEnabled = value;
+    public void setBoxEnabled(boolean value) {
+        config.setBoxesEnabled(value);
     }
     public void toggleBox() {
-        boxesEnabled = !boxesEnabled;
+        config.setBoxesEnabled(!config.isBoxesEnabled());
     }
 
     // Menu HUD rendering management
-    public static boolean isMenuHUDEnabled() {
-        return menuHUDVisible;
+    public boolean isMenuHUDEnabled() {
+        return config.isMenuHUDVisible();
     }
-    public static void setMenuHUDEnabled(boolean value) {
-        menuHUDVisible = value;
+    public void setMenuHUDEnabled(boolean value) {
+        config.setMenuHUDVisible(value);
     }
     public void toggleMenuHUD() {
-        menuHUDVisible = !menuHUDVisible;
+        config.setMenuHUDVisible(!config.isMenuHUDVisible());
     }
 
     // Interaction mode (cursor unlock)
-    public static boolean isInteractionMode() {
-        return interactionMode;
+    public boolean isInteractionMode() {
+        return config.isInteractionMode();
     }
 
-    public static void setInteractionMode(Boolean value) {
-        interactionMode = value;
+    public void setInteractionMode(Boolean value) {
+        config.setInteractionMode(value);
 
         MinecraftClient client = MinecraftClient.getInstance();
-        if (interactionMode) {
+        if (value) {
             client.mouse.unlockCursor();
         } else {
             client.mouse.lockCursor();
         }
     }
 
-    public static void toggleInteractionMode() {
-        interactionMode = !interactionMode;
+    public void toggleInteractionMode() {
+        config.setInteractionMode(config.isInteractionMode());
 
         MinecraftClient client = MinecraftClient.getInstance();
-        if (interactionMode) {
+        if (config.isInteractionMode()) {
             client.mouse.unlockCursor();
         } else {
             client.mouse.lockCursor();
@@ -123,7 +123,7 @@ public class RenderManager {
      * @param menuName The name of the MenuHUD to render.
      */
     public void renderMenuWithName(DrawContext drawContext, MinecraftClient client, String menuName) {
-        if (!menuHUDVisible) {
+        if (!config.isMenuHUDVisible()) {
             return; // Do not process if the menu HUD is disabled
         }
 
@@ -139,7 +139,7 @@ public class RenderManager {
      * Render the HUD with entity information
      */
     public void renderEntityHud(DrawContext drawContext, MinecraftClient client, List<Entity> entities) {
-        if (hudEnabled && !entities.isEmpty()) {
+        if (config.isHudEnabled() && !entities.isEmpty()) {
             hudRenderer.renderDetectedEntitiesOnHud(drawContext, client, entities, entities.size());
         }
     }
@@ -148,7 +148,7 @@ public class RenderManager {
      * Render boxes around entities in the world
      */
     public void renderEntityBoxes(WorldRenderContext context, MinecraftClient client, List<Entity> entities) {
-        if (!boxesEnabled || entities.isEmpty()) return;
+        if (!config.isBoxesEnabled() || entities.isEmpty()) return;
 
         for (Entity entity : entities) {
 

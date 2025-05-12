@@ -1,12 +1,12 @@
 package net.natga999.wynn_ai.managers;
 
-import net.minecraft.block.BlockState;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.path.PathFinder;
 import net.natga999.wynn_ai.utility.CatmullRomSpline;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
@@ -14,7 +14,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.Hand;
-import net.minecraft.util.math.Direction;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +35,7 @@ public class PathingManager {
     private boolean pathComplete = false;
 
     private int waitTicks = 0;
-    private static final int MAX_WAIT_TICKS = 80; // 4 seconds if 20 tps
+    private static final int MAX_WAIT_TICKS = 40; // 4 seconds if 20 tps
 
     // Node harvesting states
     private enum HarvestState {
@@ -94,11 +93,20 @@ public class PathingManager {
             case HARVESTING:
                 LOGGER.debug("HARVESTING");
                 currentState = HarvestState.WAITING;
-                // Simulate click or trigger your "use" action here
-                assert MinecraftClient.getInstance().interactionManager != null;
-                MinecraftClient.getInstance().interactionManager.attackBlock(goalPos, Direction.DOWN);
-                assert MinecraftClient.getInstance().player != null;
-                MinecraftClient.getInstance().player.swingHand(Hand.MAIN_HAND); // visual arm swing
+
+                MinecraftClient mc = MinecraftClient.getInstance();
+                assert mc.interactionManager != null;
+                assert mc.player            != null;
+                assert mc.world             != null;
+
+                // Simulate click or trigger "use" action
+                //left click
+                //mc.interactionManager.attackBlock(goalPos, Direction.DOWN);
+
+                //right click
+                mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+
+                mc.player.swingHand(Hand.MAIN_HAND); // visual arm swing
                 waitTicks = 0;
                 break;
 
@@ -141,7 +149,7 @@ public class PathingManager {
         );
 
         // Create a pathfinder with a cache
-        PathFinder pathFinder = new PathFinder(world, 4, player.getBlockPos()); // Cache radius of 4 chunks
+        PathFinder pathFinder = new PathFinder(world, 4, player.getBlockPos(), goalPos); // Cache radius of 4 chunks
         BlockPos playerPos = player.getBlockPos();
         Block blockBelow = world.getBlockState(playerPos).getBlock();
 

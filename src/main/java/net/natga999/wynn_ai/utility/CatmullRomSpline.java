@@ -5,7 +5,7 @@ import java.util.*;
 
 public class CatmullRomSpline {
     private static final double TENSION = 0.5;
-    private static final double DROP_THRESHOLD = 1.0; // Blocks drop
+    private static final double DROP_THRESHOLD = 0.1; // Blocks drop
     private static final double DIST_THRESHOLD = 1.0; // Blocks distance
 
     public static List<Vec3d> createSpline(List<Vec3d> points, int segments) {

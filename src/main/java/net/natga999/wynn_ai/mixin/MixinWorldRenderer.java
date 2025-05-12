@@ -26,9 +26,9 @@ public abstract class MixinWorldRenderer {
         if (vertexConsumers instanceof OutlineVertexConsumerProvider outlineVertexConsumers) {
 
             // Check if we should outline this entity
-            if (EntityOutlinerManager.shouldOutline(entity)) {
+            if (EntityOutlinerManager.getInstance().shouldOutline(entity)) {
                 // Get the outline color from the manager
-                int color = EntityOutlinerManager.getOutlineColor(entity);
+                int color = EntityOutlinerManager.getInstance().getOutlineColor(entity);
 
                 // Extract RGBA components
                 int alpha = 255; // Always fully opaque for outlines

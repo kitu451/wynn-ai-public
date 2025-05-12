@@ -18,14 +18,18 @@ public class PathFinder {
     private final int maxDrop;  // maximum safe drop height
     private static final int MAX_PATH_LENGTH = 1000; // Maximum number of nodes to explore
     private static final double CORNER_OFFSET = 0.2; // amount to soften 90° turns
+    private final BlockPos start;
+    private final BlockPos goal;
 
-    public PathFinder(ClientWorld world, int cacheRadius, BlockPos start) {
-        this(world, cacheRadius, start, 3); // Default max drop of 3 blocks
+    public PathFinder(ClientWorld world, int cacheRadius, BlockPos start, BlockPos goal) {
+        this(world, cacheRadius, start, goal, 3); // Default max drop of 3 blocks
     }
 
-    public PathFinder(ClientWorld world, int cacheRadius, BlockPos start, int maxDrop) {
+    public PathFinder(ClientWorld world, int cacheRadius, BlockPos start, BlockPos goal, int maxDrop) {
         this.world = world;
         this.cache = new ChunkCache(world, start, cacheRadius);
+        this.start   = start;
+        this.goal    = goal;
         this.maxDrop = maxDrop;
         LOGGER.debug("PathFinder initialized with cache radius {} and max drop {}", cacheRadius, maxDrop);
     }
@@ -132,7 +136,8 @@ public class PathFinder {
                     // Check if space above is clear for jumping
                     if (isSpaceClear(upPos)) {
                         validNeighbors++;
-                        double jumpCost = current.getG() + 1.5; // Jumping costs more
+                        double jumpIncrement = movementCost(current.getPos(), upPos);
+                        double jumpCost      = current.getG() + jumpIncrement;
                         openSet.add(new Node(upPos, jumpCost, estimateDistance(upPos, goal), current));
                     } else {
                         LOGGER.debug("Can't jump up at {} - space not clear", current.getPos());
@@ -473,12 +478,20 @@ public class PathFinder {
         int yDiff = to.getY() - from.getY();
         double finalCost;
 
+
+        // how “far along” are we? 0.0 at start → 1.0 at goal
+        double totalDist   = Math.sqrt(start.getSquaredDistance(goal));
+        double distSoFar   = Math.sqrt(start.getSquaredDistance(from));
+        double fraction    = Math.min(1.0, distSoFar / totalDist);
+
+        double jumpMult = 1.0 + 0.5 * fraction;
+
         if (yDiff < 0) {
             // Dropping down is cheaper than flat movement
             finalCost = baseCost * 0.8;
         } else if (yDiff > 0) {
             // Going up (jumping) is more expensive
-            finalCost = baseCost * 1.5;
+            finalCost = baseCost * jumpMult;
         } else {
             finalCost = baseCost;
         }

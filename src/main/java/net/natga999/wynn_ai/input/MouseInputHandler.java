@@ -20,7 +20,7 @@ public class MouseInputHandler {
 
     private void registerMouseEvent() {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            if (!RenderManager.isMenuHUDEnabled()) return;
+            if (!RenderManager.getInstance().isMenuHUDEnabled()) return;
 
             long windowHandle = client.getWindow().getHandle();
 

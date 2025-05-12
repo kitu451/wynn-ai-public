@@ -92,7 +92,7 @@ public class KeyInputHandler {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (toggleMenuHUDKey.wasPressed()) {
                 if (MenuHUDManager.hasNoMenus()) {
-                    if (RenderManager.isMenuHUDEnabled()) {
+                    if (RenderManager.getInstance().isMenuHUDEnabled()) {
                         RenderManager.getInstance().toggleMenuHUD();
                     }
                     MenuHUD menu = new MenuHUD("MainMenu");
@@ -105,7 +105,7 @@ public class KeyInputHandler {
 
                 RenderManager.getInstance().toggleMenuHUD();
                 assert client.player != null;
-                client.player.sendMessage(Text.literal("Menu HUD: " + (RenderManager.isMenuHUDEnabled() ? "ON" : "OFF")), true);
+                client.player.sendMessage(Text.literal("Menu HUD: " + (RenderManager.getInstance().isMenuHUDEnabled() ? "ON" : "OFF")), true);
             }
 
             // 1) Flip the persistent toggle when its key is pressed:
@@ -124,8 +124,8 @@ public class KeyInputHandler {
             boolean actualInteraction = toggleInteractionOn || holdInteractionOn;
 
             // 3) If it changed since last tick, update RenderManager & notify
-            if (actualInteraction != RenderManager.isInteractionMode()) {
-                RenderManager.setInteractionMode(actualInteraction);
+            if (actualInteraction != RenderManager.getInstance().isInteractionMode()) {
+                RenderManager.getInstance().setInteractionMode(actualInteraction);
                 if (!holdInteractionOn) { // only notify on toggle or hold-release
                     LOGGER.debug("Mouse interaction");
                     assert client.player != null;
@@ -154,7 +154,7 @@ public class KeyInputHandler {
 
             if (toggleBoxesKey.wasPressed()) {
                 RenderManager.getInstance().toggleBox();
-                boolean newState = RenderManager.isBoxEnabled();
+                boolean newState = RenderManager.getInstance().isBoxEnabled();
 
                 setCheckboxState("showBoxes", newState);
 
@@ -168,9 +168,9 @@ public class KeyInputHandler {
 
             if (toggleOutlineKey.wasPressed()) {
                 //to-do: replace logic to json
-                EntityOutlinerManager.outlinedEntityTypes.put(EntityType.ZOMBIE, 0xFF0000);
-                EntityOutlinerManager.toggleOutlining();
-                boolean newState = EntityOutlinerManager.isOutliningEnabled();
+                EntityOutlinerManager.getInstance().addEntityType(EntityType.ZOMBIE, 0xFF0000);
+                EntityOutlinerManager.getInstance().toggleOutlining();
+                boolean newState = RenderManager.getInstance().getRenderConfig().isOutlineAllEntities();
 
                 setCheckboxState("showOutlines", newState);
 
@@ -184,7 +184,7 @@ public class KeyInputHandler {
 
             if (toggleHudKey.wasPressed()) {
                 RenderManager.getInstance().toggleHud();
-                boolean newState = RenderManager.isHudEnabled();
+                boolean newState = RenderManager.getInstance().isHudEnabled();
 
                 setCheckboxState("showHUD", newState);
 
