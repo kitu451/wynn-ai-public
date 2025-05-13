@@ -6,6 +6,7 @@ import net.natga999.wynn_ai.managers.ResourceNodeManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ResourceSelectorWidget implements MenuWidget {
@@ -26,6 +27,7 @@ public class ResourceSelectorWidget implements MenuWidget {
         this.selectedResource = HarvestingManager.getActiveResource();
     }
 
+    //todo make it scrollable
     @Override
     public void render(DrawContext context, MinecraftClient client, int parentX, int parentY) {
         this.selectedResource = HarvestingManager.getActiveResource();
@@ -35,36 +37,54 @@ public class ResourceSelectorWidget implements MenuWidget {
         // Background
         context.fill(drawX, drawY, drawX + width, drawY + height, 0xAA000000);
 
-        // Get all harvestable resources
-        List<String> resources = ResourceNodeManager.getSortedResources();
+        // 1) grab the flat list
+        List<String> all = new ArrayList<>(ResourceNodeManager.getSortedResources());
+        // 2) we know the four group sizes up front
+        int[] groupSizes = { 15, 13, 14, 13 };
+        // 3) slice into four column‐lists
+        List<List<String>> columns = new ArrayList<>();
+        int index = 0;
+        for (int size : groupSizes) {
+            int end = Math.min(index + size, all.size());
+            columns.add(all.subList(index, end));
+            index = end;
+        }
 
-        // Calculate rows and columns
-        int columns = 2;
-        int itemWidth = width / columns;
-        int itemHeight = 20;
+        // layout parameters
+        int columnsCount = columns.size();
+        int itemWidth    = width  / columnsCount;
+        int itemHeight   = 20;
 
-        // Scrollable content
-        for (int i = 0; i < resources.size(); i++) {
-            int column = i % columns;
-            int row = i / columns;
+        // 4) render column‐major
+        for (int col = 0; col < columnsCount; col++) {
+            List<String> group = columns.get(col);
+            int itemX = drawX + col * itemWidth;
 
-            int itemX = drawX + column * itemWidth;
-            int itemY = drawY + row * itemHeight;
+            for (int row = 0; row < group.size(); row++) {
+                int itemY = drawY + row * itemHeight;
 
-            String resource = resources.get(i);
-            boolean isSelected = resource.equals(selectedResource);
+                String resource = group.get(row);
+                boolean isSelected = resource.equals(selectedResource);
 
-            // Draw item background
-            context.fill(itemX, itemY, itemX + itemWidth, itemY + itemHeight,
-                    isSelected ? 0xAA00FF00 : 0xAA444444);
+                // item background
+                context.fill(
+                        itemX, itemY,
+                        itemX + itemWidth, itemY + itemHeight,
+                        isSelected ? 0xAA00FF00 : 0xAA444444
+                );
 
-            // Draw resource name
-            context.drawText(client.textRenderer, resource,
-                    itemX + 2, itemY + 6,
-                    isSelected ? 0xFFFFFF00 : 0xFFFFFF,
-                    false);
+                // text
+                context.drawText(
+                        client.textRenderer,
+                        resource,
+                        itemX + 2, itemY + 6,
+                        isSelected ? 0xFFFFFF00 : 0xFFFFFF,
+                        false
+                );
+            }
         }
     }
+
 
     public boolean isMouseOver(double mouseX, double mouseY, int menuX, int menuY) {
         return mouseX >= menuX + x && mouseX <= menuX + x + width &&
@@ -72,29 +92,41 @@ public class ResourceSelectorWidget implements MenuWidget {
     }
 
     public boolean mouseClicked(double mouseX, double mouseY) {
-        // Calculate which resource was clicked
-        int relativeX = (int) (mouseX - x);
-        int relativeY = (int) (mouseY - y);
+        int relX = (int)(mouseX - x);
+        int relY = (int)(mouseY - y);
 
-        if (relativeX >= 0 && relativeX < width &&
-                relativeY >= 0 && relativeY < height) {
-
-            int columns = 2;
-            int itemWidth = width / columns;
-            int itemHeight = 20;
-
-            int col = relativeX / itemWidth;
-            int row = relativeY / itemHeight;
-
-            int index = row * columns + col;
-            List<String> resources = ResourceNodeManager.getSortedResources();
-
-            if (index < resources.size()) {
-                String newResource = resources.get(index);
-                HarvestingManager.setActiveResource(newResource); // Centralized update
-                return true;
-            }
+        if (relX < 0 || relX >= width || relY < 0 || relY >= height) {
+            return false;
         }
-        return false;
+
+        // your hardcoded column sizes
+        int[] groupSizes = { 15, 13, 14, 13 };
+        int columns    = groupSizes.length;
+        int itemWidth  = width  / columns;
+        int itemHeight = 20;
+
+        int col = relX / itemWidth;
+        int row = relY / itemHeight;
+
+        // out‐of‐bounds row
+        if (row >= groupSizes[col]) {
+            return false;
+        }
+
+        // compute offset = sum of sizes of all columns before 'col'
+        int offset = 0;
+        for (int i = 0; i < col; i++) {
+            offset += groupSizes[i];
+        }
+
+        int flatIndex = offset + row;
+        List<String> resources = ResourceNodeManager.getSortedResources();
+        if (flatIndex < 0 || flatIndex >= resources.size()) {
+            return false;
+        }
+
+        String clicked = resources.get(flatIndex);
+        HarvestingManager.setActiveResource(clicked);
+        return true;
     }
 }

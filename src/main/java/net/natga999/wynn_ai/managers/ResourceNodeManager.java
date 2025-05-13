@@ -45,9 +45,12 @@ public class ResourceNodeManager {
             .resolve("wynn_ai")
             .resolve("resource_nodes.json");
 
-    private static final Set<String> VALID_RESOURCES = new LinkedHashSet<>(Set.of(
-            "Wheat", "Barley", "Oat", "Malt", "Hops", "Rye", "Millet", "Decay Roots", "Rice", "Sorghum", "Hemp", "Dernic Seed"
-            // Add more as needed
+    //todo add handle Dernic ore and wood
+    private static final LinkedHashSet<String> VALID_RESOURCES = new LinkedHashSet<>(Arrays.asList(
+            "Wheat", "Barley", "Oat", "Malt", "Hops", "Rye", "Millet", "Decay Roots", "Rice", "Sorghum", "Hemp", "Dernic Seed", "Red Mushroom", "Brown Mushroom", "Voidgloom", //15
+            "Copper", "Granite", "Gold", "Sandstone", "Iron", "Silver", "Cobalt", "Kanderstone", "Diamond", "Molten", "Voidstone", "Dernic Ore", "Foul Larbonic Shell", //13
+            "Oak", "Birch", "Willow", "Acacia", "Spruce", "Jungle", "Dark", "Light", "Pine", "Avo", "Sky", "Dernic Wood", "Bamboo", "Flerisi Tree", //14
+            "Gudgeon", "Trout", "Salmon", "Carp", "Icefish", "Piranha", "Koi", "Gylia Fish", "Bass", "Molten Eel", "Starfish", "Dernic Fish", "Abyssal Matter" //13
     ));
 
     public static void scanAndStore(NbtCompound nbt) {
@@ -256,9 +259,7 @@ public class ResourceNodeManager {
     }
 
     public static List<String> getSortedResources() {
-        return VALID_RESOURCES.stream()
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .collect(Collectors.toList());
+        return new ArrayList<>(VALID_RESOURCES);
     }
 
     public static void registerResource(String resource) {
