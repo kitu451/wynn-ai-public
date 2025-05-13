@@ -1,11 +1,6 @@
 package net.natga999.wynn_ai.managers;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.decoration.DisplayEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.util.math.Direction;
 import net.natga999.wynn_ai.ai.BasicPathAI;
-import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.path.PathFinder;
 import net.natga999.wynn_ai.utility.CatmullRomSpline;
 
@@ -19,11 +14,17 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.Hand;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.decoration.DisplayEntity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3i;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -40,6 +41,7 @@ public class PathingManager {
     private boolean isFounding = false;
     private boolean pathComplete = false;
     private boolean useRightClickHarvest = false;
+    private static BlockPos originalGoalPos;
 
     private int dynamicWaitTicks;
     private int verifyStartTick = 0;
@@ -151,9 +153,22 @@ public class PathingManager {
     private boolean verifyHarvestSuccess() {
         // Get nearby text display entities
         assert MinecraftClient.getInstance().player != null;
-        EntityDetector entityDetector = new EntityDetector(3);
-        List<Entity> entities = entityDetector.detectNearbyEntities(MinecraftClient.getInstance().player.getPos(), MinecraftClient.getInstance());
 
+        List<Entity> entities = new ArrayList<>();
+
+        BlockPos originalGoal = getOriginalGoalPos();
+        Vec3d vec = new Vec3d(
+                originalGoal.getX(),
+                originalGoal.getY() + 2,
+                originalGoal.getZ()
+        );
+
+        assert MinecraftClient.getInstance().world != null;
+        for (Entity entity : MinecraftClient.getInstance().world.getEntities()) { // Iterate through all entities
+            if (entity.getPos().isInRange(vec, 2)) { // Check if inside radius
+                entities.add(entity);
+            }
+        }
         for (Entity entity : entities) {
             if (entity instanceof DisplayEntity.TextDisplayEntity textEntity) {
                 NbtCompound nbt = new NbtCompound();
@@ -162,7 +177,7 @@ public class PathingManager {
                 String text = nbt.getString("text").replaceAll("§.", "");
 
                 // Check for success indicators
-                if (text.contains("Farming XP")) {
+                if (text.contains("Farming XP") || text.contains("Mining XP")) {
                     return true;
                 }
             }
@@ -174,9 +189,21 @@ public class PathingManager {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return false;
 
-        // Scan nearby TextDisplayEntity instances
-        EntityDetector detector = new EntityDetector(3);
-        List<Entity> entities = detector.detectNearbyEntities(mc.player.getPos(), mc);
+        List<Entity> entities = new ArrayList<>();
+
+        BlockPos originalGoal = getOriginalGoalPos();
+        Vec3d vec = new Vec3d(
+                originalGoal.getX(),
+                originalGoal.getY() + 2,
+                originalGoal.getZ()
+        );
+
+        assert MinecraftClient.getInstance().world != null;
+        for (Entity entity : MinecraftClient.getInstance().world.getEntities()) { // Iterate through all entities
+            if (entity.getPos().isInRange(vec, 2)) { // Check if inside radius
+                entities.add(entity);
+            }
+        }
 
         for (Entity e : entities) {
             if (e instanceof DisplayEntity.TextDisplayEntity textEntity) {
@@ -188,7 +215,7 @@ public class PathingManager {
                         .trim();
 
                 // must have [ and ] and Farming
-                if (txt.contains("[") && txt.contains("]") && txt.contains("Farming")) {
+                if (txt.contains("[") && txt.contains("]") && (txt.contains("Farming") || txt.contains("Mining"))) {
                     return true;
                 }
             }
@@ -213,6 +240,26 @@ public class PathingManager {
         mc.player.swingHand(Hand.MAIN_HAND); // visual arm swing
     }
 
+    private static final List<Vec3i> NEIGHBOUR_OFFSETS = List.of(
+            new Vec3i( 0, 0,  0),  // original
+            new Vec3i( 1, 0,  0),
+            new Vec3i(-1, 0,  0),
+            new Vec3i( 0, 0,  1),
+            new Vec3i( 0, 0, -1),
+            new Vec3i( 1, 0,  1),
+            new Vec3i( 1, 0, -1),
+            new Vec3i(-1, 0,  1),
+            new Vec3i(-1, 0, -1),
+            new Vec3i( 1, 1,  0),
+            new Vec3i(-1, 1,  0),
+            new Vec3i( 0, 1,  1),
+            new Vec3i( 0, 1, -1),
+            new Vec3i( 1, 1,  1),
+            new Vec3i( 1, 1, -1),
+            new Vec3i(-1, 1,  1),
+            new Vec3i(-1, 1, -1)
+    );
+
     private void findAndStartPath() {
         // Get nearest resource node
         currentTargetNode = ResourceNodeManager.getClosestNode(HarvestingManager.getActiveResource());
@@ -221,86 +268,129 @@ public class PathingManager {
             return;
         }
 
-        // Use the node's actual position
-        Vec3d pos = new Vec3d(
+        MinecraftClient client = MinecraftClient.getInstance();
+        ClientPlayerEntity player = client.player;
+        ClientWorld world = client.world;
+        if (player == null || world == null) return;
+
+        // Get original target position
+        Vec3d targetPos = new Vec3d(
                 currentTargetNode.x,
                 currentTargetNode.y,
                 currentTargetNode.z
         );
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        ClientPlayerEntity player = client.player;
-        ClientWorld world = client.world;
-
-        if (player == null || world == null) return;
-
-        // Set up the goal position
-        goalPos = new BlockPos(
-                (int) Math.floor(pos.getX()),
-                (int) Math.floor(pos.getY()) - 2,
-                (int) Math.floor(pos.getZ())
+        // Create base goal position
+        BlockPos baseGoal = new BlockPos(
+                (int) Math.floor(targetPos.x),
+                (int) Math.floor(targetPos.y) - 2,
+                (int) Math.floor(targetPos.z)
         );
 
-        // Log current start and end positions for debugging
-        MinecraftClient.getInstance().player.sendMessage(
-                Text.literal("Finding path from " + player.getBlockPos() + " to " + goalPos),
-                false
-        );
+        originalGoalPos = baseGoal;
 
-        // Create a pathfinder with a cache
-        PathFinder pathFinder = new PathFinder(world, 8, player.getBlockPos(), goalPos); // Cache radius of 4 chunks
-        BlockPos playerPos = player.getBlockPos();
-        Block blockBelow = world.getBlockState(playerPos).getBlock();
-
-        // If standing on farmland, raise start position by 1
-        if (blockBelow == Blocks.FARMLAND) {
-            playerPos = playerPos.up(); // Adds +1 to the Y coordinate
+        // 2) Check if baseGoal is “free” and try it first
+        if (isPositionFree(world, baseGoal)) {
+            List<Vec3d> path = tryPath(player, world, baseGoal);
+            if (path != null) {
+                startWithPath(path);
+                return;
+            }
         }
 
-        List<Vec3d> rawPath = pathFinder.findPath(playerPos, goalPos);
-        if (rawPath != null && !rawPath.isEmpty()) {
-            // Replace the very first waypoint with the player's current exact cords
-            Vec3d playerPosVec = player.getPos();
+        // 3) If we get here, baseGoal was blocked or path failed → fallback
+        List<BlockPos> candidates = NEIGHBOUR_OFFSETS.stream()
+                .map(off -> baseGoal.add(off.getX(), off.getY(), off.getZ()))
+                .filter(p -> isPositionFree(world, p))
+                .toList();
 
-            // Figure out which block‐cell those cords live in
-            BlockPos footPos = new BlockPos(
-                    (int) playerPosVec.x,
-                    (int) (playerPosVec.y - 0.5),   // since Vec3d y is centered at feet+0.5
-                    (int) playerPosVec.z
-            );
+        List<List<Vec3d>> validPaths = new ArrayList<>();
 
-            // Look at the block at that position
-            BlockState footState = world.getBlockState(footPos.down());
+        for (BlockPos cand : candidates) {
+            List<Vec3d> p = tryPath(player, world, cand);
+            if (p != null) validPaths.add(p);
+        }
 
-            // If that block is “empty” (air) or a shallow crop, lower you by one
-            if ( footState.isAir()
-                    || footState.getBlock() == Blocks.WHEAT
-                    || footState.getBlock() == Blocks.POTATOES
-                    || footState.getBlock() == Blocks.SHORT_GRASS ) {
-                playerPosVec = playerPosVec.subtract(0, 1.0, 0);
-            }
-
-            rawPath.set(0, new Vec3d(playerPosVec.x, playerPosVec.y + 0.5, playerPosVec.z));
-
-            this.path = rawPath;
-
-            // NO FUNNELING
-            LOGGER.debug("Vec3d path size: {}", path.size());
-
-            int segments = path.size() <= 3 ? 16 : 8;
-            this.splinePath = new ArrayList<>(CatmullRomSpline.createSpline(path, segments));
-
-            LOGGER.debug("Spline path size: {}", splinePath.size());
-            LOGGER.debug("Path found: {}, Spline path: {}", path, splinePath);
-
-            pathComplete = false;
-
-            currentState = HarvestState.START_PATH;
+        if (!validPaths.isEmpty()) {
+            List<Vec3d> best = validPaths.stream()
+                    .min(Comparator.comparingDouble(this::calculatePathLength))
+                    .get();
+            startWithPath(best);
         } else {
-            LOGGER.debug("Pathfinding failed: No path to goal {}", goalPos);
-            currentState = HarvestState.WAITING; // delay retry
+            LOGGER.debug("Pathfinding failed: no path to {}", baseGoal);
+            currentState = HarvestState.WAITING;
         }
         isFounding = false;
+    }
+
+    // Helper: check if a blockpos is not solid/barrier
+    private boolean isPositionFree(ClientWorld world, BlockPos pos) {
+        BlockState state = world.getBlockState(pos);
+        // If there's no collision shape, it's essentially air/fluids/etc.
+        return state.getCollisionShape(world, pos).isEmpty();
+    }
+
+
+    // Helper: try a single path, returning null if no path
+    private List<Vec3d> tryPath(ClientPlayerEntity player, ClientWorld world, BlockPos goal) {
+        BlockPos start = adjustPlayerStartPosition(player, world);
+        PathFinder pf = new PathFinder(world, 8, start, goal);
+        return pf.findPath(start, goal);
+    }
+
+    // Helper: kick off your path and spline
+    private void startWithPath(List<Vec3d> path) {
+        assert MinecraftClient.getInstance().player != null;
+        assert MinecraftClient.getInstance().world != null;
+        Vec3d exact = getAdjustedPlayerPosition(MinecraftClient.getInstance().player, MinecraftClient.getInstance().world);
+        path.set(0, exact.add(0, 0.5, 0));
+        this.path       = path;
+        this.splinePath = CatmullRomSpline.createSpline(path, calculateSegmentCount());
+        this.goalPos    = BlockPos.ofFloored(splinePath.getLast());
+        pathComplete    = false;
+        currentState    = HarvestState.START_PATH;
+        isFounding      = false;
+    }
+
+    private BlockPos adjustPlayerStartPosition(ClientPlayerEntity player, ClientWorld world) {
+        BlockPos pos = player.getBlockPos();
+        if (world.getBlockState(pos.down()).getBlock() == Blocks.FARMLAND) {
+            return pos.up();
+        }
+        return pos;
+    }
+
+    private double calculatePathLength(List<Vec3d> path) {
+        double length = 0;
+        for (int i = 1; i < path.size(); i++) {
+            length += path.get(i).distanceTo(path.get(i - 1));
+        }
+        return length;
+    }
+
+    private int calculateSegmentCount() {
+        return path.size() <= 3 ? 16 : 8;
+    }
+
+    private Vec3d getAdjustedPlayerPosition(ClientPlayerEntity player, ClientWorld world) {
+        Vec3d pos = player.getPos();
+        BlockPos footPos = new BlockPos(
+                (int) pos.x,
+                (int) (pos.y - 0.5),
+                (int) pos.z
+        );
+
+        BlockState groundBlock = world.getBlockState(footPos.down());
+        if (groundBlock.isAir() || isShallowCrop(groundBlock.getBlock())) {
+            return pos.subtract(0, 1.0, 0);
+        }
+        return pos;
+    }
+
+    private boolean isShallowCrop(Block block) {
+        return block == Blocks.WHEAT ||
+                block == Blocks.POTATOES ||
+                block == Blocks.SHORT_GRASS;
     }
 
     public void setPathComplete(Boolean complete) {
@@ -329,5 +419,9 @@ public class PathingManager {
 
     public void setHarvestButton(boolean useRightClick) {
         this.useRightClickHarvest = useRightClick;
+    }
+
+    public static BlockPos getOriginalGoalPos() {
+        return originalGoalPos;
     }
 }

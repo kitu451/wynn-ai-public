@@ -80,6 +80,9 @@ public class BasicPathAI {
 
             // Reached the last point
             if (currentPathIndex >= path.size()) {
+                //todo this doesn't work :(
+                rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 2, 0)), client);
+
                 PathingManager.getInstance().setPathComplete(true);
                 stop();
                 player.sendMessage(Text.literal("Path complete."), false);
@@ -94,11 +97,14 @@ public class BasicPathAI {
             );
             double finalDistanceY = Math.abs(player.getY() - finalTarget.y);
 
-            //to-do implement shorter XZ if trying to reach same goal > 3 in a row
+            //todo implement shorter XZ if trying to reach same goal > 3 in a row
             Random rand = new Random();
             double randomFactor = 0.9 + rand.nextDouble() * (1.6 - 0.9);
             if (finalDistanceXZ < randomFactor && finalDistanceY < 1.0) {
                 if (!PathingManager.getInstance().isPathComplete()) {
+                    //todo this doesn't work :(
+                    rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 2, 0)), client);
+
                     PathingManager.getInstance().setPathComplete(true);
                     stop();
                     player.sendMessage(Text.literal("Path complete (close to goal)."), false);
