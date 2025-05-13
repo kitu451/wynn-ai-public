@@ -48,6 +48,14 @@ public class MenuWidgetFactory {
                             ((String) data.get("defaultButton")).toUpperCase())
             );
         }
+        if ("resource_list".equals(type)) {
+            return new ResourceSelectorWidget(
+                    (int) data.get("x"),
+                    (int) data.get("y"),
+                    (int) data.get("width"),
+                    (int) data.get("height")
+            );
+        }
         return null;
     }
 }

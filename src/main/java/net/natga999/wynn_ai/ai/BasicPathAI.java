@@ -299,6 +299,7 @@ public class BasicPathAI {
     private void checkAndJump(MinecraftClient client) {
         if (jumpCooldown > 0 || !Objects.requireNonNull(client.player).isOnGround()) return;
 
+        //todo add long path on slabs -> no jump
         Vec3d lookVec = client.player.getRotationVec(1.0f);
         BlockPos clientPos = client.player.getBlockPos();
         Vec3d clientVecPos = client.player.getPos();
@@ -321,7 +322,6 @@ public class BasicPathAI {
         // Only consider it an obstacle if it's not air and not a crop block
         boolean needsJump = !state.isAir() && !isCropBlock && (stateUp.isAir() || isCropBlockUp);
 
-        //LOGGER.error("NEEDS JUMP: {} - {} - {} - {} - {} ({})", needsJump, !state.isAir(), !isCropBlock, stateUp.isAir(), isCropBlockUp, state.getBlock().getName());
         LOGGER.debug("Obstacle detected: {} - {} - {}", needsJump, state.getBlock(), clientVecPos);
 
         // 80% chance to jump if obstacle detected

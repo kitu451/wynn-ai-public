@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import com.google.gson.*;
 
@@ -44,10 +45,10 @@ public class ResourceNodeManager {
             .resolve("wynn_ai")
             .resolve("resource_nodes.json");
 
-    private static final Set<String> VALID_RESOURCES = Set.of(
+    private static final Set<String> VALID_RESOURCES = new LinkedHashSet<>(Set.of(
             "Wheat", "Barley", "Oat", "Malt", "Hops", "Rye", "Millet", "Decay Roots", "Rice", "Sorghum", "Hemp", "Dernic Seed"
             // Add more as needed
-    );
+    ));
 
     public static void scanAndStore(NbtCompound nbt) {
         if (!nbt.contains("text") || !nbt.contains("Pos")) return;
@@ -131,6 +132,11 @@ public class ResourceNodeManager {
         } catch (IOException | IllegalStateException e) {
             LOGGER.error("Failed to load node data", e);
         }
+
+        // Preserve valid resources even if empty in JSON
+        VALID_RESOURCES.forEach(resource ->
+                keywordToNodes.putIfAbsent(resource, new ArrayList<>())
+        );
     }
 
     private static Path getSaveFilePath() {
@@ -214,7 +220,52 @@ public class ResourceNodeManager {
         );
     }
 
+    public static Set<String> getRegisteredResources() {
+        // Combine tracked resources with valid configs
+        Set<String> resources = new HashSet<>(keywordToNodes.keySet());
+        resources.addAll(VALID_RESOURCES);
+        return Collections.unmodifiableSet(resources);
+    }
+
+    public static List<String> getAvailableResources() {
+        // Returns resources that have both config and nodes
+        return keywordToNodes.keySet().stream()
+                .filter(VALID_RESOURCES::contains)
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
     public static void markHarvested(ResourceNode node) {
         node.lastHarvested = System.currentTimeMillis();
+    }
+
+    public static List<String> getMenuResources() {
+        return VALID_RESOURCES.stream()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+    }
+
+    // Modified validation check
+    public static boolean isValidResource(String text) {
+        return VALID_RESOURCES.stream()
+                .anyMatch(text::contains);
+    }
+
+    public static boolean hasResourceConfig(String resource) {
+        return VALID_RESOURCES.contains(resource) || keywordToNodes.containsKey(resource);
+    }
+
+    public static List<String> getSortedResources() {
+        return VALID_RESOURCES.stream()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .collect(Collectors.toList());
+    }
+
+    public static void registerResource(String resource) {
+        if (!VALID_RESOURCES.contains(resource)) {
+            VALID_RESOURCES.add(resource);
+            // Optionally create empty node list if needed
+            keywordToNodes.putIfAbsent(resource, new ArrayList<>());
+        }
     }
 }

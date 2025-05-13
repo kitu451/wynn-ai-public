@@ -215,7 +215,7 @@ public class PathingManager {
 
     private void findAndStartPath() {
         // Get nearest resource node
-        currentTargetNode = ResourceNodeManager.getClosestNode("Malt");
+        currentTargetNode = ResourceNodeManager.getClosestNode(HarvestingManager.getActiveResource());
         if (currentTargetNode == null) {
             isFounding = false;
             return;

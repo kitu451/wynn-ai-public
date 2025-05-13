@@ -1,11 +1,9 @@
 package net.natga999.wynn_ai.menus.widgets;
 
+import net.natga999.wynn_ai.managers.HarvestingManager;
+
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Formatting;
-
-import static net.natga999.wynn_ai.menus.MenuHUDLoader.getMouseButtonState;
-import static net.natga999.wynn_ai.menus.MenuHUDLoader.setMouseButtonState;
 
 public class MouseButtonSwitchWidget implements MenuWidget {
     public enum MouseButton {
@@ -31,11 +29,17 @@ public class MouseButtonSwitchWidget implements MenuWidget {
         this.width = width;
         this.height = height;
         this.action = action;
-        this.selectedButton = getMouseButtonState(action, defaultButton);
+        this.selectedButton = HarvestingManager.getMouseButtonState(action, defaultButton);
+        HarvestingManager.addButtonChangeListener(action, this::updateButtonState);
+    }
+
+    private void updateButtonState() {
+        this.selectedButton = HarvestingManager.getMouseButtonState(action, selectedButton);
     }
 
     @Override
     public void render(DrawContext context, MinecraftClient client, int parentX, int parentY) {
+        updateButtonState(); // Ensure latest state before rendering
         int drawX = parentX + x;
         int drawY = parentY + y;
 
@@ -55,8 +59,8 @@ public class MouseButtonSwitchWidget implements MenuWidget {
     }
 
     public void toggle() {
-        selectedButton = (selectedButton == MouseButton.LEFT) ? MouseButton.RIGHT : MouseButton.LEFT;
-        setMouseButtonState(action, selectedButton);
+        MouseButton newState = (selectedButton == MouseButton.LEFT) ? MouseButton.RIGHT : MouseButton.LEFT;
+        HarvestingManager.setMouseButtonState(action, newState);
     }
 
     public MouseButton getSelectedButton() {

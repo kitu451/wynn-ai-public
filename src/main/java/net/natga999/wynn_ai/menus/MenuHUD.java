@@ -1,10 +1,7 @@
 package net.natga999.wynn_ai.menus;
 
 import net.natga999.wynn_ai.WynnAIClient;
-import net.natga999.wynn_ai.managers.EntityOutlinerManager;
-import net.natga999.wynn_ai.managers.MenuHUDManager;
-import net.natga999.wynn_ai.managers.PathingManager;
-import net.natga999.wynn_ai.managers.RenderManager;
+import net.natga999.wynn_ai.managers.*;
 import net.natga999.wynn_ai.menus.widgets.*;
 
 import net.minecraft.client.MinecraftClient;
@@ -121,6 +118,19 @@ public class MenuHUD {
                     handleAction(buttonSwitch.getAction());
                 }
             }
+            else if (widget instanceof ResourceSelectorWidget selector) {
+                if (selector.isMouseOver(mouseX, mouseY, baseX, baseY)) {
+                    // Pass mouse cords relative to menu
+                    boolean handled = selector.mouseClicked(
+                            mouseX - baseX,  // Convert to widget-relative X
+                            mouseY - baseY  // Convert to widget-relative Y
+                    );
+
+                    if (handled) {
+                        handleAction("resourceSelected:" + HarvestingManager.getActiveResource());
+                    }
+                }
+            }
         }
     }
 
@@ -183,7 +193,16 @@ public class MenuHUD {
             boolean isRightClick = checkMouseButtonState(action);
             updateHarvestBehavior(isRightClick);
         }
+        if ("open_resource_selector".equalsIgnoreCase(action)) {
+            MenuHUD newMenu = MenuHUD.createNewInstance("ResourceSelector");
+            MenuHUDManager.registerMenu(newMenu);
+            MenuHUDManager.bringToFront(newMenu);
+        }
         // Add more actions here later
+        if (action.startsWith("resourceSelected:")) {
+            String resource = action.split(":")[1];
+            HarvestingManager.setActiveResource(resource);
+        }
     }
 
     public void toggleCheckbox(String action) {
