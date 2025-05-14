@@ -1,14 +1,13 @@
 package net.natga999.wynn_ai.ai;
 
+import net.minecraft.block.*;
 import net.natga999.wynn_ai.managers.PathingManager;
 
-import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.block.Blocks;
 import net.minecraft.util.math.MathHelper;
 
 import org.slf4j.Logger;
@@ -26,7 +25,7 @@ public class BasicPathAI {
     public static BasicPathAI getInstance() { return INSTANCE; }
 
     private Vec3d target = null;
-    private final double reachThresholdXZ = 0.6;
+    private final double reachThresholdXZ = 1.0;
     private final double reachThresholdY = 1.3;
 
     private int jumpCooldown = 0;
@@ -304,7 +303,6 @@ public class BasicPathAI {
     private void checkAndJump(MinecraftClient client) {
         if (jumpCooldown > 0 || !Objects.requireNonNull(client.player).isOnGround()) return;
 
-        //todo add long path on slabs -> no jump
         Vec3d lookVec = client.player.getRotationVec(1.0f);
         BlockPos clientPos = client.player.getBlockPos();
         Vec3d clientVecPos = client.player.getPos();
@@ -312,8 +310,8 @@ public class BasicPathAI {
         if ( client.world.getBlockState(clientPos).getBlock() == Blocks.FARMLAND) {
             clientVecPos = client.player.getPos().add(0,1,0);
         }
-        BlockPos checkPos = BlockPos.ofFloored(clientVecPos
-                .add(lookVec.multiply(JUMP_CHECK_DISTANCE).x, 0, lookVec.multiply(JUMP_CHECK_DISTANCE).z));
+        Vec3d forward = lookVec.multiply(JUMP_CHECK_DISTANCE);
+        BlockPos checkPos = BlockPos.ofFloored(clientVecPos.add(forward.x, 0, forward.z));
 
         // Check if obstacle in movement direction
         assert client.world != null;
@@ -321,11 +319,20 @@ public class BasicPathAI {
         BlockState stateUp = client.world.getBlockState(checkPos.up());
 
         // Check if the block is wheat or potatoes, treat them as air
-        boolean isCropBlock = state.getBlock() == Blocks.WHEAT || state.getBlock() == Blocks.POTATOES || state.getBlock() == Blocks.SHORT_GRASS;
-        boolean isCropBlockUp = stateUp.getBlock() == Blocks.WHEAT || stateUp.getBlock() == Blocks.POTATOES || stateUp.getBlock() == Blocks.SHORT_GRASS;
+        Block block = state.getBlock();
+        Block blockUp = stateUp.getBlock();
+        boolean isCropBlock = block == Blocks.WHEAT || block == Blocks.POTATOES || block == Blocks.SHORT_GRASS;
+        boolean isCropBlockUp = blockUp == Blocks.WHEAT || blockUp == Blocks.POTATOES || blockUp == Blocks.SHORT_GRASS;
+        boolean isLowSnowBlockUp = (blockUp == Blocks.SNOW && stateUp.get(SnowBlock.LAYERS) <= 3);
+        boolean isSlab  = block instanceof SlabBlock;
+        boolean isStair = block instanceof StairsBlock;
+        boolean isCarpet = block instanceof CarpetBlock;
+        boolean isCarpetUp = blockUp instanceof CarpetBlock;
+        boolean isLowSnowBlock = (block == Blocks.SNOW && state.get(SnowBlock.LAYERS) <= 3);
 
         // Only consider it an obstacle if it's not air and not a crop block
-        boolean needsJump = !state.isAir() && !isCropBlock && (stateUp.isAir() || isCropBlockUp);
+        boolean needsJump = !state.isAir() && !isCropBlock && !isSlab && !isStair
+                && !isLowSnowBlock && !isCarpet && (stateUp.isAir() || isCropBlockUp || isLowSnowBlockUp || isCarpetUp);
 
         LOGGER.debug("Obstacle detected: {} - {} - {}", needsJump, state.getBlock(), clientVecPos);
 

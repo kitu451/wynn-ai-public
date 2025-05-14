@@ -303,6 +303,8 @@ public class PathFinder {
                 (state.isSideSolidFullSquare(world, pos, Direction.UP)
                         || state.getBlock() instanceof StairsBlock
                         || state.getBlock() instanceof SlabBlock
+                        || state.getBlock() instanceof SnowBlock
+                        || state.getBlock() instanceof CarpetBlock
                         || state.getBlock() instanceof FarmlandBlock);
     }
 
@@ -441,7 +443,10 @@ public class PathFinder {
         boolean feetClear = blockAt.isAir()
                 || blockAt.getBlock() == Blocks.WHEAT
                 || blockAt.getBlock() == Blocks.POTATOES
-                || blockAt.getBlock() == Blocks.SHORT_GRASS;
+                || blockAt.getBlock() == Blocks.SHORT_GRASS
+                || blockAt.getBlock() instanceof CarpetBlock
+                || (blockAt.getBlock() == Blocks.SNOW
+                    && blockAt.get(SnowBlock.LAYERS) <= 3);
         boolean headClear = blockAbove.isAir()
                 || blockAbove.getBlock() == Blocks.WHEAT
                 || blockAbove.getBlock() == Blocks.POTATOES
@@ -466,6 +471,8 @@ public class PathFinder {
         return state.isSideSolidFullSquare(world, pos, Direction.UP)
                 || state.getBlock() instanceof FarmlandBlock
                 || state.getBlock() instanceof SlabBlock
+                //|| state.getBlock() instanceof SnowBlock
+                //|| state.getBlock() instanceof CarpetBlock
                 || state.getBlock() instanceof StairsBlock;
     }
 
@@ -516,6 +523,8 @@ public class PathFinder {
         return state.isSideSolidFullSquare(world, below, Direction.UP)
                 || state.getBlock() instanceof StairsBlock
                 || state.getBlock() instanceof SlabBlock
+                || state.getBlock() instanceof SnowBlock
+                || state.getBlock() instanceof CarpetBlock
                 || state.getBlock() instanceof FarmlandBlock;
     }
 
