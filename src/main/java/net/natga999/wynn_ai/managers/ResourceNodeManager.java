@@ -198,7 +198,7 @@ public class ResourceNodeManager {
 
         if (nodes.isEmpty()) return null;
         return nodes.stream()
-                .filter(n -> (now - n.lastHarvested) > 60000) // 60-second cooldown
+                .filter(n -> (now - n.lastHarvested) > 58000) // 58-second cooldown
                 .min(Comparator.comparingDouble(n ->
                         new Vec3d(n.x, n.y, n.z).distanceTo(fromPos)
                 ))

@@ -16,7 +16,7 @@ public class PathFinder {
     private final ClientWorld world;
     private final ChunkCache cache;
     private final int maxDrop;  // maximum safe drop height
-    private static final int MAX_PATH_LENGTH = 1000; // Maximum number of nodes to explore
+    private static final int MAX_PATH_LENGTH = 5000; // Maximum number of nodes to explore
     private static final double CORNER_OFFSET = 0.2; // amount to soften 90° turns
     private final BlockPos start;
     private final BlockPos goal;
@@ -443,6 +443,9 @@ public class PathFinder {
         boolean feetClear = blockAt.isAir()
                 || blockAt.getBlock() == Blocks.WHEAT
                 || blockAt.getBlock() == Blocks.POTATOES
+                || blockAt.getBlock() == Blocks.CARROTS
+                || blockAt.getBlock() == Blocks.AZURE_BLUET
+                || blockAt.getBlock() == Blocks.BEETROOTS
                 || blockAt.getBlock() == Blocks.SHORT_GRASS
                 || blockAt.getBlock() instanceof CarpetBlock
                 || (blockAt.getBlock() == Blocks.SNOW
@@ -450,6 +453,9 @@ public class PathFinder {
         boolean headClear = blockAbove.isAir()
                 || blockAbove.getBlock() == Blocks.WHEAT
                 || blockAbove.getBlock() == Blocks.POTATOES
+                || blockAt.getBlock() == Blocks.CARROTS
+                || blockAt.getBlock() == Blocks.AZURE_BLUET
+                || blockAt.getBlock() == Blocks.BEETROOTS
                 || blockAt.getBlock() == Blocks.SHORT_GRASS;
 
         boolean result = feetClear && headClear;

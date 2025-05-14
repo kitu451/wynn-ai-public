@@ -59,6 +59,15 @@ public class WynnAIClient implements ClientModInitializer {
         // Register HUD rendering
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             MinecraftClient client = MinecraftClient.getInstance();
+            if (client.player == null) return;
+            Vec3d target = BasicPathAI.getTarget();
+            if (target != null) {
+                BasicPathAI.rotateCameraToward(
+                        target.subtract(0, 1, 0),
+                        client,
+                        false
+                );
+            }
             updateCachedNearbyEntities(client);
             RenderManager.getInstance().renderEntityHud(drawContext, client, cachedNearbyEntities);
             RenderManager.getInstance().renderMenuWithName(drawContext, client, "MainMenu");

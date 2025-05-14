@@ -24,7 +24,7 @@ public class BasicPathAI {
     private static final BasicPathAI INSTANCE = new BasicPathAI();
     public static BasicPathAI getInstance() { return INSTANCE; }
 
-    private Vec3d target = null;
+    private static Vec3d target = null;
     private final double reachThresholdXZ = 1.0;
     private final double reachThresholdY = 1.3;
 
@@ -52,10 +52,10 @@ public class BasicPathAI {
             }
 
             Vec3d currentTarget = path.get(currentPathIndex);
-            this.target = currentTarget;
+            target = currentTarget;
 
             Vec3d aimPoint = currentTarget.subtract(0, 1.0, 0);
-            rotateCameraToward(aimPoint.add(0, 2, 0), client, false);
+            //rotateCameraToward now in WynnAIClient (tickDelta)
             updateMovementToward(aimPoint, client);
 
             // Calculate horizontal (XY) and vertical (Z) distances separately
@@ -79,7 +79,7 @@ public class BasicPathAI {
 
             // Reached the last point
             if (currentPathIndex >= path.size()) {
-                rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 2, 0)), client, true);
+                rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 1, 0)), client, true);
                 PathingManager.getInstance().setPathComplete(true);
                 stop();
                 return;
@@ -98,14 +98,14 @@ public class BasicPathAI {
             double randomFactor = 0.9 + rand.nextDouble() * (1.6 - 0.9);
             if (finalDistanceXZ < randomFactor && finalDistanceY < 1.0) {
                 if (!PathingManager.getInstance().isPathComplete()) {
-                    rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 2, 0)), client, true);
+                    rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 1, 0)), client, true);
                     PathingManager.getInstance().setPathComplete(true);
                     stop();
                     return;
                 }
             }
 
-            this.target = path.get(currentPathIndex); // Move to next target
+            target = path.get(currentPathIndex); // Move to next target
 
             //player.sendMessage(Text.literal("Moving to: " + target + " | Distance: " + distance), false);
         } else {
@@ -182,7 +182,7 @@ public class BasicPathAI {
         }
     }
 
-    private void rotateCameraToward(Vec3d targetPos, MinecraftClient client, boolean isFinal) {
+    public static void rotateCameraToward(Vec3d targetPos, MinecraftClient client, boolean isFinal) {
         ClientPlayerEntity player = client.player;
         if (player == null) return;
 
@@ -294,7 +294,7 @@ public class BasicPathAI {
      * Interpolates angles correctly across the ±180° wrap.
      * t in [0..1]
      */
-    private float lerpAngle(float a, float b, float t) {
+    private static float lerpAngle(float a, float b, float t) {
         float delta = ((b - a + 540) % 360) - 180;
         float result = a + delta * t;
         return result % 360;
@@ -321,8 +321,8 @@ public class BasicPathAI {
         // Check if the block is wheat or potatoes, treat them as air
         Block block = state.getBlock();
         Block blockUp = stateUp.getBlock();
-        boolean isCropBlock = block == Blocks.WHEAT || block == Blocks.POTATOES || block == Blocks.SHORT_GRASS;
-        boolean isCropBlockUp = blockUp == Blocks.WHEAT || blockUp == Blocks.POTATOES || blockUp == Blocks.SHORT_GRASS;
+        boolean isCropBlock = block == Blocks.WHEAT || block == Blocks.POTATOES || block == Blocks.SHORT_GRASS || block == Blocks.CARROTS || block == Blocks.AZURE_BLUET || block == Blocks.BEETROOTS;
+        boolean isCropBlockUp = blockUp == Blocks.WHEAT || blockUp == Blocks.POTATOES || blockUp == Blocks.SHORT_GRASS || blockUp == Blocks.CARROTS || blockUp == Blocks.AZURE_BLUET || blockUp == Blocks.BEETROOTS;
         boolean isLowSnowBlockUp = (blockUp == Blocks.SNOW && stateUp.get(SnowBlock.LAYERS) <= 3);
         boolean isSlab  = block instanceof SlabBlock;
         boolean isStair = block instanceof StairsBlock;
@@ -368,7 +368,7 @@ public class BasicPathAI {
 
         // Set the first waypoint as the initial target
         if (!path.isEmpty()) {
-            this.target = path.get(currentPathIndex);
+            target = path.get(currentPathIndex);
 
             // Log the path details
             MinecraftClient client = MinecraftClient.getInstance();
@@ -384,7 +384,7 @@ public class BasicPathAI {
     }
 
     public void stop() {
-        this.target = null;
+        target = null;
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.options != null) {
             client.options.forwardKey.setPressed(false);
@@ -396,7 +396,7 @@ public class BasicPathAI {
         }
     }
 
-    public Vec3d getTarget() {
+    public static Vec3d getTarget() {
         return target;
     }
 }
