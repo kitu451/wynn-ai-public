@@ -69,7 +69,7 @@ public class WynnAIClient implements ClientModInitializer {
             // Main world rendering logic
             MinecraftClient client = MinecraftClient.getInstance();
             updateCachedNearbyEntities(client); // Update the cache once
-            renderDetectedNearbyEntitiesBox(context, client);
+            renderDetectedNearbyEntitiesBox(context);
         });
 
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
@@ -116,7 +116,7 @@ public class WynnAIClient implements ClientModInitializer {
         cachedNearbyEntities = entityDetector.detectNearbyEntities(playerPos, client);
     }
 
-    private void renderDetectedNearbyEntitiesBox(net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext context, MinecraftClient client) {
-        RenderManager.getInstance().renderEntityBoxes(context, client, cachedNearbyEntities);
+    private void renderDetectedNearbyEntitiesBox(net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext context) {
+        RenderManager.getInstance().renderEntityBoxes(context, cachedNearbyEntities);
     }
 }

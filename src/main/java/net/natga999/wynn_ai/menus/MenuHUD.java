@@ -181,8 +181,7 @@ public class MenuHUD {
         }
         if ("EntityListMain".equalsIgnoreCase(action) || "ResourceManager".equalsIgnoreCase(action)) {
             MenuHUD newMenu = MenuHUD.createNewInstance(action); // base name
-            //newMenu.getConfig().x = config.x + 10; // Offset slightly to avoid overlapping
-            //newMenu.getConfig().y = config.y + 10;
+            //newMenu.getConfig().x = config.x + 10; newMenu.getConfig().y = config.y + 10; // Offset slightly to avoid overlapping
             MenuHUDManager.registerMenu(newMenu);
             MenuHUDManager.bringToFront(newMenu);
         }

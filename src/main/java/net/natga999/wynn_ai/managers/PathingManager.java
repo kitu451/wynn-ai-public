@@ -105,6 +105,7 @@ public class PathingManager {
                 }
                 break;
 
+            //todo add state to aim to goal before harvest
             case HARVESTING:
                 LOGGER.debug("HARVESTING");
                 performHarvestAction();
@@ -120,7 +121,7 @@ public class PathingManager {
                 boolean success = verifyHarvestSuccess();
                 boolean progress = verifyHarvestIndicator();
 
-                //todo clean uo
+                //todo clean up
                 if (!progress && !success) {
                     verifyStartTick++;
                 } else {

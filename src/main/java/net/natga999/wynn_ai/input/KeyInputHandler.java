@@ -136,22 +136,6 @@ public class KeyInputHandler {
                 }
             }
 
-//            if (toggleInteractionModeKey.isPressed()) {
-//                if (!RenderManager.isInteractionMode()) {
-//                    RenderManager.setInteractionMode(true);
-//                    LOGGER.debug("Interaction mode enabled");
-//                    assert client.player != null;
-//                    client.player.sendMessage(Text.literal("Mouse interaction: " + (RenderManager.isInteractionMode() ? "ON" : "OFF")), true);
-//                }
-//            } else {
-//                if (RenderManager.isInteractionMode()) {
-//                    RenderManager.setInteractionMode(false);
-//                    LOGGER.debug("Interaction mode disabled");
-//                    assert client.player != null;
-//                    client.player.sendMessage(Text.literal("Mouse interaction: " + (RenderManager.isInteractionMode() ? "ON" : "OFF")), true);
-//                }
-//            }
-
             if (toggleBoxesKey.wasPressed()) {
                 RenderManager.getInstance().toggleBox();
                 boolean newState = RenderManager.getInstance().isBoxEnabled();

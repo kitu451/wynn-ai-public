@@ -11,9 +11,6 @@ import net.minecraft.util.math.Vec3d;
 import java.util.List;
 
 public class BoxMarkerRenderer implements MarkerRenderer {
-    // Default color for persistent nodes (green)
-    private static final int PERSISTENT_NODE_COLOR = 0xFF00FF00;
-
     @Override
     public void renderMarker(NbtCompound nbt, Camera camera, MatrixStack matrices,
                              VertexConsumerProvider vertexConsumers) {

@@ -40,11 +40,6 @@ public class ResourceNodeManager {
 
     private static final Map<String, List<ResourceNode>> keywordToNodes = new HashMap<>();
 
-    static Path saveFile = FabricLoader.getInstance()
-            .getConfigDir()
-            .resolve("wynn_ai")
-            .resolve("resource_nodes.json");
-
     //todo add handle Dernic ore and wood
     private static final LinkedHashSet<String> VALID_RESOURCES = new LinkedHashSet<>(Arrays.asList(
             "Wheat", "Barley", "Oat", "Malt", "Hops", "Rye", "Millet", "Decay Roots", "Rice", "Sorghum", "Hemp", "Dernic Seed", "Red Mushroom", "Brown Mushroom", "Voidgloom", //15
@@ -85,25 +80,30 @@ public class ResourceNodeManager {
         try {
             Files.createDirectories(saveFile.getParent());
 
-            JsonObject root = new JsonObject();
-            for (var entry : keywordToNodes.entrySet()) {
-                JsonArray arr = new JsonArray();
-                for (ResourceNode n : entry.getValue()) {
-                    JsonObject obj = new JsonObject();
-                    obj.addProperty("x", n.x);
-                    obj.addProperty("y", n.y);
-                    obj.addProperty("z", n.z);
-                    obj.addProperty("dimension", n.dimension);
-                    arr.add(obj);
-                }
-                root.add(entry.getKey(), arr);
-            }
+            JsonObject root = getJsonObject();
 
             String json = new GsonBuilder().setPrettyPrinting().create().toJson(root);
             Files.writeString(saveFile, json, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
             LOGGER.error("Failed to save node data", e);
         }
+    }
+
+    private static JsonObject getJsonObject() {
+        JsonObject root = new JsonObject();
+        for (var entry : keywordToNodes.entrySet()) {
+            JsonArray arr = new JsonArray();
+            for (ResourceNode n : entry.getValue()) {
+                JsonObject obj = new JsonObject();
+                obj.addProperty("x", n.x);
+                obj.addProperty("y", n.y);
+                obj.addProperty("z", n.z);
+                obj.addProperty("dimension", n.dimension);
+                arr.add(obj);
+            }
+            root.add(entry.getKey(), arr);
+        }
+        return root;
     }
 
     public static void loadFromFile() {
@@ -164,10 +164,6 @@ public class ResourceNodeManager {
             }
         }
         return false;
-    }
-
-    public static void clear() {
-        keywordToNodes.clear();
     }
 
     // Helper methods

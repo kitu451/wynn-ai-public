@@ -56,7 +56,7 @@ public class BasicPathAI {
             this.target = currentTarget;
 
             Vec3d aimPoint = currentTarget.subtract(0, 1.0, 0);
-            rotateCameraToward(aimPoint.add(0, 2, 0), client);
+            rotateCameraToward(aimPoint.add(0, 2, 0), client, false);
             updateMovementToward(aimPoint, client);
 
             // Calculate horizontal (XY) and vertical (Z) distances separately
@@ -80,12 +80,9 @@ public class BasicPathAI {
 
             // Reached the last point
             if (currentPathIndex >= path.size()) {
-                //todo this doesn't work :(
-                rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 2, 0)), client);
-
+                rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 2, 0)), client, true);
                 PathingManager.getInstance().setPathComplete(true);
                 stop();
-                player.sendMessage(Text.literal("Path complete."), false);
                 return;
             }
 
@@ -102,14 +99,9 @@ public class BasicPathAI {
             double randomFactor = 0.9 + rand.nextDouble() * (1.6 - 0.9);
             if (finalDistanceXZ < randomFactor && finalDistanceY < 1.0) {
                 if (!PathingManager.getInstance().isPathComplete()) {
-                    //todo this doesn't work :(
-                    rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 2, 0)), client);
-
+                    rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 2, 0)), client, true);
                     PathingManager.getInstance().setPathComplete(true);
                     stop();
-                    player.sendMessage(Text.literal("Path complete (close to goal)."), false);
-                    aimPoint = path.getLast().subtract(0, 1.0, 0);
-                    rotateCameraToward(aimPoint.add(0, 2, 0), client);
                     return;
                 }
             }
@@ -191,7 +183,7 @@ public class BasicPathAI {
         }
     }
 
-    private void rotateCameraToward(Vec3d targetPos, MinecraftClient client) {
+    private void rotateCameraToward(Vec3d targetPos, MinecraftClient client, boolean isFinal) {
         ClientPlayerEntity player = client.player;
         if (player == null) return;
 
@@ -221,6 +213,13 @@ public class BasicPathAI {
         }
 
         float rawPitch = (float) -Math.toDegrees(Math.atan2(delta.y, distXZ));
+
+        if (isFinal) {
+            // Directly set the yaw and pitch without interpolation for final rotation
+            player.setYaw(rawYaw);
+            player.setPitch(rawPitch);
+            return;
+        }
 
         // Get current view
         float currentYaw = player.getYaw();

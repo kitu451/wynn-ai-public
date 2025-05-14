@@ -1,12 +1,11 @@
 package net.natga999.wynn_ai.managers;
 
-import net.minecraft.util.math.Vec3d;
-import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
 import net.natga999.wynn_ai.render.BoxMarkerRenderer;
 import net.natga999.wynn_ai.render.ItemMarkerRenderer;
 import net.natga999.wynn_ai.render.MarkerRenderer;
 import net.natga999.wynn_ai.render.RenderHUD;
 
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.Entity;
@@ -14,6 +13,7 @@ import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.nbt.NbtCompound;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
@@ -149,7 +149,7 @@ public class RenderManager {
     /**
      * Render boxes around entities in the world
      */
-    public void renderEntityBoxes(WorldRenderContext context, MinecraftClient client, List<Entity> entities) {
+    public void renderEntityBoxes(WorldRenderContext context, List<Entity> entities) {
         if (!config.isBoxesEnabled() || entities.isEmpty()) return;
 
         for (Entity entity : entities) {
@@ -175,19 +175,17 @@ public class RenderManager {
 
         // Render stored nodes from JSON
         String currentDimension = ResourceNodeManager.getCurrentDimension();
-        ResourceNodeManager.getTrackedResources().forEach(resource -> {
-            ResourceNodeManager.getNodes(resource).stream()
-                    .filter(node -> node.dimension.equals(currentDimension))
-                    .forEach(node -> {
-                        Vec3d pos = new Vec3d(node.x, node.y, node.z);
-                        boxMarkerRenderer.renderMarker(
-                                pos,
-                                0xFF00FF00,
-                                context.camera(),
-                                context.matrixStack(),
-                                context.consumers()
-                        );
-                    });
-        });
+        ResourceNodeManager.getTrackedResources().forEach(resource -> ResourceNodeManager.getNodes(resource).stream()
+                .filter(node -> node.dimension.equals(currentDimension))
+                .forEach(node -> {
+                    Vec3d pos = new Vec3d(node.x, node.y, node.z);
+                    boxMarkerRenderer.renderMarker(
+                            pos,
+                            0xFF00FF00,
+                            context.camera(),
+                            context.matrixStack(),
+                            context.consumers()
+                    );
+                }));
     }
 }
