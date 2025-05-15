@@ -232,7 +232,7 @@ public class MenuHUD {
 
     private void updateHarvestBehavior(boolean useRightClick) {
         // Example implementation - update your harvesting system
-        PathingManager.getInstance().setHarvestButton(useRightClick);
+        HarvestPathManager.getInstance().setHarvestButton(useRightClick);
     }
 
     private MenuHUDConfig cloneConfig(MenuHUDConfig original) {

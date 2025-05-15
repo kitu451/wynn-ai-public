@@ -4,10 +4,11 @@ import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.input.MouseInputHandler;
 import net.natga999.wynn_ai.input.KeyInputHandler;
 import net.natga999.wynn_ai.managers.EntityOutlinerManager;
-import net.natga999.wynn_ai.managers.PathingManager;
+import net.natga999.wynn_ai.managers.HarvestPathManager;
 import net.natga999.wynn_ai.managers.RenderManager;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.managers.ResourceNodeManager;
+import net.natga999.wynn_ai.managers.combat.CombatManager;
 import net.natga999.wynn_ai.render.PathRenderer;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -37,6 +38,8 @@ public class WynnAIClient implements ClientModInitializer {
     // Cache to store nearby entities
     private List<Entity> cachedNearbyEntities = Collections.emptyList();
 
+    private final CombatManager combatManager = new CombatManager();
+
     @Override
     public void onInitializeClient() {
         LOGGER.info("Initialized Client");
@@ -60,13 +63,25 @@ public class WynnAIClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             MinecraftClient client = MinecraftClient.getInstance();
             if (client.player == null) return;
-            Vec3d target = BasicPathAI.getTarget();
-            if (target != null) {
-                BasicPathAI.rotateCameraToward(
-                        target.subtract(0, 1, 0),
-                        client,
-                        false
-                );
+
+            if (CombatManager.getInstance().isInCombat()) {
+                Vec3d target = CombatManager.getInstance().getTargetPos();
+                if (target != null) {
+                    CombatManager.rotateCameraToward(
+                            target,
+                            client
+                    );
+                }
+            }
+            if (HarvestPathManager.getInstance().isPathing()) {
+                Vec3d target = BasicPathAI.getTarget();
+                if (target != null) {
+                    BasicPathAI.rotateCameraToward(
+                            target.subtract(0, 1, 0),
+                            client,
+                            false
+                    );
+                }
             }
             updateCachedNearbyEntities(client);
             RenderManager.getInstance().renderEntityHud(drawContext, client, cachedNearbyEntities);
@@ -82,7 +97,7 @@ public class WynnAIClient implements ClientModInitializer {
         });
 
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
-            List<Vec3d> path = PathingManager.getInstance().getCurrentPath();
+            List<Vec3d> path = HarvestPathManager.getInstance().getCurrentPath();
             if (path == null || path.size() < 2) {
                 LOGGER.debug("Path is null or too short to render: {}", path);
                 return;
@@ -94,8 +109,11 @@ public class WynnAIClient implements ClientModInitializer {
             if (client.player == null || client.world == null) return;
 
             // Example: Run AI movement logic
+            if (true) {
+                CombatManager.getInstance().tick();
+            }
             BasicPathAI.getInstance().tick();
-            PathingManager.getInstance().tick();
+            HarvestPathManager.getInstance().tick();
         });
     }
 

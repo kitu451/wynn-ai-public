@@ -1,6 +1,7 @@
 package net.natga999.wynn_ai.input;
 
 import net.natga999.wynn_ai.managers.*;
+import net.natga999.wynn_ai.managers.combat.CombatManager;
 import net.natga999.wynn_ai.menus.MenuHUD;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -30,6 +31,7 @@ public class KeyInputHandler {
     private static KeyBinding toggleOutlineKey;
     private static KeyBinding toggleHudKey;
     private static KeyBinding togglePathKey;
+    private static KeyBinding toggleCombatKey;
 
     public static void setToggleInteractionOn(boolean toggleInteractionOn) {
         KeyInputHandler.toggleInteractionOn = toggleInteractionOn;
@@ -86,6 +88,13 @@ public class KeyInputHandler {
                 "key.wynn_ai.toggle_path",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_KP_0,
+                "category.wynn_ai.keys"
+        ));
+
+        toggleCombatKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.wynn_ai.toggle_combat",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_KP_DECIMAL,
                 "category.wynn_ai.keys"
         ));
 
@@ -181,7 +190,11 @@ public class KeyInputHandler {
             }
 
             if (togglePathKey.wasPressed()) {
-                PathingManager.getInstance().togglePathing();
+                HarvestPathManager.getInstance().togglePathing();
+            }
+
+            if (toggleCombatKey.wasPressed()) {
+                CombatManager.getInstance().toggleCombat();
             }
         });
     }

@@ -1,7 +1,7 @@
 package net.natga999.wynn_ai.ai;
 
 import net.minecraft.block.*;
-import net.natga999.wynn_ai.managers.PathingManager;
+import net.natga999.wynn_ai.managers.HarvestPathManager;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -39,14 +39,14 @@ public class BasicPathAI {
     private boolean followingPath = false;
 
     public void tick() {
-        if (PathingManager.getInstance().isPathing()) {
+        if (HarvestPathManager.getInstance().isPathing()) {
             if (jumpCooldown > 0) jumpCooldown--;
             lastJump++;
             MinecraftClient client = MinecraftClient.getInstance();
             ClientPlayerEntity player = client.player;
             if (player == null) return;
 
-            if (!followingPath || path == null || currentPathIndex >= path.size() || PathingManager.getInstance().isPathComplete()) {
+            if (!followingPath || path == null || currentPathIndex >= path.size() || HarvestPathManager.getInstance().isPathComplete()) {
                 //stop();
                 return;
             }
@@ -79,8 +79,8 @@ public class BasicPathAI {
 
             // Reached the last point
             if (currentPathIndex >= path.size()) {
-                rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 1, 0)), client, true);
-                PathingManager.getInstance().setPathComplete(true);
+                rotateCameraToward(Vec3d.of(HarvestPathManager.getOriginalGoalPos().add(0, 1, 0)), client, true);
+                HarvestPathManager.getInstance().setPathComplete(true);
                 stop();
                 return;
             }
@@ -97,9 +97,9 @@ public class BasicPathAI {
             Random rand = new Random();
             double randomFactor = 0.9 + rand.nextDouble() * (1.6 - 0.9);
             if (finalDistanceXZ < randomFactor && finalDistanceY < 1.0) {
-                if (!PathingManager.getInstance().isPathComplete()) {
-                    rotateCameraToward(Vec3d.of(PathingManager.getOriginalGoalPos().add(0, 1, 0)), client, true);
-                    PathingManager.getInstance().setPathComplete(true);
+                if (!HarvestPathManager.getInstance().isPathComplete()) {
+                    rotateCameraToward(Vec3d.of(HarvestPathManager.getOriginalGoalPos().add(0, 1, 0)), client, true);
+                    HarvestPathManager.getInstance().setPathComplete(true);
                     stop();
                     return;
                 }
@@ -168,7 +168,7 @@ public class BasicPathAI {
             client.options.leftKey.setPressed(true);
         }
 
-        if (PathingManager.getInstance().isMovingToNode()) {
+        if (HarvestPathManager.getInstance().isMovingToNode()) {
             checkAndJump(client);
         }
 

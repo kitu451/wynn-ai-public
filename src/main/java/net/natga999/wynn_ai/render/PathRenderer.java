@@ -1,6 +1,6 @@
 package net.natga999.wynn_ai.render;
 
-import net.natga999.wynn_ai.managers.PathingManager;
+import net.natga999.wynn_ai.managers.HarvestPathManager;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.render.*;
@@ -122,7 +122,7 @@ public class PathRenderer {
         RenderSystem.disableBlend();
 
         // Additionally, render the spline path if available
-        List<Vec3d> splinePath = PathingManager.getInstance().getSplinePath();
+        List<Vec3d> splinePath = HarvestPathManager.getInstance().getSplinePath();
         if (splinePath != null && !splinePath.isEmpty()) {
             LOGGER.debug("Spline path exists with {} points", splinePath.size());
             renderSplinePath(matrices, cameraPos, splinePath);

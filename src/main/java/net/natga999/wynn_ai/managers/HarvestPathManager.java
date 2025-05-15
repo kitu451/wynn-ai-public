@@ -28,11 +28,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
-public class PathingManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PathingManager.class);
+public class HarvestPathManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(HarvestPathManager.class);
 
-    private static final PathingManager INSTANCE = new PathingManager();
-    public static PathingManager getInstance() { return INSTANCE; }
+    private static final HarvestPathManager INSTANCE = new HarvestPathManager();
+    public static HarvestPathManager getInstance() { return INSTANCE; }
 
     private boolean active = false;
     private List<Vec3d> path = null;
