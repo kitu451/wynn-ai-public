@@ -91,7 +91,7 @@ public class HarvestPathManager {
                 LOGGER.debug("START PATH");
                 if (splinePath != null) {
                     pathComplete = false;
-                    BasicPathAI.getInstance().goAlongPathBlockPos(splinePath);
+                    BasicPathAI.getInstance().startHarvest(splinePath);
                     currentState = HarvestState.MOVING_TO_NODE;
                 }
                 break;

@@ -2,6 +2,7 @@ package net.natga999.wynn_ai.managers.combat;
 
 import net.natga999.wynn_ai.managers.combat.enums.CombatState;
 import net.natga999.wynn_ai.ai.BasicPathAI;
+import net.natga999.wynn_ai.path.PathFinder;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Hand;
@@ -28,12 +29,14 @@ import com.google.gson.JsonParser;
 public class CombatManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(CombatManager.class);
 
-    private static final double TARGET_DETECTION_RANGE = 12.0; // Blocks
-    private static final double ATTACK_RANGE = 12.0;
+    private static final double TARGET_DETECTION_RANGE = 30.0; // Blocks
+    private static final double ATTACK_RANGE = 5.0;
     private TextDisplayEntity currentTarget;
     private Vec3d targetPos;
     private boolean active = false;
+    private boolean isInAttackRange = false;
     private CombatState state = CombatState.SEARCH;
+    private List<Vec3d> path = null;
 
     private static final String TARGET_NAME = "Sheep";
 
@@ -81,15 +84,53 @@ public class CombatManager {
     }
 
     private void handleApproach() {
-        //handle approach and rotate camera
-        if (currentTarget != null) {
-            targetPos = currentTarget.getPos().subtract(0,1,0);
+        MinecraftClient client = MinecraftClient.getInstance();
 
-            if (isAimedAt(targetPos, 10.0f)) {
+        if (currentTarget != null && client.player != null && client.world != null) {
+            targetPos = currentTarget.getPos().subtract(0, 1, 0);
+
+            // Check if we're already in range to attack
+            if (inAttackRange(targetPos) && isAimedAt(targetPos, 10.0f)) {
+                // Stop pathing and switch to attack state
+                BasicPathAI.getInstance().stop();
+                isInAttackRange = true;
                 state = CombatState.ATTACK;
+                path = null;
+                LOGGER.info("Target in attack range - switching to attack state");
+                return;
             }
+
+            // If we're not already pathing to the target, find a new path
+            if (path == null) {
+                isInAttackRange = false;
+                LOGGER.info("Finding path to target at {}", targetPos);
+
+                // Convert player position and target position to BlockPos
+                BlockPos playerPos = client.player.getBlockPos();
+                BlockPos targetBlockPos = new BlockPos((int)targetPos.getX(), (int)targetPos.getY(), (int)targetPos.getZ());
+
+                // Create pathfinder and find path
+                PathFinder pathFinder = new PathFinder(client.world, 9, playerPos, targetBlockPos);
+                path = pathFinder.findPath(playerPos, targetBlockPos);
+
+                if (path != null && !path.isEmpty()) {
+                    // Tell BasicPathAI to follow this path
+                    BasicPathAI.getInstance().startCombatPath(path);
+                    LOGGER.info("Path found with {} waypoints", path.size());
+                } else {
+                    LOGGER.warn("No path found to target");
+                    // If no path is found, try direct movement (as fallback)
+                    //BasicPathAI.getInstance().updateMovementToward(targetPos, client);
+                }
+            }
+
+            // BasicPathAI will handle movement in its tick method
+            // Camera rotation will be handled by HudRenderCallback
         } else {
+            // Target lost, go back to search
+            BasicPathAI.getInstance().stop();
             state = CombatState.SEARCH;
+            LOGGER.info("Target lost - switching to search state");
         }
     }
 
@@ -301,5 +342,13 @@ public class CombatManager {
 
     public boolean isInCombat () {
         return active;
+    }
+
+    public boolean isInAttackRange () {
+        return isInAttackRange;
+    }
+
+    public List<Vec3d> getCurrentPath () {
+        return path;
     }
 }

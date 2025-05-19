@@ -38,8 +38,6 @@ public class WynnAIClient implements ClientModInitializer {
     // Cache to store nearby entities
     private List<Entity> cachedNearbyEntities = Collections.emptyList();
 
-    private final CombatManager combatManager = new CombatManager();
-
     @Override
     public void onInitializeClient() {
         LOGGER.info("Initialized Client");
@@ -63,26 +61,6 @@ public class WynnAIClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
             MinecraftClient client = MinecraftClient.getInstance();
             if (client.player == null) return;
-
-            if (CombatManager.getInstance().isInCombat()) {
-                Vec3d target = CombatManager.getInstance().getTargetPos();
-                if (target != null) {
-                    CombatManager.rotateCameraToward(
-                            target,
-                            client
-                    );
-                }
-            }
-            if (HarvestPathManager.getInstance().isPathing()) {
-                Vec3d target = BasicPathAI.getTarget();
-                if (target != null) {
-                    BasicPathAI.rotateCameraToward(
-                            target.subtract(0, 1, 0),
-                            client,
-                            false
-                    );
-                }
-            }
             updateCachedNearbyEntities(client);
             RenderManager.getInstance().renderEntityHud(drawContext, client, cachedNearbyEntities);
             RenderManager.getInstance().renderMenuWithName(drawContext, client, "MainMenu");
@@ -103,6 +81,13 @@ public class WynnAIClient implements ClientModInitializer {
                 return;
             }
             PathRenderer.renderPath(context.matrixStack(), context.camera().getPos(), path);
+
+            List<Vec3d> combatPath = CombatManager.getInstance().getCurrentPath();
+            if (combatPath == null || combatPath.size() < 2) {
+                LOGGER.debug("Path is null or too short to render: {}", combatPath);
+                return;
+            }
+            PathRenderer.renderPath(context.matrixStack(), context.camera().getPos(), combatPath);
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {

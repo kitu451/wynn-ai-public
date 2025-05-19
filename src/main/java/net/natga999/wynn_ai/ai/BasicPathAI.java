@@ -1,7 +1,9 @@
 package net.natga999.wynn_ai.ai;
 
-import net.minecraft.block.*;
 import net.natga999.wynn_ai.managers.HarvestPathManager;
+import net.natga999.wynn_ai.strategies.CombatMovementStrategy;
+import net.natga999.wynn_ai.strategies.HarvestMovementStrategy;
+import net.natga999.wynn_ai.strategies.MovementStrategy;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -9,6 +11,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.block.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 
 public class BasicPathAI {
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicPathAI.class);
@@ -31,100 +33,112 @@ public class BasicPathAI {
     private int jumpCooldown = 0;
     private int lastJump= 0;
     private static final int JUMP_COOLDOWN_TICKS = 8;
-    private static final double JUMP_CHECK_DISTANCE = 0.7;
+    private static final double JUMP_CHECK_DISTANCE = 1.0;
 
     // Added path tracking variables
     private List<Vec3d> path = new ArrayList<>();
     private int currentPathIndex = 0;
     private boolean followingPath = false;
+    private MovementStrategy strategy;
 
     public void tick() {
-        if (HarvestPathManager.getInstance().isPathing()) {
-            if (jumpCooldown > 0) jumpCooldown--;
-            lastJump++;
-            MinecraftClient client = MinecraftClient.getInstance();
-            ClientPlayerEntity player = client.player;
-            if (player == null) return;
+        if (jumpCooldown > 0) jumpCooldown--;
+        lastJump++;
 
-            if (!followingPath || path == null || currentPathIndex >= path.size() || HarvestPathManager.getInstance().isPathComplete()) {
-                //stop();
-                return;
-            }
+        // If we have no strategy or path, do nothing
+        if (!followingPath || strategy == null) {
+            return;
+        }
 
-            Vec3d currentTarget = path.get(currentPathIndex);
-            target = currentTarget;
+        // Let the strategy handle movement logic
+        strategy.tick(this);
 
-            Vec3d aimPoint = currentTarget.subtract(0, 1.0, 0);
-            //rotateCameraToward now in WynnAIClient (tickDelta)
-            updateMovementToward(aimPoint, client);
+        // Let the strategy handle camera rotation
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (strategy != null && client != null && client.player != null) {
+            strategy.handleCameraRotation(this, client);
+        }
 
-            // Calculate horizontal (XY) and vertical (Z) distances separately
-            double distanceXZ = Math.sqrt(
-                    Math.pow(player.getX() - currentTarget.x, 2) +
-                            Math.pow(player.getZ() - currentTarget.z, 2)
-            );
-            double distanceY = Math.abs(player.getY() - currentTarget.y);
-
-            boolean reachedCurrent = distanceXZ < reachThresholdXZ && distanceY < reachThresholdY;
-            boolean reachedNext = isReachedNext(player);
-
-            // Decide how far to advance
-            if (reachedNext) {
-                // Skip current and go straight to the one after next
-                currentPathIndex += 2;
-            } else if (reachedCurrent) {
-                // Normal single-step advance
-                currentPathIndex ++;
-            }
-
-            // Reached the last point
-            if (currentPathIndex >= path.size()) {
-                rotateCameraToward(Vec3d.of(HarvestPathManager.getOriginalGoalPos().add(0, 1, 0)), client, true);
-                HarvestPathManager.getInstance().setPathComplete(true);
-                stop();
-                return;
-            }
-
-            // Check if we're close enough to the final goal
-            Vec3d finalTarget = path.getLast();
-            double finalDistanceXZ = Math.sqrt(
-                    Math.pow(player.getX() - finalTarget.x, 2) +
-                            Math.pow(player.getZ() - finalTarget.z, 2)
-            );
-            double finalDistanceY = Math.abs(player.getY() - finalTarget.y);
-
-            //todo implement shorter XZ if trying to reach same goal > 3 in a row
-            Random rand = new Random();
-            double randomFactor = 0.9 + rand.nextDouble() * (1.6 - 0.9);
-            if (finalDistanceXZ < randomFactor && finalDistanceY < 1.0) {
-                if (!HarvestPathManager.getInstance().isPathComplete()) {
-                    rotateCameraToward(Vec3d.of(HarvestPathManager.getOriginalGoalPos().add(0, 1, 0)), client, true);
-                    HarvestPathManager.getInstance().setPathComplete(true);
-                    stop();
-                    return;
-                }
-            }
-
-            target = path.get(currentPathIndex); // Move to next target
-
-            //player.sendMessage(Text.literal("Moving to: " + target + " | Distance: " + distance), false);
-        } else {
-            path = null;
+        // Check if the strategy considers the movement complete
+        if (strategy != null && strategy.isComplete(this)) {
+            stop();
         }
     }
 
-    private boolean isReachedNext(ClientPlayerEntity player) {
-        boolean reachedNext = false;
-        if (currentPathIndex + 1 < path.size()) {
-            Vec3d nextTarget = path.get(currentPathIndex + 1);
-            double nextDistXZ = Math.hypot(
-                    player.getX() - nextTarget.x,
-                    player.getZ() - nextTarget.z
-            );
-            double nextDistY = Math.abs(player.getY() - nextTarget.y);
-            reachedNext = nextDistXZ < reachThresholdXZ && nextDistY < reachThresholdY;
+    /**
+     * Common initialization for all path types
+     */
+    private void initPath(List<Vec3d> waypoints) {
+        if (waypoints == null || waypoints.isEmpty()) {
+            LOGGER.warn("Attempted to start path with empty waypoints");
+            return;
         }
-        return reachedNext;
+
+        this.path = new ArrayList<>(waypoints);
+        this.currentPathIndex = 0;
+        this.followingPath = true;
+
+        LOGGER.info("Starting new path with {} waypoints", waypoints.size());
+    }
+
+    /** Called by your higher-level controller when a new harvest path is ready. */
+    public void startHarvest(List<Vec3d> waypoints) {
+        initPath(waypoints);
+        this.strategy = new HarvestMovementStrategy();
+    }
+
+    /** Called by your higher-level controller when combat-movement should begin. */
+    public void startCombatPath(List<Vec3d> waypoints) {
+        initPath(waypoints);
+        this.strategy = new CombatMovementStrategy();
+    }
+
+    /**
+     * Checks if the player has reached at least the current waypoint,
+     * and optionally any subsequent waypoints to allow for skipping in case of overshooting.
+     *
+     * @param player The client player entity to check position for
+     * @return true if the player has reached the current waypoint or any further ones in the path
+     */
+    public boolean isReachedNext(ClientPlayerEntity player) {
+        if (player == null || path.isEmpty() || currentPathIndex >= path.size()) {
+            return false;
+        }
+
+        Vec3d playerPos = player.getPos();
+
+        // First check if we've reached the current waypoint
+        Vec3d currentWaypoint = path.get(currentPathIndex);
+        double currentDistanceXZ = Math.sqrt(
+                Math.pow(playerPos.x - currentWaypoint.x, 2) +
+                        Math.pow(playerPos.z - currentWaypoint.z, 2)
+        );
+        double currentDistanceY = Math.abs(playerPos.y - currentWaypoint.y);
+
+        boolean reachedCurrent = currentDistanceXZ < reachThresholdXZ && currentDistanceY < reachThresholdY;
+
+        if (reachedCurrent) {
+            return true;
+        }
+
+        // Then check if we've overshot and reached any of the next waypoints in the path
+        for (int i = currentPathIndex + 1; i < path.size(); i++) {
+            Vec3d nextWaypoint = path.get(i);
+            double nextDistanceXZ = Math.sqrt(
+                    Math.pow(playerPos.x - nextWaypoint.x, 2) +
+                            Math.pow(playerPos.z - nextWaypoint.z, 2)
+            );
+            double nextDistanceY = Math.abs(playerPos.y - nextWaypoint.y);
+
+            if (nextDistanceXZ < reachThresholdXZ && nextDistanceY < reachThresholdY) {
+                // We've reached a future waypoint, skip to it
+                currentPathIndex = i;
+                LOGGER.info("Skipped to waypoint " + i + " as player overshot");
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void updateMovementToward(Vec3d targetPos, MinecraftClient client) {
@@ -168,9 +182,7 @@ public class BasicPathAI {
             client.options.leftKey.setPressed(true);
         }
 
-        if (HarvestPathManager.getInstance().isMovingToNode()) {
-            checkAndJump(client);
-        }
+        checkAndJump(client);
 
         if (lastJump > 20) {
             client.options.sprintKey.setPressed(true);
@@ -178,13 +190,13 @@ public class BasicPathAI {
 
         // Random "bunny hop" (5% chance)
         if (Math.random() < 0.005 && client.player.isOnGround()) {
-            client.options.jumpKey.setPressed(true);
+            //client.options.jumpKey.setPressed(true);
         }
     }
 
     public static void rotateCameraToward(Vec3d targetPos, MinecraftClient client, boolean isFinal) {
         ClientPlayerEntity player = client.player;
-        if (player == null) return;
+        if (player == null || targetPos == null) return;
 
         // 1) Get eye position and full delta
         Vec3d eyePos = player.getCameraPosVec(1.0f);
@@ -300,7 +312,7 @@ public class BasicPathAI {
         return result % 360;
     }
 
-    private void checkAndJump(MinecraftClient client) {
+    public void checkAndJump(MinecraftClient client) {
         if (jumpCooldown > 0 || !Objects.requireNonNull(client.player).isOnGround()) return;
 
         Vec3d lookVec = client.player.getRotationVec(1.0f);
@@ -334,24 +346,15 @@ public class BasicPathAI {
         boolean needsJump = !state.isAir() && !isCropBlock && !isSlab && !isStair
                 && !isLowSnowBlock && !isCarpet && (stateUp.isAir() || isCropBlockUp || isLowSnowBlockUp || isCarpetUp);
 
-        LOGGER.debug("Obstacle detected: {} - {} - {}", needsJump, state.getBlock(), clientVecPos);
+        LOGGER.error("Obstacle detected: {} - {} - {} - {}", needsJump, state.getBlock(), checkPos, clientVecPos);
 
-        // 80% chance to jump if obstacle detected
-        if (needsJump && Math.random() < 0.8) {
+        // 90% chance to jump if obstacle detected
+        if (needsJump && Math.random() < 0.9) {
             client.options.jumpKey.setPressed(true);
+            client.player.sendMessage(Text.of("JUMP!"));
             lastJump = 0;
             jumpCooldown = JUMP_COOLDOWN_TICKS;
         }
-    }
-
-    public void goAlongPathBlockPos(List<Vec3d> blockPath) {
-        if (blockPath == null || blockPath.isEmpty()) {
-            LOGGER.warn("Attempted to follow empty path (BlockPos)");
-            stop();
-            return;
-        }
-
-        goAlongPath(blockPath);
     }
 
     public void goAlongPath(List<Vec3d> waypoints) {
@@ -383,20 +386,86 @@ public class BasicPathAI {
         }
     }
 
-    public void stop() {
+    /**
+     * Completely clears all path data and stops any movement.
+     * This should be called when toggling off automated features.
+     */
+    public void clearPathState() {
+        // Clear movement state
+        followingPath = false;
+        path.clear();
+        currentPathIndex = 0;
         target = null;
+        strategy = null;
+
+        // Release keyboard controls
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.options != null) {
+        if (client.options.forwardKey.isPressed()) {
             client.options.forwardKey.setPressed(false);
-            client.options.backKey.setPressed(false);
-            client.options.leftKey.setPressed(false);
-            client.options.rightKey.setPressed(false);
-            client.options.jumpKey.setPressed(false);
-            client.options.sprintKey.setPressed(false);
         }
+        if (client.options.backKey.isPressed()) {
+            client.options.backKey.setPressed(false);
+        }
+        if (client.options.leftKey.isPressed()) {
+            client.options.leftKey.setPressed(false);
+        }
+        if (client.options.rightKey.isPressed()) {
+            client.options.rightKey.setPressed(false);
+        }
+        if (client.options.jumpKey.isPressed()) {
+            client.options.jumpKey.setPressed(false);
+        }
+
+        LOGGER.info("Path state cleared");
+    }
+
+    /**
+     * Enhanced stop method to notify strategy when stopping
+     */
+    public void stop() {
+        if (strategy != null) {
+            strategy.onStop(this);
+        }
+
+        clearPathState();
     }
 
     public static Vec3d getTarget() {
         return target;
+    }
+
+    /**
+     * Returns the current waypoint in the path based on the current index.
+     * @return The current waypoint as a Vec3d, or null if the path is empty or index is out of bounds
+     */
+    public Vec3d getCurrentWaypoint() {
+        if (path.isEmpty() || currentPathIndex >= path.size()) {
+            return null;
+        }
+        return path.get(currentPathIndex);
+    }
+
+    /**
+     * Increments the current path index to advance to the next waypoint.
+     */
+    public void incrementCurrentPathIndex() {
+        currentPathIndex++;
+        LOGGER.debug("Advanced to waypoint {} of {}", currentPathIndex, path.size());
+    }
+
+    /**
+     * Gets the current index in the path.
+     * @return The current index
+     */
+    public int getCurrentIndex() {
+        return currentPathIndex;
+    }
+
+    /**
+     * Gets the total size of the current path.
+     * @return The number of waypoints in the path
+     */
+    public int getPathSize() {
+        return path.size();
     }
 }
