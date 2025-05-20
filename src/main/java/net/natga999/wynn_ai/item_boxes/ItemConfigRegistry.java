@@ -21,7 +21,7 @@ public class ItemConfigRegistry {
             0.75, // minYOffset: Half a block above
             0.25, // maxYOffset: 1.5 blocks height
             0.25, // sizeXZOffset: Half a block width/length
-            0xFFFFFF // Color: Default white
+            0xFFFFFFFF // Color: Default white
     );
 
     static {
@@ -81,7 +81,7 @@ public class ItemConfigRegistry {
 
         private int parseColor(String color) {
             // Parse the color in HEX format to an integer
-            return Integer.parseInt(color.replace("#", ""), 16);
+            return Integer.parseUnsignedInt(color.replace("#", ""), 16);
         }
     }
 }

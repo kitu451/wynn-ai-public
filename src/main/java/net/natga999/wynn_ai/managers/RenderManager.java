@@ -181,7 +181,6 @@ public class RenderManager {
                     Vec3d pos = new Vec3d(node.x, node.y, node.z);
                     boxMarkerRenderer.renderMarker(
                             pos,
-                            0xFF00FF00,
                             context.camera(),
                             context.matrixStack(),
                             context.consumers()

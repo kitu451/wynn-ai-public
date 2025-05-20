@@ -80,34 +80,41 @@ public class ItemMarkerRenderer implements ItemRenderer {
         }
 
         // Define the bounding box around the item
-        Box box = new Box(
-                relativePos.x - matchingConfig.sizeXZ(), relativePos.y + matchingConfig.minY(), relativePos.z - matchingConfig.sizeXZ(),
-                relativePos.x + matchingConfig.sizeXZ(), relativePos.y + matchingConfig.maxY(), relativePos.z + matchingConfig.sizeXZ()
-        );
-
-        // Get a line vertex consumer for box rendering
-        VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.getLines());
+        Box box = createBox(relativePos, matchingConfig);
 
         // Render the box outline
-        drawBoxOutline(matrices, lines, box, matchingConfig.color(), 1.0f);
+        drawBoxOutline(matrices, vertexConsumers, box, matchingConfig.color());
+    }
+
+    private Box createBox(Vec3d relativePos, ItemConfig config) {
+        return new Box(
+                relativePos.x - config.sizeXZ(),
+                relativePos.y + config.minY(),
+                relativePos.z - config.sizeXZ(),
+                relativePos.x + config.sizeXZ(),
+                relativePos.y + config.maxY(),
+                relativePos.z + config.sizeXZ()
+        );
     }
 
     /**
      * Draws an outlined box at the specified position with the given color and transparency.
      */
-    private void drawBoxOutline(MatrixStack matrices, VertexConsumer lines, Box box, int color, float alpha) {
-        // Split the color into RGB components
-        float r = (color >> 16 & 0xFF) / 255.0f;
-        float g = (color >> 8 & 0xFF) / 255.0f;
-        float b = (color & 0xFF) / 255.0f;
-
+    private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers, Box box, int color) {
+        // Get a line vertex consumer for box rendering
+        VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
+        // Split the color into ARGB components
+        float a = ((color >> 24) & 0xFF) / 255f;
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >>  8) & 0xFF) / 255f;
+        float b = ( color        & 0xFF) / 255f;
         // Use the WorldRenderer class to draw the box
         WorldRenderer.drawBox(
                 matrices, // Matrix stack for transformations
                 lines,    // VertexConsumer for rendering the lines
                 box.minX, box.minY, box.minZ, // Box minimum bounds
                 box.maxX, box.maxY, box.maxZ, // Box maximum bounds
-                r, g, b, alpha // Box color and transparency
+                r, g, b, a // Box color and transparency
         );
     }
 }

@@ -93,12 +93,11 @@ public class WynnAIClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null || client.world == null) return;
 
-            // Example: Run AI movement logic
-            if (true) {
-                CombatManager.getInstance().tick();
-            }
-            BasicPathAI.getInstance().tick();
+            // Run AI movement logic
+            CombatManager.getInstance().tick();
             HarvestPathManager.getInstance().tick();
+
+            BasicPathAI.getInstance().tick();
         });
     }
 

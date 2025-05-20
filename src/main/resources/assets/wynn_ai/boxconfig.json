@@ -3,84 +3,84 @@
     "minYOffset": -1.0,
     "maxYOffset": 1.5,
     "sizeXZOffset": 0.5,
-    "color": "#FFAA00"
+    "color": "#FFFFAA00"
   },
   "Birch": {
     "minYOffset": -1.0,
     "maxYOffset": 1.5,
     "sizeXZOffset": 0.5,
-    "color": "#FFAA00"
+    "color": "#FFFFAA00"
   },
   "Wheat": {
     "minYOffset": -2.5,
     "maxYOffset": 0.0,
     "sizeXZOffset": 1.0,
-    "color": "#FFFF00"
+    "color": "#FFFFFF00"
   },
   "Wheat String": {
     "minYOffset": 10.0,
     "maxYOffset": -10.0,
     "sizeXZOffset": 0.2,
-    "color": "#FFFF00"
+    "color": "#FFFFFF00"
   },
   "Barley": {
     "minYOffset": -2.5,
     "maxYOffset": 0.0,
     "sizeXZOffset": 1.0,
-    "color": "#FFFF00"
+    "color": "#FFFFFF00"
   },
   "Oat": {
     "minYOffset": -2.5,
     "maxYOffset": 0.0,
     "sizeXZOffset": 1.0,
-    "color": "#FFFF00"
+    "color": "#FFFFFF00"
   },
   "Malt": {
     "minYOffset": -2.5,
     "maxYOffset": 0.0,
     "sizeXZOffset": 1.0,
-    "color": "#FFFF00"
+    "color": "#FFFFFF00"
   },
   "Copper": {
     "minYOffset": -2.0,
     "maxYOffset": 0.0,
     "sizeXZOffset": 1.0,
-    "color": "#FFFFFF"
+    "color": "#FFFFFFFF"
   },
   "Granite": {
     "minYOffset": -2.0,
     "maxYOffset": 0.0,
     "sizeXZOffset": 1.0,
-    "color": "#FFFFFF"
+    "color": "#FFFFFFFF"
   },
   "Gold": {
     "minYOffset": -2.0,
     "maxYOffset": 0.0,
     "sizeXZOffset": 1.0,
-    "color": "#FFFFFF"
+    "color": "#FFFFFFFF"
   },
   "Zombie Raider": {
     "minYOffset": -2.0,
     "maxYOffset": 0.0,
     "sizeXZOffset": 0.3,
-    "color": "#FF0000"
+    "color": "#FFFF0000"
   },
   "Weak Zombie": {
     "minYOffset": -2.0,
     "maxYOffset": 0.0,
     "sizeXZOffset": 0.3,
-    "color": "#FF0000"
+    "color": "#FFFF0000"
   },
   "Zombie Grook": {
     "minYOffset": -0.7,
     "maxYOffset": 0.0,
     "sizeXZOffset": 0.45,
-    "color": "#FF0000"
+    "color": "#FFFF0000"
   },
   "Loot Chest": {
     "minYOffset": -1.25,
     "maxYOffset": -0.4,
     "sizeXZOffset": 0.45,
-    "color": "#D3D3D3"
+    "color": "#FFD3D3D3"
   }
 }

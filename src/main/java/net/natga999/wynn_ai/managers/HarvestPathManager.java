@@ -402,20 +402,12 @@ public class HarvestPathManager {
         return pathComplete;
     }
 
-    public boolean isPathing() {
-        return active;
-    }
-
     public List<Vec3d> getCurrentPath() {
         return this.path;
     }
 
     public List<Vec3d> getSplinePath() {
         return this.splinePath;
-    }
-
-    public boolean isMovingToNode() {
-        return currentState == HarvestState.MOVING_TO_NODE;
     }
 
     public void setHarvestButton(boolean useRightClick) {

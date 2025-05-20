@@ -2,12 +2,14 @@ package net.natga999.wynn_ai.render;
 
 import net.natga999.wynn_ai.boxes.BoxConfig;
 import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
+
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtDouble;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+
 import java.util.List;
 
 public class BoxMarkerRenderer implements MarkerRenderer {
@@ -20,23 +22,23 @@ public class BoxMarkerRenderer implements MarkerRenderer {
         String text = nbt.contains("text") ? nbt.getString("text") : "";
         BoxConfig config = findMatchingConfig(text);
 
-        renderMarker(position, config, config.color(), camera, matrices, vertexConsumers);
+        renderMarker(position, config, camera, matrices, vertexConsumers);
     }
 
     @Override
-    public void renderMarker(Vec3d worldPos, int color, Camera camera,
+    public void renderMarker(Vec3d worldPos, Camera camera,
                              MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
-        renderMarker(worldPos, BoxConfigRegistry.getDefaultLoadNodeConfig(), color, camera, matrices, vertexConsumers);
+        renderMarker(worldPos, BoxConfigRegistry.getDefaultLoadNodeConfig(), camera, matrices, vertexConsumers);
     }
 
-    private void renderMarker(Vec3d worldPos, BoxConfig config, int color,
+    private void renderMarker(Vec3d worldPos, BoxConfig config,
                               Camera camera, MatrixStack matrices,
                               VertexConsumerProvider vertexConsumers) {
         if (config == null) config = BoxConfigRegistry.getDefaultConfig();
 
         Vec3d relativePos = worldPos.subtract(camera.getPos());
         Box box = createBox(relativePos, config);
-        drawBoxOutline(matrices, vertexConsumers, box, color);
+        drawBoxOutline(matrices, vertexConsumers, box, config.color());
     }
 
     private BoxConfig findMatchingConfig(String text) {
@@ -61,19 +63,20 @@ public class BoxMarkerRenderer implements MarkerRenderer {
     private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers,
                                 Box box, int color) {
         VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
+        // Split the color into ARGB components
+        float a = ((color >> 24) & 0xFF) / 255f;
+        float r = ((color >> 16) & 0xFF) / 255f;
+        float g = ((color >>  8) & 0xFF) / 255f;
+        float b = ( color        & 0xFF) / 255f;
         WorldRenderer.drawBox(
                 matrices,
                 lines,
                 box.minX, box.minY, box.minZ,
                 box.maxX, box.maxY, box.maxZ,
-                (color >> 16 & 0xFF) / 255f,
-                (color >> 8 & 0xFF) / 255f,
-                (color & 0xFF) / 255f,
-                1.0f
+                r, g, b, a
         );
     }
 
-    // Existing helper
     private Vec3d extractPositionFromNbt(NbtCompound nbt) {
         if (nbt.contains("Pos")) {
             List<Double> posList = nbt.getList("Pos", 6).stream()

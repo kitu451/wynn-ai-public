@@ -1,6 +1,7 @@
 package net.natga999.wynn_ai.managers;
 
 import net.natga999.wynn_ai.WynnAIClient;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 

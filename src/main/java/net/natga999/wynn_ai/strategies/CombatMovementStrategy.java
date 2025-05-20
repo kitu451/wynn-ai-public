@@ -51,9 +51,6 @@ public class CombatMovementStrategy implements MovementStrategy {
                 // Normal single-step advance
                 ai.incrementCurrentPathIndex();
             }
-
-            // Check for jumping over obstacles
-            //ai.checkAndJump(client);
         }
     }
 

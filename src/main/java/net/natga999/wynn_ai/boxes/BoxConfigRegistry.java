@@ -21,7 +21,7 @@ public class BoxConfigRegistry {
             0.0, // minYOffset
             -1.9,  // maxYOffset
             0.5,  // sizeXZOffset
-            0xFFFFFF // Color: Default white
+            0xFFFFFFFF // Color: Default white
     );
 
     private static final BoxConfig DEFAULT_LOAD_NODE_CONFIG = new BoxConfig(
@@ -92,7 +92,7 @@ public class BoxConfigRegistry {
 
         private int parseColor(String color) {
             // Parse the color in HEX format to an integer
-            return Integer.parseInt(color.replace("#", ""), 16);
+            return Integer.parseUnsignedInt(color.replace("#", ""), 16);
         }
     }
 }
