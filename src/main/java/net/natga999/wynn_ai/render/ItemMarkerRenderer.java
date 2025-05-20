@@ -86,13 +86,10 @@ public class ItemMarkerRenderer implements ItemRenderer {
         // Define the bounding box around the item
         Box box = createBox(relativePos, matchingConfig);
 
-        // Get a line vertex consumer for box rendering
-
-
         // Render the box outline
         drawBoxOutline(matrices, vertexConsumers, box, matchingConfig.color());
     }
-//Сука =)
+
     private Box createBox(Vec3d relativePos, ItemConfig config) {
         return new Box(
                 relativePos.x - config.sizeXZ(),
@@ -109,30 +106,7 @@ public class ItemMarkerRenderer implements ItemRenderer {
 
     private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers,
                                 Box box, int color) {
-        LOGGER.error("CALLED drawBoxOutline");
         VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
         VertexRendering.drawOutline(matrices, lines, VoxelShapes.cuboid(box), 0, 0, 0, color);
-        LOGGER.error("FINISHED DRAWBOXOUTLINE");
     }
-
-//    private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers, Box box, int color, float alpha) {
-//        // Split the color into RGB components
-//        // Why is this so inconsitent with the BoxMarketRenderer's method
-//        // Why do we even have two of these? We prob don't need even one
-//        // TODO remove ts later
-////        float r = (color >> 16 & 0xFF) / 255.0f;
-////        float g = (color >> 8 & 0xFF) / 255.0f;
-////        float b = (color & 0xFF) / 255.0f;
-//
-//        // Use the WorldRenderer class to draw the box
-////        WorldRenderer.drawBox(
-////                matrices, // Matrix stack for transformations
-////                lines,    // VertexConsumer for rendering the lines
-////                box.minX, box.minY, box.minZ, // Box minimum bounds
-////                box.maxX, box.maxY, box.maxZ, // Box maximum bounds
-////                r, g, b, alpha // Box color and transparency
-////        );
-//        VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.getLines());
-//        VertexRendering.drawOutline(matrices, lines, VoxelShapes.cuboid(box), 0, 0, 0, color);
-//    }
 }

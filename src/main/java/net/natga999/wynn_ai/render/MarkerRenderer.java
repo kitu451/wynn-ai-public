@@ -11,5 +11,5 @@ public interface MarkerRenderer {
     void renderMarker(NbtCompound nbt, Camera camera, MatrixStack matrices, VertexConsumerProvider vertexConsumers);
 
     // position-based rendering
-    void renderMarker(Vec3d position, int color, Camera camera, MatrixStack matrices, VertexConsumerProvider vertexConsumers);
+    void renderMarker(Vec3d position, Camera camera, MatrixStack matrices, VertexConsumerProvider vertexConsumers);
 }
