@@ -351,7 +351,7 @@ public class BasicPathAI {
         // 90% chance to jump if obstacle detected
         if (needsJump && Math.random() < 0.9) {
             client.options.jumpKey.setPressed(true);
-            client.player.sendMessage(Text.of("JUMP!"));
+            client.player.sendMessage(Text.of("JUMP!"), true);
             lastJump = 0;
             jumpCooldown = JUMP_COOLDOWN_TICKS;
         }
