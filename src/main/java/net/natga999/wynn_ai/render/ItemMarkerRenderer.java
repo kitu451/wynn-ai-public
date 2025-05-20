@@ -1,5 +1,7 @@
 package net.natga999.wynn_ai.render;
 
+import net.minecraft.util.shape.VoxelShapes;
+import net.natga999.wynn_ai.boxes.BoxConfig;
 import net.natga999.wynn_ai.item_boxes.ItemConfig;
 import net.natga999.wynn_ai.item_boxes.ItemConfigRegistry;
 
@@ -9,13 +11,15 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Renderer for ItemEntity markers.
  * Renders a box around the position of the entity, with customizable size and color.
  */
 public class ItemMarkerRenderer implements ItemRenderer {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(ItemMarkerRenderer.class);
     /**
      * Renders a marker for a given ItemEntity.
      *
@@ -80,34 +84,55 @@ public class ItemMarkerRenderer implements ItemRenderer {
         }
 
         // Define the bounding box around the item
-        Box box = new Box(
-                relativePos.x - matchingConfig.sizeXZ(), relativePos.y + matchingConfig.minY(), relativePos.z - matchingConfig.sizeXZ(),
-                relativePos.x + matchingConfig.sizeXZ(), relativePos.y + matchingConfig.maxY(), relativePos.z + matchingConfig.sizeXZ()
-        );
+        Box box = createBox(relativePos, matchingConfig);
 
         // Get a line vertex consumer for box rendering
-        VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.getLines());
+
 
         // Render the box outline
-        drawBoxOutline(matrices, lines, box, matchingConfig.color(), 1.0f);
+        drawBoxOutline(matrices, vertexConsumers, box, matchingConfig.color());
     }
-
+//Сука =)
+    private Box createBox(Vec3d relativePos, ItemConfig config) {
+        return new Box(
+                relativePos.x - config.sizeXZ(),
+                relativePos.y + config.minY(),
+                relativePos.z - config.sizeXZ(),
+                relativePos.x + config.sizeXZ(),
+                relativePos.y + config.maxY(),
+                relativePos.z + config.sizeXZ()
+        );
+    }
     /**
      * Draws an outlined box at the specified position with the given color and transparency.
      */
-    private void drawBoxOutline(MatrixStack matrices, VertexConsumer lines, Box box, int color, float alpha) {
-        // Split the color into RGB components
-        float r = (color >> 16 & 0xFF) / 255.0f;
-        float g = (color >> 8 & 0xFF) / 255.0f;
-        float b = (color & 0xFF) / 255.0f;
 
-        // Use the WorldRenderer class to draw the box
-        WorldRenderer.drawBox(
-                matrices, // Matrix stack for transformations
-                lines,    // VertexConsumer for rendering the lines
-                box.minX, box.minY, box.minZ, // Box minimum bounds
-                box.maxX, box.maxY, box.maxZ, // Box maximum bounds
-                r, g, b, alpha // Box color and transparency
-        );
+    private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers,
+                                Box box, int color) {
+        LOGGER.error("CALLED drawBoxOutline");
+        VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
+        VertexRendering.drawOutline(matrices, lines, VoxelShapes.cuboid(box), 0, 0, 0, color);
+        LOGGER.error("FINISHED DRAWBOXOUTLINE");
     }
+
+//    private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers, Box box, int color, float alpha) {
+//        // Split the color into RGB components
+//        // Why is this so inconsitent with the BoxMarketRenderer's method
+//        // Why do we even have two of these? We prob don't need even one
+//        // TODO remove ts later
+////        float r = (color >> 16 & 0xFF) / 255.0f;
+////        float g = (color >> 8 & 0xFF) / 255.0f;
+////        float b = (color & 0xFF) / 255.0f;
+//
+//        // Use the WorldRenderer class to draw the box
+////        WorldRenderer.drawBox(
+////                matrices, // Matrix stack for transformations
+////                lines,    // VertexConsumer for rendering the lines
+////                box.minX, box.minY, box.minZ, // Box minimum bounds
+////                box.maxX, box.maxY, box.maxZ, // Box maximum bounds
+////                r, g, b, alpha // Box color and transparency
+////        );
+//        VertexConsumer lines = vertexConsumers.getBuffer(RenderLayer.getLines());
+//        VertexRendering.drawOutline(matrices, lines, VoxelShapes.cuboid(box), 0, 0, 0, color);
+//    }
 }
