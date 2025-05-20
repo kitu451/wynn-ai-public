@@ -1,5 +1,8 @@
 package net.natga999.wynn_ai.render;
 
+import net.minecraft.client.render.debug.DebugRenderer;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
 import net.natga999.wynn_ai.boxes.BoxConfig;
 import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
 import net.minecraft.client.render.*;
@@ -36,6 +39,7 @@ public class BoxMarkerRenderer implements MarkerRenderer {
 
         Vec3d relativePos = worldPos.subtract(camera.getPos());
         Box box = createBox(relativePos, config);
+        //BoxRenderer.renderOutline(matrices, vertexConsumers, box, color);
         drawBoxOutline(matrices, vertexConsumers, box, color);
     }
 
@@ -58,19 +62,12 @@ public class BoxMarkerRenderer implements MarkerRenderer {
         );
     }
 
+    // TODO clean up
     private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers,
                                 Box box, int color) {
         VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
-        WorldRenderer.drawBox(
-                matrices,
-                lines,
-                box.minX, box.minY, box.minZ,
-                box.maxX, box.maxY, box.maxZ,
-                (color >> 16 & 0xFF) / 255f,
-                (color >> 8 & 0xFF) / 255f,
-                (color & 0xFF) / 255f,
-                1.0f
-        );
+
+        VertexRendering.drawOutline(matrices, lines, VoxelShapes.cuboid(box), 0, 0, 0, color);
     }
 
     // Existing helper
