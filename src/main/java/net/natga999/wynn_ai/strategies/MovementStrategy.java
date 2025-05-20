@@ -1,7 +1,8 @@
 package net.natga999.wynn_ai.strategies;
 
-import net.minecraft.client.MinecraftClient;
 import net.natga999.wynn_ai.ai.BasicPathAI;
+
+import net.minecraft.client.MinecraftClient;
 
 public interface MovementStrategy {
     /** Called every tick, once per frame. */

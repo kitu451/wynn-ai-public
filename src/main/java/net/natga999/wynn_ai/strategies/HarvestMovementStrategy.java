@@ -27,9 +27,6 @@ public class HarvestMovementStrategy implements MovementStrategy {
         // Move toward the current waypoint
         ai.updateMovementToward(waypoint, client);
 
-        // Check for obstacles and jump if needed
-        //ai.checkAndJump(client);
-
         // Check if we've reached the final destination with random factor
         if (ai.getCurrentIndex() >= ai.getPathSize() - 1 && !harvest.isPathComplete()) {
             Vec3d playerPos = player.getPos();

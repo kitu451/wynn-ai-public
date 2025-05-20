@@ -1,6 +1,5 @@
 package net.natga999.wynn_ai.ai;
 
-import net.natga999.wynn_ai.managers.HarvestPathManager;
 import net.natga999.wynn_ai.strategies.CombatMovementStrategy;
 import net.natga999.wynn_ai.strategies.HarvestMovementStrategy;
 import net.natga999.wynn_ai.strategies.MovementStrategy;
@@ -133,7 +132,7 @@ public class BasicPathAI {
             if (nextDistanceXZ < reachThresholdXZ && nextDistanceY < reachThresholdY) {
                 // We've reached a future waypoint, skip to it
                 currentPathIndex = i;
-                LOGGER.info("Skipped to waypoint " + i + " as player overshot");
+                LOGGER.debug("Skipped to waypoint {} as player overshot", i);
                 return true;
             }
         }
@@ -190,7 +189,7 @@ public class BasicPathAI {
 
         // Random "bunny hop" (5% chance)
         if (Math.random() < 0.005 && client.player.isOnGround()) {
-            //client.options.jumpKey.setPressed(true);
+            client.options.jumpKey.setPressed(true);
         }
     }
 
@@ -351,7 +350,6 @@ public class BasicPathAI {
         // 90% chance to jump if obstacle detected
         if (needsJump && Math.random() < 0.9) {
             client.options.jumpKey.setPressed(true);
-            client.player.sendMessage(Text.of("JUMP!"), true);
             lastJump = 0;
             jumpCooldown = JUMP_COOLDOWN_TICKS;
         }

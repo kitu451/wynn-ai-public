@@ -30,8 +30,6 @@ public class PathRenderer {
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableCull();
         RenderSystem.disableDepthTest();
-        //TODO fix ts x2
-        //RenderSystem.setShader(GameRenderer::getPositionColorProgram);
         RenderSystem.lineWidth(LINE_WIDTH);
 
         // Get vertex consumers from the buffer builders
@@ -82,8 +80,6 @@ public class PathRenderer {
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableCull();
         RenderSystem.disableDepthTest();
-        //TODO fix ts
-        //RenderSystem.setShader(GameRenderer::getPositionColorProgram);
         RenderSystem.lineWidth(LINE_WIDTH);
 
         // Get vertex consumers from the buffer builders

@@ -1,7 +1,5 @@
 package net.natga999.wynn_ai.render;
 
-import net.minecraft.util.shape.VoxelShapes;
-import net.natga999.wynn_ai.boxes.BoxConfig;
 import net.natga999.wynn_ai.item_boxes.ItemConfig;
 import net.natga999.wynn_ai.item_boxes.ItemConfigRegistry;
 
@@ -11,15 +9,14 @@ import net.minecraft.entity.ItemEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import net.minecraft.util.shape.VoxelShapes;
 
 /**
  * Renderer for ItemEntity markers.
  * Renders a box around the position of the entity, with customizable size and color.
  */
 public class ItemMarkerRenderer implements ItemRenderer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ItemMarkerRenderer.class);
+
     /**
      * Renders a marker for a given ItemEntity.
      *
@@ -100,12 +97,12 @@ public class ItemMarkerRenderer implements ItemRenderer {
                 relativePos.z + config.sizeXZ()
         );
     }
+
     /**
      * Draws an outlined box at the specified position with the given color and transparency.
      */
-
-    private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers,
-                                Box box, int color) {
+    private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers, Box box, int color) {
+        // Get a line vertex consumer for box rendering
         VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());
         VertexRendering.drawOutline(matrices, lines, VoxelShapes.cuboid(box), 0, 0, 0, color);
     }

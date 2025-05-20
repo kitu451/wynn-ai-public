@@ -1,16 +1,16 @@
 package net.natga999.wynn_ai.render;
 
-import net.minecraft.client.render.debug.DebugRenderer;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
 import net.natga999.wynn_ai.boxes.BoxConfig;
 import net.natga999.wynn_ai.boxes.BoxConfigRegistry;
+
 import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtDouble;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.shape.VoxelShapes;
+
 import java.util.List;
 
 public class BoxMarkerRenderer implements MarkerRenderer {
@@ -39,7 +39,6 @@ public class BoxMarkerRenderer implements MarkerRenderer {
 
         Vec3d relativePos = worldPos.subtract(camera.getPos());
         Box box = createBox(relativePos, config);
-        //BoxRenderer.renderOutline(matrices, vertexConsumers, box, color);
         drawBoxOutline(matrices, vertexConsumers, box, config.color());
     }
 
@@ -62,7 +61,6 @@ public class BoxMarkerRenderer implements MarkerRenderer {
         );
     }
 
-    // TODO clean up
     private void drawBoxOutline(MatrixStack matrices, VertexConsumerProvider consumers,
                                 Box box, int color) {
         VertexConsumer lines = consumers.getBuffer(RenderLayer.getLines());

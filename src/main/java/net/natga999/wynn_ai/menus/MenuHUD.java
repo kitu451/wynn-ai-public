@@ -107,7 +107,6 @@ public class MenuHUD {
             else if (widget instanceof SliderWidget slider) {
                 if (slider.isMouseOver(mouseX, mouseY, baseX, baseY)) {
                     activeSlider = slider;
-                    slider.setDragging(true);
                     slider.onDrag(mouseX, baseX);
                     handleSliderAction(slider.getAction(), slider.getValue());
                 }
@@ -160,7 +159,6 @@ public class MenuHUD {
         dragging = false;
         movedFarEnoughToDrag = false;
         if (activeSlider != null) {
-            activeSlider.setDragging(false);
             activeSlider = null;
         }
     }

@@ -1,9 +1,10 @@
 package net.natga999.wynn_ai.tasks;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.util.math.Vec3d;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.managers.HarvestPathManager;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.math.Vec3d;
 
 import java.util.List;
 

@@ -1,8 +1,9 @@
 package net.natga999.wynn_ai.menus;
 
+import net.natga999.wynn_ai.menus.widgets.MouseButtonSwitchWidget;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import net.natga999.wynn_ai.menus.widgets.MouseButtonSwitchWidget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

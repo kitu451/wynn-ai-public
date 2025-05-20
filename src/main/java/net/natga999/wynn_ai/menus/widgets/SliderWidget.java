@@ -14,7 +14,6 @@ public class SliderWidget implements MenuWidget {
     private final float min;
     private final float max;
     private final float step;
-    private boolean isDragging = false;
 
     public SliderWidget(int x, int y, int width, int height, String text, String action, float defaultValue, float min, float max, float step) {
         this.x = x;
@@ -86,13 +85,5 @@ public class SliderWidget implements MenuWidget {
 
     public String getAction() {
         return action;
-    }
-
-    public void setDragging(boolean dragging) {
-        this.isDragging = dragging;
-    }
-
-    public boolean isDragging() {
-        return isDragging;
     }
 }

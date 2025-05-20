@@ -22,6 +22,7 @@ public class TaskManager {
 
         // 3) Run the task at the top
         Task current = stack.peek();
+        assert current != null;
         current.tick(client);
     }
 
