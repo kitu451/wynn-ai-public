@@ -15,11 +15,13 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 
+import net.natga999.wynn_ai.utility.CatmullRomSpline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -29,17 +31,21 @@ import com.google.gson.JsonParser;
 public class CombatManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(CombatManager.class);
 
-    private static final double TARGET_DETECTION_RANGE = 30.0; // Blocks
-    private static final double ATTACK_RANGE = 5.0;
+    private static final double TARGET_DETECTION_RANGE = 100.0; // Blocks
+    private static final double ATTACK_RANGE = 15.0;
     private TextDisplayEntity currentTarget;
     private Vec3d targetPos;
     private boolean active = false;
     private boolean isInAttackRange = false;
     private CombatState state = CombatState.SEARCH;
     private List<Vec3d> path = null;
+    private Vec3d initialTargetPos = null;
 
-    private static final String TARGET_NAME = "Sheep";
-
+    private static final Set<String> TARGET_NAMES = Set.of(
+            "Warrior Zombie",
+            "Zombie Raider",
+            "Weak Zombie"
+    );
     private static final CombatManager INSTANCE = new CombatManager();
     public static CombatManager getInstance() { return INSTANCE; }
 
@@ -50,7 +56,10 @@ public class CombatManager {
 
         if (!active) {
             targetPos = null;
+            currentTarget = null;
+            path = null;
             BasicPathAI.getInstance().stop();
+            state = CombatState.SEARCH;
             //current state update
         }
     }
@@ -73,12 +82,18 @@ public class CombatManager {
     }
 
     private void startSearch() {
+        targetPos = null;
+        currentTarget = null;
+        initialTargetPos = null;
+        path = null;
+
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
         if (player == null) return;
 
         // Find the closest hostile mob
         currentTarget = findClosestEnemy(player);
         if (currentTarget != null) {
+            initialTargetPos = currentTarget.getPos();
             state = CombatState.APPROACH;
         }
     }
@@ -86,24 +101,33 @@ public class CombatManager {
     private void handleApproach() {
         MinecraftClient client = MinecraftClient.getInstance();
 
+        if (!validateTarget()) {
+            state = CombatState.SEARCH;
+        }
+
         if (currentTarget != null && client.player != null && client.world != null) {
             targetPos = currentTarget.getPos().subtract(0, 1, 0);
 
+            LOGGER.error("Following target at {}", targetPos);
+
             // Check if we're already in range to attack
-            if (inAttackRange(targetPos) && isAimedAt(targetPos, 10.0f)) {
-                // Stop pathing and switch to attack state
-                BasicPathAI.getInstance().stop();
+            if (inAttackRange(targetPos)) {
                 isInAttackRange = true;
-                state = CombatState.ATTACK;
-                path = null;
-                LOGGER.info("Target in attack range - switching to attack state");
-                return;
+                //LOGGER.error("IN RANGE");
+                if (isAimedAt(targetPos, 5.0f)) {
+                    // Stop pathing and switch to attack state
+                    BasicPathAI.getInstance().stop();
+                    state = CombatState.ATTACK;
+                    path = null;
+                    //LOGGER.error("Target in attack range - switching to attack state");
+                    return;
+                }
             }
 
             // If we're not already pathing to the target, find a new path
             if (path == null) {
                 isInAttackRange = false;
-                LOGGER.info("Finding path to target at {}", targetPos);
+                LOGGER.error("Finding path to target at {}", targetPos);
 
                 // Convert player position and target position to BlockPos
                 BlockPos playerPos = client.player.getBlockPos();
@@ -114,13 +138,16 @@ public class CombatManager {
                 path = pathFinder.findPath(playerPos, targetBlockPos);
 
                 if (path != null && !path.isEmpty()) {
+                    path = CatmullRomSpline.createSpline(path, calculateSegmentCount());
                     // Tell BasicPathAI to follow this path
                     BasicPathAI.getInstance().startCombatPath(path);
-                    LOGGER.info("Path found with {} waypoints", path.size());
+                    LOGGER.error("Path found with {} waypoints", path.size());
                 } else {
                     LOGGER.warn("No path found to target");
                     // If no path is found, try direct movement (as fallback)
                     //BasicPathAI.getInstance().updateMovementToward(targetPos, client);
+                    state = CombatState.SEARCH;
+                    LOGGER.error("No path found - switching to search state");
                 }
             }
 
@@ -134,10 +161,14 @@ public class CombatManager {
         }
     }
 
+    private int calculateSegmentCount() {
+        return path.size() <= 3 ? 16 : 8;
+    }
+
     private void handleAttack() {
         //validate that mob still alive and near, otherwise target = null and back to idle
         if (!validateTarget()) {
-            targetPos = null;
+            initialTargetPos = null;
             state = CombatState.SEARCH;
         }
         if (inAttackRange(targetPos)) {
@@ -164,6 +195,14 @@ public class CombatManager {
         // Still in range?
         double sqDist = currentTarget.squaredDistanceTo(player);
         if (sqDist > TARGET_DETECTION_RANGE * TARGET_DETECTION_RANGE) return false;
+
+        // Has the mob wandered from its original spot?
+        Vec3d nowPos = currentTarget.getPos();
+        // use a small threshold in case of floating‐point drift
+        if (nowPos.squaredDistanceTo(initialTargetPos) > 0.25) {
+            // it’s moved more than 0.5 blocks—consider invalid
+            return false;
+        }
 
         // Optionally: still within line-of-sight?
         return player.canSee(currentTarget);
@@ -232,7 +271,7 @@ public class CombatManager {
             if (!obj.has("text")) continue;
 
             String txt = obj.get("text").getAsString();
-            if (TARGET_NAME.equals(txt)) {
+            if (TARGET_NAMES.contains(txt)) {
                 return true;
             }
             // if it has its own "extra", you could recurse here...
@@ -242,32 +281,42 @@ public class CombatManager {
     }
 
     /**
-     * Returns true if the player’s view is within ±thresholdDegrees of pointing at targetPos.
+     * Returns true if the player's view is within ±thresholdDegrees of pointing at targetPos.
      */
     private boolean isAimedAt(Vec3d targetPos, float thresholdDegrees) {
         MinecraftClient client = MinecraftClient.getInstance();
-        ClientPlayerEntity player = client.player;
-        if (player == null) return false;
+        if (client.player == null) return false;
 
-        // 1) compute vector from eye to target
-        Vec3d eye = player.getCameraPosVec(1.0f);
-        Vec3d delta = targetPos.subtract(eye);
+        // Calculate distance to target
+        double distance = client.player.getPos().distanceTo(targetPos);
 
-        // 2) compute the “ideal” angles
-        double dxz = Math.sqrt(delta.x * delta.x + delta.z * delta.z);
-        float idealYaw   = (float)(Math.toDegrees(Math.atan2(delta.z, delta.x)) - 90.0);
-        float idealPitch = (float)-Math.toDegrees(Math.atan2(delta.y, dxz));
+        // Increase threshold when closer to the target
+        float adjustedThreshold = thresholdDegrees;
+        if (distance < 3.0) {
+            adjustedThreshold = thresholdDegrees * 1.5f; // More lenient when very close
+        }
 
-        // 3) get current angles
-        float yaw   = player.getYaw();
-        float pitch = player.getPitch();
+        // Get the player's view vector
+        Vec3d viewVec = client.player.getRotationVec(1.0f);
 
-        // 4) compute the smallest difference across wrap‐around
-        float yawDiff   = wrapAngle(idealYaw   - yaw);
-        float pitchDiff = wrapAngle(idealPitch - pitch);
+        // If we're close to the target, use the entity's actual position
+        Vec3d aimTarget;
+        if (distance < 5.0 && currentTarget != null && currentTarget.isAlive()) {
+            aimTarget = currentTarget.getPos();
+        } else {
+            // For distant targets, use the cached position
+            aimTarget = targetPos;
+        }
 
-        return Math.abs(yawDiff)   <= thresholdDegrees
-                && Math.abs(pitchDiff) <= thresholdDegrees;
+        // Vector from player to the target position
+        Vec3d toTarget = aimTarget.subtract(client.player.getEyePos()).normalize();
+
+        // Calculate the angle between vectors (in degrees)
+        double dot = viewVec.dotProduct(toTarget);
+        double angle = Math.acos(Math.max(-1.0, Math.min(1.0, dot))) * (180.0 / Math.PI);
+
+        // Return true if the angle is within the threshold
+        return angle <= adjustedThreshold;
     }
 
     public static void rotateCameraToward(Vec3d targetPos, MinecraftClient client) {
@@ -350,5 +399,9 @@ public class CombatManager {
 
     public List<Vec3d> getCurrentPath () {
         return path;
+    }
+
+    public TextDisplayEntity getCurrentTarget() {
+        return currentTarget;
     }
 }

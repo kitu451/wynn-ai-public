@@ -1,6 +1,7 @@
 package net.natga999.wynn_ai.strategies;
 
 import net.natga999.wynn_ai.ai.BasicPathAI;
+import net.natga999.wynn_ai.ai.CombatController;
 import net.natga999.wynn_ai.managers.combat.CombatManager;
 
 import net.minecraft.client.MinecraftClient;
@@ -9,8 +10,7 @@ import net.minecraft.util.math.Vec3d;
 
 public class CombatMovementStrategy implements MovementStrategy {
     private final CombatManager combat = CombatManager.getInstance();
-    private final double reachThresholdXZ = 1.0;
-    private final double reachThresholdY = 1.3;
+    private final CombatController combatController = CombatController.getInstance();
 
     @Override
     public void tick(BasicPathAI ai) {
@@ -20,36 +20,26 @@ public class CombatMovementStrategy implements MovementStrategy {
 
             if (player == null) return;
 
-            // Check if we have a valid path to follow
-            if (ai.getCurrentIndex() >= ai.getPathSize() || ai.getCurrentWaypoint() == null) {
-                return;
-            }
+            // Let the combat controller manage the paths and movement plans
+            combatController.tick(client, ai);
 
-            Vec3d currentTarget = ai.getCurrentWaypoint();
+            // Only handle the actual movement if we have a valid path
+            if (ai.getCurrentIndex() < ai.getPathSize() && ai.getCurrentWaypoint() != null) {
+                Vec3d currentTarget = ai.getCurrentWaypoint();
 
-            // Use a slightly lower aim point to avoid looking up too much
-            Vec3d aimPoint = currentTarget.subtract(0, 1.0, 0);
-            ai.updateMovementToward(aimPoint, client);
+                // Use a slightly lower aim point to avoid looking up too much when moving
+                Vec3d aimPoint = currentTarget.subtract(0, 0.5, 0);
+                ai.updateMovementToward(aimPoint, client);
 
-            // Calculate horizontal (XZ) and vertical (Y) distances separately
-            double distanceXZ = Math.sqrt(
-                    Math.pow(player.getX() - currentTarget.x, 2) +
-                            Math.pow(player.getZ() - currentTarget.z, 2)
-            );
-            double distanceY = Math.abs(player.getY() - currentTarget.y);
+                // Let the controller determine if we've reached waypoints
+                if (combatController.hasReachedWaypoint(player, currentTarget)) {
+                    ai.incrementCurrentPathIndex();
+                }
 
-            // Check if we've reached the current waypoint
-            boolean reachedCurrent = distanceXZ < reachThresholdXZ && distanceY < reachThresholdY;
-            boolean reachedNext = ai.isReachedNext(player);
-
-            // Decide how far to advance
-            if (reachedNext) {
-                // Skip current and go straight to the one after next
-                ai.incrementCurrentPathIndex();
-                ai.incrementCurrentPathIndex();
-            } else if (reachedCurrent) {
-                // Normal single-step advance
-                ai.incrementCurrentPathIndex();
+                // Check if we're overshooting and should skip waypoints
+                if (combatController.shouldSkipWaypoint(player, ai)) {
+                    ai.incrementCurrentPathIndex();
+                }
             }
         }
     }
@@ -59,35 +49,23 @@ public class CombatMovementStrategy implements MovementStrategy {
         // Combat movement is complete when either:
         // 1. We're no longer in combat
         // 2. We've reached the end of the path
-        return !combat.isInCombat() || ai.getCurrentIndex() >= ai.getPathSize();
+        // 3. The combat controller signals completion
+        return !combat.isInCombat() ||
+                ai.getCurrentIndex() >= ai.getPathSize() ||
+                combatController.isCurrentActionComplete();
     }
 
     @Override
     public void onStop(BasicPathAI ai) {
-        // Any specific cleanup needed when combat ends
+        // Notify the combat controller that we're stopping
+        combatController.onMovementStopped();
     }
 
     @Override
     public void handleCameraRotation(BasicPathAI ai, MinecraftClient client) {
         if (client.player == null) return;
 
-        Vec3d target = CombatManager.getInstance().getTargetPos();
-        if (target != null) {
-            if (CombatManager.getInstance().isInAttackRange()) {
-                CombatManager.rotateCameraToward(
-                        target.add(0, 1, 0),
-                        client
-                );
-            } else {
-                target = ai.getCurrentWaypoint();
-                if (target != null) {
-                    BasicPathAI.rotateCameraToward(
-                            target,
-                            client,
-                            false
-                    );
-                }
-            }
-        }
+        // Delegate camera rotation to the combat controller
+        combatController.handleCameraRotation(client, ai);
     }
 }
