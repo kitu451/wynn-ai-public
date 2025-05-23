@@ -1,5 +1,6 @@
 package net.natga999.wynn_ai.ai;
 
+import net.natga999.wynn_ai.managers.combat.CombatManager;
 import net.natga999.wynn_ai.strategies.CombatMovementStrategy;
 import net.natga999.wynn_ai.strategies.HarvestMovementStrategy;
 import net.natga999.wynn_ai.strategies.MovementStrategy;
@@ -49,14 +50,19 @@ public class BasicPathAI {
             return;
         }
 
-        // Let the strategy handle movement logic
-        strategy.tick(this);
-
         // Let the strategy handle camera rotation
         MinecraftClient client = MinecraftClient.getInstance();
-        if (strategy != null && client != null && client.player != null) {
+        if (client != null && client.player != null) {
             strategy.handleCameraRotation(this, client);
         }
+
+        if (CombatManager.getInstance().isInAttackRange()) {
+            return;
+        }
+
+        LOGGER.error("Ticking movement strategy");
+        // Let the strategy handle movement logic
+        strategy.tick(this);
 
         // Check if the strategy considers the movement complete
         if (strategy != null && strategy.isComplete(this)) {
