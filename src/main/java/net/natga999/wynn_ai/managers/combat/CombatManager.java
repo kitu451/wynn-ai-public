@@ -46,6 +46,7 @@ public class CombatManager {
             "Zombie Raider",
             "Weak Zombie"
     );
+
     private static final CombatManager INSTANCE = new CombatManager();
     public static CombatManager getInstance() { return INSTANCE; }
 
@@ -60,6 +61,7 @@ public class CombatManager {
             path = null;
             BasicPathAI.getInstance().stop();
             state = CombatState.SEARCH;
+            isInAttackRange = false;
             //current state update
         }
     }
@@ -394,6 +396,9 @@ public class CombatManager {
     }
 
     public boolean isInAttackRange () {
+        if (!this.active) {
+            return false;
+        }
         return isInAttackRange;
     }
 
