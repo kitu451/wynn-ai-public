@@ -61,6 +61,7 @@ public class CombatManager {
             path = null;
             BasicPathAI.getInstance().stop();
             state = CombatState.SEARCH;
+            isInAttackRange = false;
             //current state update
         }
     }
@@ -395,6 +396,9 @@ public class CombatManager {
     }
 
     public boolean isInAttackRange () {
+        if (!this.active) {
+            return false;
+        }
         return isInAttackRange;
     }
 
