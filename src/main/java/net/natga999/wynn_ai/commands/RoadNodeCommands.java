@@ -6,20 +6,25 @@ import net.natga999.wynn_ai.path.network.RoadNode;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.BlockPos;
+
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import com.mojang.brigadier.suggestion.Suggestions;
 
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class RoadNodeCommands {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RoadNodeCommands.class);
 
     private static String selectedNodeId1 = null;
     private static String selectedNodeId2 = null;
@@ -43,80 +48,190 @@ public class RoadNodeCommands {
 
     // --- Command Handler Methods ---
 
+    // Original handleAddNode (implicitly snapToCenter = false, no ID)
     public static int handleAddNode(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
+        return handleAddNode(ctx, false); // Call the new version with snapToCenter = false
+    }
+
+    public static int handleAddNode(CommandContext<FabricClientCommandSource> ctx, boolean snapToCenter) throws CommandSyntaxException {
         String customId = null;
+        ClientPlayerEntity player = getPlayer(ctx.getSource());
+
+        // Try to get ID if it's present as the first argument after "add" or "center"
+        // This logic needs to be careful based on the registration.
+        // The registration above now directly calls this method with ID if present after "center",
+        // or with no ID if "center" is the last arg.
+        // If ID is present before "center", the other registration path handles it.
+
         try {
+            // This assumes 'id' is the name of the argument if provided.
+            // The registration has two paths for 'id':
+            // 1. /rn add center <id>
+            // 2. /rn add <id> center
+            // 3. /rn add <id>
+            // 4. /rn add center
+            // 5. /rn add
+            // The StringArgumentType.getString will only succeed if an argument named "id" exists for the current execution path.
             customId = StringArgumentType.getString(ctx, "id");
         } catch (IllegalArgumentException e) {
-            // "id" argument is optional, this means it wasn't provided
+            // "id" argument was not provided in this specific command execution path
         }
 
-        Vec3d playerPos = getPlayerPos(ctx.getSource());
-        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
+        Vec3d position;
+        if (snapToCenter) {
+            BlockPos playerBlockPos = player.getBlockPos(); // Block player is standing in
+            position = new Vec3d(playerBlockPos.getX() + 0.5, playerBlockPos.getY(), playerBlockPos.getZ() + 0.5);
+            // If you want center of block including Y:
+            // position = new Vec3d(playerBlockPos.getX() + 0.5, playerBlockPos.getY() + 0.5, playerBlockPos.getZ() + 0.5);
+            // For pathfinding, usually Y is the floor level.
+            sendMessage(ctx.getSource(), "Snapping to center of block: " + playerBlockPos.toShortString());
+        } else {
+            position = player.getPos(); // Player's exact eye height or feet pos depending on your getPlayerPos
+            // If getPlayerPos returns player.getPos(), it's feet.
+        }
 
+        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
         final String nodeId;
+
         if (customId != null && !customId.trim().isEmpty()) {
             if (rnm.getNodeById(customId) != null) {
                 sendMessage(ctx.getSource(), "Error: ID '" + customId + "' already exists.");
-                return 0; // Indicate failure
+                return 0;
             }
             nodeId = customId;
         } else {
-            nodeId = "node_" + UUID.randomUUID().toString().substring(0, 8); // Generate a short unique ID
+            nodeId = "node_" + UUID.randomUUID().toString().substring(0, 8);
         }
 
-        // Assuming RoadNode constructor: RoadNode(String id, Vec3d position, List<String> connections, String type)
-        // Or that type is set separately or defaults to null.
-        String worldId = getPlayer(ctx.getSource()).clientWorld.getRegistryKey().getValue().toString();
-        RoadNode newNode = new RoadNode(nodeId, playerPos, worldId, new ArrayList<>(), null /* type */);
+        if (nodeId.equalsIgnoreCase("nearest")) {
+            sendMessage(ctx.getSource(), "Error: Node ID cannot be 'nearest' as it's a reserved keyword. Please choose a different ID.");
+            return 0; // Indicate failure
+        }
+
+        String worldId = player.clientWorld.getRegistryKey().getValue().toString();
+        RoadNode newNode = new RoadNode(nodeId, position, worldId, new ArrayList<>(), null /* type */);
+
         if (rnm.addNode(newNode)) {
-            sendMessage(ctx.getSource(), String.format("RoadNode '%s' created at X:%.0f Y:%.0f Z:%.0f.",
-                    nodeId, playerPos.getX(), playerPos.getY(), playerPos.getZ()));
+            sendMessage(ctx.getSource(), String.format("RoadNode '%s' created at X:%.2f Y:%.2f Z:%.2f.", // Use .2f for Vec3d
+                    nodeId, position.getX(), position.getY(), position.getZ()));
+            if (snapToCenter) {
+                sendMessage(ctx.getSource(), "(Position was snapped to block center)");
+            }
         } else {
             sendMessage(ctx.getSource(), "Error: Failed to add node (unexpected).");
+            return 0; // Indicate failure if rnm.addNode returns false
         }
-        return 1; // Indicate success
+        return 1;
     }
 
-    public static int handleRemoveNode(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
-        String idOrNearest = StringArgumentType.getString(ctx, "id_or_nearest");
-        double confirmRadius = 5.0; // Default confirmation radius for "nearest"
-        try {
-            confirmRadius = DoubleArgumentType.getDouble(ctx, "radius");
-        } catch (IllegalArgumentException e) {
-            // "radius" argument is optional
+    /**
+     * Suggestion provider for the "target_node" argument of the /rn remove command.
+     * Suggests "nearest" and all existing node IDs.
+     */
+    public static CompletableFuture<Suggestions> suggestRemovableNodes(CommandContext<FabricClientCommandSource> context, SuggestionsBuilder builder) {
+        String input = builder.getRemaining().toLowerCase(Locale.ROOT);
+        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
+        FabricClientCommandSource source = context.getSource(); // Get the command source from the context
+
+
+        ClientPlayerEntity player = source.getPlayer(); // This can return null but doesn't throw CommandSyntaxException
+
+        if (player == null) {
+            // This is an unexpected situation for a client-side command typically executed by the player.
+            // Log an error and potentially return empty suggestions or all nodes without world filtering.
+            LOGGER.error("Player entity is null in suggestRemovableNodes command context. Cannot filter suggestions by world.");
+            return builder.buildFuture();
         }
 
+        // Suggest "nearest"
+        if ("nearest".startsWith(input)) {
+            builder.suggest("nearest");
+        }
+
+        // Suggest existing node IDs relevant to the current world
+        if (player.clientWorld != null) {
+            String worldId = player.clientWorld.getRegistryKey().getValue().toString();
+            rnm.getAllNodes().stream()
+                    .filter(node -> node.getWorldId() != null && node.getWorldId().equals(worldId)) // Filter by current world
+                    .map(RoadNode::getId)
+                    .filter(id -> id.toLowerCase(Locale.ROOT).startsWith(input))
+                    .forEach(builder::suggest);
+        } else { // Fallback if no world context, suggest all nodes (less ideal)
+            rnm.getAllNodes().stream()
+                    .map(RoadNode::getId)
+                    .filter(id -> id.toLowerCase(Locale.ROOT).startsWith(input))
+                    .forEach(builder::suggest);
+        }
+        return builder.buildFuture();
+    }
+
+    /**
+     * New handler for /rn remove <target_node> [radius]
+     */
+    public static int handleRemoveNodeWithTarget(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
+        String targetNodeIdentifier = StringArgumentType.getString(ctx, "target_node");
+        Double optionalRadius = null;
+
+        try {
+            // Radius is only parsed if the "radius" argument node was reached in the command tree
+            optionalRadius = DoubleArgumentType.getDouble(ctx, "radius");
+        } catch (IllegalArgumentException e) {
+            // Radius argument not provided, optionalRadius remains null
+        }
+
+        // If radius was provided but target is not "nearest", warn the user.
+        if (optionalRadius != null && !targetNodeIdentifier.equalsIgnoreCase("nearest")) {
+            sendMessage(ctx.getSource(), "Warning: Radius argument is only applicable when removing the 'nearest' node. It will be ignored for specific node ID '" + targetNodeIdentifier + "'.");
+            // We don't null out optionalRadius here, just warn. The logic below will ignore it.
+        }
+
+
         Vec3d playerPos = getPlayerPos(ctx.getSource());
+        String worldId = getPlayer(ctx.getSource()).clientWorld.getRegistryKey().getValue().toString();
         RoadNetworkManager rnm = RoadNetworkManager.getInstance();
         RoadNode nodeToRemove;
 
-        if (idOrNearest.equalsIgnoreCase("nearest")) {
-            String worldId = getPlayer(ctx.getSource()).clientWorld.getRegistryKey().getValue().toString();
-            nodeToRemove = rnm.findClosestNode(playerPos, worldId, Double.MAX_VALUE); // find closest without initial distance limit
-            if (nodeToRemove != null && playerPos.distanceTo(nodeToRemove.getPosition()) > confirmRadius) {
-                sendMessage(ctx.getSource(), String.format("Error: Nearest node '%s' (%.1fm away) is too far (> %.1fm). Get closer or specify ID.",
-                        nodeToRemove.getId(), playerPos.distanceTo(nodeToRemove.getPosition()), confirmRadius));
+        if (targetNodeIdentifier.equalsIgnoreCase("nearest")) {
+            double confirmRadius = (optionalRadius != null) ? optionalRadius : 5.0;
+
+            RoadNode closestOverall = rnm.findClosestNode(playerPos, worldId);
+            if (closestOverall == null) {
+                sendMessage(ctx.getSource(), "Error: No nodes found in the current world to determine 'nearest'.");
+                return 0;
+            }
+
+            if (playerPos.distanceTo(closestOverall.getPosition()) <= confirmRadius) {
+                nodeToRemove = closestOverall;
+            } else {
+                sendMessage(ctx.getSource(), String.format("Error: Nearest node '%s' (%.1fm away) is too far (> %.1fm). Get closer, increase radius, or specify ID.",
+                        closestOverall.getId(), playerPos.distanceTo(closestOverall.getPosition()), confirmRadius));
                 return 0;
             }
         } else {
-            nodeToRemove = rnm.getNodeById(idOrNearest);
+            // Target is a specific node ID
+            nodeToRemove = rnm.getNodeById(targetNodeIdentifier);
         }
 
         if (nodeToRemove == null) {
-            sendMessage(ctx.getSource(), "Error: Node '" + idOrNearest + "' not found.");
+            sendMessage(ctx.getSource(), "Error: Node '" + targetNodeIdentifier + "' not found.");
             return 0;
         }
 
         if (rnm.removeNode(nodeToRemove.getId())) {
-            // Clear selections if the removed node was selected
             if (nodeToRemove.getId().equals(selectedNodeId1)) selectedNodeId1 = null;
             if (nodeToRemove.getId().equals(selectedNodeId2)) selectedNodeId2 = null;
             sendMessage(ctx.getSource(), "RoadNode '" + nodeToRemove.getId() + "' removed.");
         } else {
-            sendMessage(ctx.getSource(), "Error: Failed to remove node '" + nodeToRemove.getId() + "'.");
+            sendMessage(ctx.getSource(), "Error: Failed to remove node '" + nodeToRemove.getId() + "' (unexpected).");
+            return 0;
         }
         return 1;
+    }
+
+    // This overload handles the case "/rn remove" with no arguments after "remove"
+    public static int handleRemoveNode(CommandContext<FabricClientCommandSource> ctx) {
+        sendMessage(ctx.getSource(), "Error: Missing argument for remove. Usage: /rn remove <id_or_nearest> [radius]");
+        return 0;
     }
 
     public static int handleSelectNode(CommandContext<FabricClientCommandSource> ctx, int slot) throws CommandSyntaxException {

@@ -18,16 +18,32 @@ public class RoadNodeCommandRegistry {
         var rnNodeBuilder = literal("rn")
                 // /rn add [id]
                 .then(literal("add")
-                        .executes(RoadNodeCommands::handleAddNode) // No ID provided
+                        // /rn add
+                        .executes(RoadNodeCommands::handleAddNode) // Default: player's exact Vec3d, no ID
+                        // /rn add center
+                        .then(literal("center") // New subcommand for snapping
+                                .executes(ctx -> RoadNodeCommands.handleAddNode(ctx, true)) // Snap = true, no ID
+                                // /rn add center <id>
+                                .then(argument("id", StringArgumentType.word())
+                                        .executes(ctx -> RoadNodeCommands.handleAddNode(ctx, true)))) // Snap = true, with ID
+                        // /rn add <id>
                         .then(argument("id", StringArgumentType.word())
-                                .executes(RoadNodeCommands::handleAddNode)))
+                                .executes(RoadNodeCommands::handleAddNode) // Default: player's exact Vec3d, with ID
+                                // /rn add <id> center
+                                .then(literal("center")
+                                        .executes(ctx -> RoadNodeCommands.handleAddNode(ctx, true))))) // Snap = true, with ID
                 // ... (all your other .then() clauses for subcommands) ...
                 // /rn remove <id_or_nearest> [radius]
                 .then(literal("remove")
-                        .then(argument("id_or_nearest", StringArgumentType.word())
-                                .executes(RoadNodeCommands::handleRemoveNode) // No radius
-                                .then(argument("radius", DoubleArgumentType.doubleArg(0.1)) // Min radius 0.1
-                                        .executes(RoadNodeCommands::handleRemoveNode))))
+                        .executes(RoadNodeCommands::handleRemoveNode) // Calls the (CommandContext) overload -> (ctx, null, null)
+                        .then(argument("target_node", StringArgumentType.word()) // New single argument
+                                .suggests(RoadNodeCommands::suggestRemovableNodes) // Our custom suggestion provider
+                                .executes(RoadNodeCommands::handleRemoveNodeWithTarget) // New handler for this structure
+                                .then(argument("radius", DoubleArgumentType.doubleArg(0.1))
+                                        .executes(RoadNodeCommands::handleRemoveNodeWithTarget) // Same handler, it will check for radius
+                                )
+                        )
+                )
                 // /rn select1 <id_or_nearest>
                 .then(literal("select1")
                         .then(argument("id_or_nearest", StringArgumentType.word())
