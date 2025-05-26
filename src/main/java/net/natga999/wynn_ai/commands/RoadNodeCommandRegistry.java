@@ -18,20 +18,32 @@ public class RoadNodeCommandRegistry {
         var rnNodeBuilder = literal("rn")
                 // /rn add [id]
                 .then(literal("add")
-                        // /rn add
-                        .executes(RoadNodeCommands::handleAddNode) // Default: player's exact Vec3d, no ID
-                        // /rn add center
-                        .then(literal("center") // New subcommand for snapping
+                        // Existing paths:
+                        // /rn add (player pos, generated ID, no snap)
+                        .executes(RoadNodeCommands::handleAddNode)
+                        // /rn add center (player pos, generated ID, snapped)
+                        .then(literal("center")
                                 .executes(ctx -> RoadNodeCommands.handleAddNode(ctx, true)) // Snap = true, no ID
-                                // /rn add center <id>
+                                // /rn add center <id> (player pos, custom ID, snapped)
                                 .then(argument("id", StringArgumentType.word())
                                         .executes(ctx -> RoadNodeCommands.handleAddNode(ctx, true)))) // Snap = true, with ID
-                        // /rn add <id>
+                        // Path for ID first, then optional "center" or XYZ
                         .then(argument("id", StringArgumentType.word())
-                                .executes(RoadNodeCommands::handleAddNode) // Default: player's exact Vec3d, with ID
-                                // /rn add <id> center
+                                // /rn add <id> (player pos, custom ID, no snap)
+                                .executes(RoadNodeCommands::handleAddNode) // Defaults to snap=false, gets ID from context
+                                // /rn add <id> center (player pos, custom ID, snapped)
                                 .then(literal("center")
-                                        .executes(ctx -> RoadNodeCommands.handleAddNode(ctx, true))))) // Snap = true, with ID
+                                        .executes(ctx -> RoadNodeCommands.handleAddNode(ctx, true))) // Snap = true, gets ID from context
+                                // *** NEW PATH: /rn add <id> <x> <y> <z> ***
+                                .then(argument("x", DoubleArgumentType.doubleArg())
+                                        .then(argument("y", DoubleArgumentType.doubleArg())
+                                                .then(argument("z", DoubleArgumentType.doubleArg())
+                                                        .executes(RoadNodeCommands::handleAddNodeWithCoordinates) // New handler method
+                                                )
+                                        )
+                                )
+                        )
+                )
                 // ... (all your other .then() clauses for subcommands) ...
                 // /rn remove <id_or_nearest> [radius]
                 .then(literal("remove")

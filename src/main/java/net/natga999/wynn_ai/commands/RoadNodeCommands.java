@@ -53,73 +53,83 @@ public class RoadNodeCommands {
         return handleAddNode(ctx, false); // Call the new version with snapToCenter = false
     }
 
+    // Main handler for player-position based node addition (with optional snap and ID)
     public static int handleAddNode(CommandContext<FabricClientCommandSource> ctx, boolean snapToCenter) throws CommandSyntaxException {
         String customId = null;
-        ClientPlayerEntity player = getPlayer(ctx.getSource());
-
-        // Try to get ID if it's present as the first argument after "add" or "center"
-        // This logic needs to be careful based on the registration.
-        // The registration above now directly calls this method with ID if present after "center",
-        // or with no ID if "center" is the last arg.
-        // If ID is present before "center", the other registration path handles it.
-
         try {
-            // This assumes 'id' is the name of the argument if provided.
-            // The registration has two paths for 'id':
-            // 1. /rn add center <id>
-            // 2. /rn add <id> center
-            // 3. /rn add <id>
-            // 4. /rn add center
-            // 5. /rn add
-            // The StringArgumentType.getString will only succeed if an argument named "id" exists for the current execution path.
             customId = StringArgumentType.getString(ctx, "id");
-        } catch (IllegalArgumentException e) {
-            // "id" argument was not provided in this specific command execution path
-        }
+        } catch (IllegalArgumentException e) { /* ID not provided for this command path */ }
 
+        ClientPlayerEntity player = getPlayer(ctx.getSource());
         Vec3d position;
+        String feedbackSuffix = "";
+
         if (snapToCenter) {
-            BlockPos playerBlockPos = player.getBlockPos(); // Block player is standing in
+            BlockPos playerBlockPos = player.getBlockPos();
             position = new Vec3d(playerBlockPos.getX() + 0.5, playerBlockPos.getY(), playerBlockPos.getZ() + 0.5);
-            // If you want center of block including Y:
-            // position = new Vec3d(playerBlockPos.getX() + 0.5, playerBlockPos.getY() + 0.5, playerBlockPos.getZ() + 0.5);
-            // For pathfinding, usually Y is the floor level.
-            sendMessage(ctx.getSource(), "Snapping to center of block: " + playerBlockPos.toShortString());
+            feedbackSuffix = " (Position was snapped to block center)";
         } else {
-            position = player.getPos(); // Player's exact eye height or feet pos depending on your getPlayerPos
-            // If getPlayerPos returns player.getPos(), it's feet.
-        }
-
-        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
-        final String nodeId;
-
-        if (customId != null && !customId.trim().isEmpty()) {
-            if (rnm.getNodeById(customId) != null) {
-                sendMessage(ctx.getSource(), "Error: ID '" + customId + "' already exists.");
-                return 0;
-            }
-            nodeId = customId;
-        } else {
-            nodeId = "node_" + UUID.randomUUID().toString().substring(0, 8);
-        }
-
-        if (nodeId.equalsIgnoreCase("nearest")) {
-            sendMessage(ctx.getSource(), "Error: Node ID cannot be 'nearest' as it's a reserved keyword. Please choose a different ID.");
-            return 0; // Indicate failure
+            position = player.getPos();
         }
 
         String worldId = player.clientWorld.getRegistryKey().getValue().toString();
-        RoadNode newNode = new RoadNode(nodeId, position, worldId, new ArrayList<>(), null /* type */);
+        return createAndAddNode(ctx, customId, position, worldId, feedbackSuffix);
+    }
 
-        if (rnm.addNode(newNode)) {
-            sendMessage(ctx.getSource(), String.format("RoadNode '%s' created at X:%.2f Y:%.2f Z:%.2f.", // Use .2f for Vec3d
-                    nodeId, position.getX(), position.getY(), position.getZ()));
-            if (snapToCenter) {
-                sendMessage(ctx.getSource(), "(Position was snapped to block center)");
+    public static int handleAddNodeWithCoordinates(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
+        String nodeId = StringArgumentType.getString(ctx, "id"); // ID is mandatory for this path
+        double x = DoubleArgumentType.getDouble(ctx, "x");
+        double y = DoubleArgumentType.getDouble(ctx, "y");
+        double z = DoubleArgumentType.getDouble(ctx, "z");
+
+        Vec3d position = new Vec3d(x, y, z);
+        ClientPlayerEntity player = getPlayer(ctx.getSource()); // Still need player for worldId
+        String worldId = player.clientWorld.getRegistryKey().getValue().toString();
+        String feedbackSuffix = " (Position specified by coordinates)";
+
+        return createAndAddNode(ctx, nodeId, position, worldId, feedbackSuffix);
+    }
+
+    // Helper method for common node creation and addition logic
+    private static int createAndAddNode(CommandContext<FabricClientCommandSource> ctx,
+                                        String proposedId, Vec3d position, String worldId,
+                                        String additionalFeedback) {
+        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
+        final String finalNodeId;
+
+        if (proposedId != null && !proposedId.trim().isEmpty()) {
+            finalNodeId = proposedId.trim();
+            // Check for existing ID
+            if (rnm.getNodeById(finalNodeId) != null) {
+                sendMessage(ctx.getSource(), "Error: ID '" + finalNodeId + "' already exists.");
+                return 0;
             }
         } else {
-            sendMessage(ctx.getSource(), "Error: Failed to add node (unexpected).");
-            return 0; // Indicate failure if rnm.addNode returns false
+            // Generate ID if not proposed (e.g., for /rn add or /rn add center without ID)
+            finalNodeId = "node_" + UUID.randomUUID().toString().substring(0, 8);
+        }
+
+        // Safeguard: Prevent "nearest" as an ID
+        if (finalNodeId.equalsIgnoreCase("nearest")) {
+            sendMessage(ctx.getSource(), "Error: Node ID cannot be 'nearest' as it's a reserved keyword. Please choose a different ID.");
+            return 0;
+        }
+
+        // Safeguard: Prevent "center" as an ID (since it's used as a keyword in the command)
+        if (finalNodeId.equalsIgnoreCase("center")) {
+            sendMessage(ctx.getSource(), "Error: Node ID cannot be 'center' as it's a reserved keyword for this command. Please choose a different ID.");
+            return 0;
+        }
+
+        RoadNode newNode = new RoadNode(finalNodeId, position, worldId, new ArrayList<>(), null /* type */);
+
+        if (rnm.addNode(newNode)) {
+            sendMessage(ctx.getSource(), String.format("RoadNode '%s' created at X:%.2f Y:%.2f Z:%.2f.%s",
+                    finalNodeId, position.getX(), position.getY(), position.getZ(),
+                    additionalFeedback != null ? " " + additionalFeedback : ""));
+        } else {
+            sendMessage(ctx.getSource(), "Error: Failed to add node '" + finalNodeId + "' (unexpected).");
+            return 0;
         }
         return 1;
     }
@@ -132,7 +142,6 @@ public class RoadNodeCommands {
         String input = builder.getRemaining().toLowerCase(Locale.ROOT);
         RoadNetworkManager rnm = RoadNetworkManager.getInstance();
         FabricClientCommandSource source = context.getSource(); // Get the command source from the context
-
 
         ClientPlayerEntity player = source.getPlayer(); // This can return null but doesn't throw CommandSyntaxException
 
