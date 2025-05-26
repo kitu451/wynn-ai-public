@@ -2,6 +2,7 @@ package net.natga999.wynn_ai.ai;
 
 import net.natga999.wynn_ai.managers.combat.CombatManager;
 import net.natga999.wynn_ai.strategies.CombatMovementStrategy;
+import net.natga999.wynn_ai.strategies.GeneralPurposeTravelStrategy;
 import net.natga999.wynn_ai.strategies.HarvestMovementStrategy;
 import net.natga999.wynn_ai.strategies.MovementStrategy;
 
@@ -96,6 +97,12 @@ public class BasicPathAI {
     public void startCombatPath(List<Vec3d> waypoints) {
         initPath(waypoints);
         this.strategy = new CombatMovementStrategy();
+    }
+
+    public void startGeneralPath(List<Vec3d> waypoints) {
+        initPath(waypoints); // Uses the existing common initialization
+        this.strategy = new GeneralPurposeTravelStrategy();
+        LOGGER.info("Starting new General Purpose path with {} waypoints", waypoints.size());
     }
 
     /**
@@ -471,5 +478,9 @@ public class BasicPathAI {
      */
     public int getPathSize() {
         return path.size();
+    }
+
+    public MovementStrategy getStrategy() {
+        return strategy;
     }
 }

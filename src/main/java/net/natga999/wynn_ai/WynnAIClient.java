@@ -11,6 +11,7 @@ import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.managers.ResourceNodeManager;
 import net.natga999.wynn_ai.managers.combat.CombatManager;
 import net.natga999.wynn_ai.render.PathRenderer;
+import net.natga999.wynn_ai.render.RoadNetworkRenderer;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -93,6 +94,10 @@ public class WynnAIClient implements ClientModInitializer {
                 LOGGER.debug("Path is null or too short to render: {}", combatPath);
             } else {
                 PathRenderer.renderPath(context.matrixStack(), context.camera().getPos(), combatPath);
+            }
+
+            if (MinecraftClient.getInstance().player != null && MinecraftClient.getInstance().world != null) {
+                RoadNetworkRenderer.render(context.matrixStack(), context.camera());
             }
         });
 

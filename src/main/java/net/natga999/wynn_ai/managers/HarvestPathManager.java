@@ -51,6 +51,10 @@ public class HarvestPathManager {
 
     private int waitTicks = 0;
 
+    public boolean isActive() {
+        return active;
+    }
+
     // Node harvesting states
     private enum HarvestState {
         FINDING_NODE,
@@ -290,14 +294,16 @@ public class HarvestPathManager {
 
         originalGoalPos = baseGoal;
 
+        //TODO fix stopping earlier before reaching goalPos
+        //really dont want to stop early when near and because of that stack in barrier upon harvesting
         // 2) Check if baseGoal is “free” and try it first
-        if (isPositionFree(world, baseGoal)) {
-            List<Vec3d> path = tryPath(player, world, baseGoal);
-            if (path != null) {
-                startWithPath(path);
-                return;
-            }
-        }
+//        if (isPositionFree(world, baseGoal)) {
+//            List<Vec3d> path = tryPath(player, world, baseGoal);
+//            if (path != null) {
+//                startWithPath(path);
+//                return;
+//            }
+//        }
 
         // 3) If we get here, baseGoal was blocked or path failed → fallback
         List<BlockPos> candidates = NEIGHBOUR_OFFSETS.stream()
@@ -416,5 +422,23 @@ public class HarvestPathManager {
 
     public static BlockPos getOriginalGoalPos() {
         return originalGoalPos;
+    }
+
+    public void setActive(boolean active) {
+        if (this.active == active) return; // No change
+
+        this.active = active;
+        assert MinecraftClient.getInstance().player != null;
+        MinecraftClient.getInstance().player.sendMessage(Text.literal("Harvest Pathing: " + (this.active ? "ON" : "OFF")), false);
+
+        if (!this.active) {
+            BasicPathAI.getInstance().stop(); // Stop current BasicPathAI movement
+            currentState = HarvestState.FINDING_NODE; // Reset state
+            waitTicks = 0;
+            // any other cleanup needed when disabling
+        } else {
+            // any setup needed when enabling (though FINDING_NODE should kick it off)
+            isFounding = false; // Ensure it tries to find a node on next tick if activated
+        }
     }
 }
