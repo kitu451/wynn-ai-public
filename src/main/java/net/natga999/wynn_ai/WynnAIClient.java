@@ -1,5 +1,6 @@
 package net.natga999.wynn_ai;
 
+import net.natga999.wynn_ai.commands.RoadNodeCommandRegistry;
 import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.input.MouseInputHandler;
 import net.natga999.wynn_ai.input.KeyInputHandler;
@@ -15,6 +16,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.client.MinecraftClient;
@@ -42,6 +44,10 @@ public class WynnAIClient implements ClientModInitializer {
     public void onInitializeClient() {
         LOGGER.info("Initialized Client");
         INSTANCE = this;
+
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            RoadNodeCommandRegistry.register(dispatcher); // Single line to register all road node commands
+        });
 
         entityDetector = new EntityDetector(detectionRadius);
 
@@ -78,16 +84,16 @@ public class WynnAIClient implements ClientModInitializer {
             List<Vec3d> path = HarvestPathManager.getInstance().getCurrentPath();
             if (path == null || path.size() < 2) {
                 LOGGER.debug("Path is null or too short to render: {}", path);
-                return;
+            } else {
+                PathRenderer.renderPath(context.matrixStack(), context.camera().getPos(), path);
             }
-            PathRenderer.renderPath(context.matrixStack(), context.camera().getPos(), path);
 
             List<Vec3d> combatPath = CombatManager.getInstance().getCurrentPath();
             if (combatPath == null || combatPath.size() < 2) {
                 LOGGER.debug("Path is null or too short to render: {}", combatPath);
-                return;
+            } else {
+                PathRenderer.renderPath(context.matrixStack(), context.camera().getPos(), combatPath);
             }
-            PathRenderer.renderPath(context.matrixStack(), context.camera().getPos(), combatPath);
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
