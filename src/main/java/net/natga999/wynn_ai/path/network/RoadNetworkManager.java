@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.LinkedList;
 
 public class RoadNetworkManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoadNetworkManager.class);
@@ -26,6 +27,8 @@ public class RoadNetworkManager {
     private final Map<String, RoadNode> nodes = new HashMap<>();
     private final Path networkFilePath;
     private final Gson gson;
+    private final LinkedList<String> recentlyAddedNodeIds = new LinkedList<>();
+    private static final int MAX_RECENT_NODES_TO_TRACK = 2;
 
     private RoadNetworkManager() {
         this.networkFilePath = FabricLoader.getInstance()
@@ -41,6 +44,7 @@ public class RoadNetworkManager {
 
     public boolean loadNetwork() {
         nodes.clear();
+        recentlyAddedNodeIds.clear();
         if (!Files.exists(networkFilePath)) {
             LOGGER.warn("Road network file not found: {}", networkFilePath);
             return true; // Or false if not found is an error for reload specifically
@@ -88,7 +92,31 @@ public class RoadNetworkManager {
         }
         nodes.put(node.getId(), node);
         LOGGER.info("Added node: {}", node.getId());
+        // Track recently added node
+        addRecentNode(node.getId());
         return true;
+    }
+
+    private void addRecentNode(String nodeId) {
+        // Remove if already present to move it to the front (most recent)
+        recentlyAddedNodeIds.remove(nodeId);
+        recentlyAddedNodeIds.addFirst(nodeId); // Add to the beginning
+
+        // Keep the list size limited
+        while (recentlyAddedNodeIds.size() > MAX_RECENT_NODES_TO_TRACK) {
+            recentlyAddedNodeIds.removeLast();
+        }
+        LOGGER.debug("Recently added nodes: {}", recentlyAddedNodeIds);
+    }
+
+    /**
+     * Gets the IDs of the two most recently added nodes in this session.
+     * The first element is the most recent, the second is the one before it.
+     * Returns a list with 0, 1, or 2 elements.
+     */
+    public LinkedList<String> getTwoMostRecentNodes() {
+        // Return a copy to prevent external modification of the internal list directly
+        return new LinkedList<>(recentlyAddedNodeIds);
     }
 
     public boolean removeNode(String nodeId) {
@@ -97,6 +125,7 @@ public class RoadNetworkManager {
             return false;
         }
         nodes.remove(nodeId);
+        recentlyAddedNodeIds.remove(nodeId); // Also remove from recent list
         // Also remove this node from all other nodes' connection lists
         for (RoadNode otherNode : nodes.values()) {
             otherNode.getConnections().remove(nodeId);
@@ -186,9 +215,7 @@ public class RoadNetworkManager {
     }
 
     public Collection<RoadNode> getAllNodes() {
-        if (nodes == null) {
-            return Collections.emptyList(); // Or throw an exception if nodes should never be null
-        }
+        // The 'nodes == null' check is indeed redundant here.
         return Collections.unmodifiableCollection(nodes.values());
     }
 

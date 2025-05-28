@@ -1,14 +1,12 @@
 package net.natga999.wynn_ai;
 
+import net.natga999.wynn_ai.commands.NbtInfoCommand;
 import net.natga999.wynn_ai.commands.RoadNodeCommandRegistry;
 import net.natga999.wynn_ai.detector.EntityDetector;
 import net.natga999.wynn_ai.input.MouseInputHandler;
 import net.natga999.wynn_ai.input.KeyInputHandler;
-import net.natga999.wynn_ai.managers.EntityOutlinerManager;
-import net.natga999.wynn_ai.managers.HarvestPathManager;
-import net.natga999.wynn_ai.managers.RenderManager;
+import net.natga999.wynn_ai.managers.*;
 import net.natga999.wynn_ai.ai.BasicPathAI;
-import net.natga999.wynn_ai.managers.ResourceNodeManager;
 import net.natga999.wynn_ai.managers.combat.CombatManager;
 import net.natga999.wynn_ai.render.PathRenderer;
 import net.natga999.wynn_ai.render.RoadNetworkRenderer;
@@ -48,6 +46,7 @@ public class WynnAIClient implements ClientModInitializer {
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             RoadNodeCommandRegistry.register(dispatcher); // Single line to register all road node commands
+            NbtInfoCommand.register(dispatcher);
         });
 
         entityDetector = new EntityDetector(detectionRadius);
@@ -105,6 +104,7 @@ public class WynnAIClient implements ClientModInitializer {
             if (client.player == null || client.world == null) return;
 
             // Run AI movement logic
+            RepairStateManager.getInstance().tick(client);
             CombatManager.getInstance().tick();
             HarvestPathManager.getInstance().tick();
 

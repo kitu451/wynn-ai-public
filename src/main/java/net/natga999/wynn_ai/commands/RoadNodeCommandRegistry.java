@@ -66,7 +66,12 @@ public class RoadNodeCommandRegistry {
                                 .executes(ctx -> RoadNodeCommands.handleSelectNode(ctx, 2))))
                 // /rn connect
                 .then(literal("connect")
-                        .executes(RoadNodeCommands::handleConnectNodes))
+                        .executes(RoadNodeCommands::handleConnectNodes) // Existing: Connects selectedNodeId1 and selectedNodeId2
+                        // *** NEW SUBCOMMAND ***
+                        .then(literal("last")
+                                .executes(RoadNodeCommands::handleConnectLastNodes) // New handler
+                        )
+                )
                 // /rn disconnect
                 .then(literal("disconnect")
                         .executes(RoadNodeCommands::handleDisconnectNodes))
@@ -91,6 +96,24 @@ public class RoadNodeCommandRegistry {
                 // /rn reload
                 .then(literal("reload")
                         .executes(RoadNodeCommands::handleReloadNetwork))
+                // /rn testpath
+                .then(literal("testpath")
+                        // Existing: /rn testpath <x> <y> <z> (just visualizes)
+                        .then(argument("x", DoubleArgumentType.doubleArg())
+                                .then(argument("y", DoubleArgumentType.doubleArg())
+                                        .then(argument("z", DoubleArgumentType.doubleArg())
+                                                .executes(RoadNodeCommands::handleTestHighwayPath) // Just shows the path
+                                                // New: /rn testpath <x> <y> <z> drive (visualizes AND drives)
+                                                .then(literal("drive")
+                                                        .executes(RoadNodeCommands::handleTestAndDriveHighwayPath) // New handler
+                                                )
+                                        )
+                                )
+                        )
+                        .then(literal("clearpath")
+                                .executes(RoadNodeCommands::handleClearTestHighwayPath)
+                        )
+                )
                 // /rn help
                 .then(literal("help")
                         .executes(RoadNodeCommands::handleHelp))

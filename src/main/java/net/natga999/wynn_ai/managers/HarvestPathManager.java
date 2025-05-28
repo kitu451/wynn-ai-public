@@ -297,13 +297,13 @@ public class HarvestPathManager {
         //TODO fix stopping earlier before reaching goalPos
         //really dont want to stop early when near and because of that stack in barrier upon harvesting
         // 2) Check if baseGoal is “free” and try it first
-//        if (isPositionFree(world, baseGoal)) {
-//            List<Vec3d> path = tryPath(player, world, baseGoal);
-//            if (path != null) {
-//                startWithPath(path);
-//                return;
-//            }
-//        }
+        if (isPositionFree(world, baseGoal)) {
+            List<Vec3d> path = tryPath(player, world, baseGoal);
+            if (path != null) {
+                startWithPath(path);
+                return;
+            }
+        }
 
         // 3) If we get here, baseGoal was blocked or path failed → fallback
         List<BlockPos> candidates = NEIGHBOUR_OFFSETS.stream()

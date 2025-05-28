@@ -2,6 +2,7 @@ package net.natga999.wynn_ai.commands;
 
 import net.natga999.wynn_ai.path.network.RoadNetworkManager;
 import net.natga999.wynn_ai.path.network.RoadNode;
+import net.natga999.wynn_ai.ai.BasicPathAI;
 
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
@@ -17,11 +18,13 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.suggestion.Suggestions;
 
+import net.natga999.wynn_ai.render.RoadNetworkRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class RoadNodeCommands {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoadNodeCommands.class);
@@ -294,6 +297,39 @@ public class RoadNodeCommands {
         return 1;
     }
 
+    public static int handleConnectLastNodes(CommandContext<FabricClientCommandSource> ctx) {
+        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
+        LinkedList<String> recentNodes = rnm.getTwoMostRecentNodes();
+
+        if (recentNodes.size() < 2) {
+            sendMessage(ctx.getSource(), "Error: Fewer than two nodes have been created recently in this session. Cannot connect 'last'.");
+            return 0;
+        }
+
+        // The most recent is at index 0, the one before it is at index 1.
+        String nodeIdLast = recentNodes.get(0);
+        String nodeIdSecondLast = recentNodes.get(1);
+
+        // Sanity check, though IDs should always be different if logic is correct
+        if (nodeIdLast.equals(nodeIdSecondLast)) {
+            sendMessage(ctx.getSource(), "Error: Last two recorded nodes are the same. This shouldn't happen.");
+            LOGGER.warn("Attempted to connect last two nodes, but they were the same: {}", nodeIdLast);
+            return 0;
+        }
+
+        sendMessage(ctx.getSource(), "Attempting to connect last two created nodes: '" + nodeIdLast + "' and '" + nodeIdSecondLast + "'.");
+
+        if (rnm.addConnection(nodeIdLast, nodeIdSecondLast)) {
+            sendMessage(ctx.getSource(), "Connected RoadNode '" + nodeIdLast + "' and '" + nodeIdSecondLast + "'.");
+        } else {
+            // This could happen if they are already connected, or if one of the nodes was removed
+            // after being added to the recent list but before this command was run.
+            sendMessage(ctx.getSource(), "Error: Failed to connect last two nodes (e.g., already connected, or one/both no longer exist).");
+            return 0; // Ensure failure is returned
+        }
+        return 1;
+    }
+
     public static int handleDisconnectNodes(CommandContext<FabricClientCommandSource> ctx) {
         if (selectedNodeId1 == null || selectedNodeId2 == null) {
             sendMessage(ctx.getSource(), "Error: Please select two nodes using /rn select1 and /rn select2 first.");
@@ -432,6 +468,171 @@ public class RoadNodeCommands {
             sendMessage(ctx.getSource(), "Error: Failed to reload road network. Check console/logs or file integrity.");
         }
         return 1;
+    }
+
+    public static int handleTestHighwayPath(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
+        ClientPlayerEntity player = getPlayer(ctx.getSource());
+        Vec3d startPos = player.getPos();
+        String worldId = player.clientWorld.getRegistryKey().getValue().toString();
+
+        double goalX = DoubleArgumentType.getDouble(ctx, "x");
+        double goalY = DoubleArgumentType.getDouble(ctx, "y");
+        double goalZ = DoubleArgumentType.getDouble(ctx, "z");
+        Vec3d goalPos = new Vec3d(goalX, goalY, goalZ);
+
+        sendMessage(ctx.getSource(), String.format("Testing highway path from player (%.1f, %.1f, %.1f) to (%.1f, %.1f, %.1f) in world '%s'",
+                startPos.getX(), startPos.getY(), startPos.getZ(), goalX, goalY, goalZ, worldId));
+
+        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
+
+        RoadNode startNode = rnm.findClosestNode(startPos, worldId);
+        if (startNode == null) {
+            sendMessage(ctx.getSource(), "Error: No road node found near your current position in this world.");
+            RoadNetworkRenderer.clearTestHighwayPath();
+            return 0;
+        }
+        sendMessage(ctx.getSource(), "Nearest start road node: " + startNode.getId() + " at " + formatVec3d(startNode.getPosition()));
+
+        RoadNode goalNode = rnm.findClosestNode(goalPos, worldId);
+        if (goalNode == null) {
+            sendMessage(ctx.getSource(), "Error: No road node found near the goal position in this world.");
+            RoadNetworkRenderer.clearTestHighwayPath();
+            return 0;
+        }
+        sendMessage(ctx.getSource(), "Nearest goal road node: " + goalNode.getId() + " at " + formatVec3d(goalNode.getPosition()));
+
+        if (startNode.getId().equals(goalNode.getId())) {
+            sendMessage(ctx.getSource(), "Start and goal are closest to the same road node (" + startNode.getId() + "). No highway path needed between them.");
+            // Optionally, you could draw a line from startNode to itself or just clear.
+            RoadNetworkRenderer.setTestHighwayPath(List.of(startNode)); // Show just the single node
+            return 1;
+        }
+
+        List<RoadNode> highwayPathNodes = rnm.findPathOnRoadNetwork(startNode.getId(), goalNode.getId());
+
+        if (highwayPathNodes == null || highwayPathNodes.isEmpty()) {
+            sendMessage(ctx.getSource(), "Failed to find a highway path between " + startNode.getId() + " and " + goalNode.getId() + ".");
+            RoadNetworkRenderer.clearTestHighwayPath();
+            return 0;
+        }
+
+        sendMessage(ctx.getSource(), "Highway path found with " + highwayPathNodes.size() + " nodes: " +
+                highwayPathNodes.stream().map(RoadNode::getId).collect(Collectors.joining(" -> ")));
+
+        RoadNetworkRenderer.setTestHighwayPath(highwayPathNodes);
+        RoadNetworkRenderer.renderTestHighwayPath = true; // Ensure it's enabled for rendering
+
+        return 1;
+    }
+
+    // New handler to visualize AND drive the path
+    public static int handleTestAndDriveHighwayPath(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
+        return findAndVisualizeHighwayPath(ctx, true); // Call helper, DO drive
+    }
+
+    // Helper method to find, visualize, and optionally drive the highway path
+    private static int findAndVisualizeHighwayPath(CommandContext<FabricClientCommandSource> ctx, boolean drivePath) throws CommandSyntaxException {
+        ClientPlayerEntity player = getPlayer(ctx.getSource());
+        Vec3d playerStartPos = player.getPos(); // Player's actual start for the whole journey
+        String worldId = player.clientWorld.getRegistryKey().getValue().toString();
+
+        double goalX = DoubleArgumentType.getDouble(ctx, "x");
+        double goalY = DoubleArgumentType.getDouble(ctx, "y");
+        double goalZ = DoubleArgumentType.getDouble(ctx, "z");
+        Vec3d finalGoalPos = new Vec3d(goalX, goalY, goalZ);
+
+        sendMessage(ctx.getSource(), String.format("Processing highway path from player (%.1f, %.1f, %.1f) to (%.1f, %.1f, %.1f) in world '%s'. Drive: %s",
+                playerStartPos.getX(), playerStartPos.getY(), playerStartPos.getZ(), goalX, goalY, goalZ, worldId, drivePath));
+
+        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
+        BasicPathAI pathAI = BasicPathAI.getInstance(); // Get AI instance
+
+        // 1. Find closest road node to player (Start_RN)
+        RoadNode startRN = rnm.findClosestNode(playerStartPos, worldId);
+        if (startRN == null) {
+            sendMessage(ctx.getSource(), "Error: No road node found near your current position in this world.");
+            RoadNetworkRenderer.clearTestHighwayPath();
+            pathAI.stop(); // Stop any current AI movement
+            return 0;
+        }
+        sendMessage(ctx.getSource(), "Nearest start road node (Start_RN): " + startRN.getId() + " at " + formatVec3d(startRN.getPosition()));
+
+        // 2. Find closest road node to goal (Goal_RN)
+        RoadNode goalRN = rnm.findClosestNode(finalGoalPos, worldId);
+        if (goalRN == null) {
+            sendMessage(ctx.getSource(), "Error: No road node found near the goal position in this world.");
+            RoadNetworkRenderer.clearTestHighwayPath();
+            pathAI.stop();
+            return 0;
+        }
+        sendMessage(ctx.getSource(), "Nearest goal road node (Goal_RN): " + goalRN.getId() + " at " + formatVec3d(goalRN.getPosition()));
+
+        // 3. A* on Road Network between Start_RN and Goal_RN
+        List<RoadNode> highwayNodes = null;
+        if (startRN.getId().equals(goalRN.getId())) {
+            sendMessage(ctx.getSource(), "Player and goal are closest to the same road node (" + startRN.getId() + "). Highway segment is trivial.");
+            // We still need a list containing this single node for the logic below if driving.
+            highwayNodes = List.of(startRN);
+            RoadNetworkRenderer.setTestHighwayPath(highwayNodes); // Visualize this single point or segment
+        } else {
+            highwayNodes = rnm.findPathOnRoadNetwork(startRN.getId(), goalRN.getId());
+            if (highwayNodes == null || highwayNodes.isEmpty()) {
+                sendMessage(ctx.getSource(), "Failed to find a highway path between " + startRN.getId() + " and " + goalRN.getId() + ".");
+                RoadNetworkRenderer.clearTestHighwayPath();
+                pathAI.stop();
+                return 0;
+            }
+            sendMessage(ctx.getSource(), "Highway path found with " + highwayNodes.size() + " nodes: " +
+                    highwayNodes.stream().map(RoadNode::getId).collect(Collectors.joining(" -> ")));
+            RoadNetworkRenderer.setTestHighwayPath(highwayNodes);
+        }
+        RoadNetworkRenderer.renderTestHighwayPath = true;
+
+
+        // 4. If "drivePath" is true, initiate movement
+        if (drivePath) {
+            // For this test, we'll simplify:
+            // - Path from player to Start_RN.position using GeneralPurposeTravelStrategy
+            // - Then path along highwayNodes using HighwaySplineStrategy
+            // - Then path from Goal_RN.position to finalGoalPos using GeneralPurposeTravelStrategy
+            // This would require a more complex orchestrator.
+
+            // *** SIMPLIFIED TEST: Drive ONLY the highway segment ***
+            // This means the player should manually position themselves at startRN first for this simple test.
+            // Or, we can just directly tell the AI to start the highway spline path.
+            // The HighwaySplineStrategy will then generate splines from these highwayNodes.
+
+            if (highwayNodes.size() < 2) {
+                sendMessage(ctx.getSource(), "Highway path has fewer than 2 nodes. Cannot use HighwaySplineStrategy. Will attempt direct path or stop.");
+                // If player is already at startRN and startRN == goalRN, and goal is close to startRN,
+                // you might want a direct GeneralPurpose path to finalGoalPos.
+                // For this test, let's just stop if the highway itself is too short.
+                pathAI.stop();
+                // A more complete orchestrator would handle this: pathAI.startGeneralPath(List.of(playerStartPos, finalGoalPos));
+                return 1; // Path visualized, but not driven with spline.
+            }
+
+            sendMessage(ctx.getSource(), "Initiating drive along the highway segment using HighwaySplineStrategy.");
+            pathAI.startHighwaySplinePath(highwayNodes);
+            // The HighwaySplineStrategy will now take over in BasicPathAI's tick loop.
+            // For a full journey, an orchestrator would:
+            // 1. Path locally to startRN.getPosition()
+            // 2. On completion, call pathAI.startHighwaySplinePath(highwayNodes)
+            // 3. On completion, path locally from goalRN.getPosition() to finalGoalPos
+        }
+        return 1;
+    }
+
+    public static int handleClearTestHighwayPath(CommandContext<FabricClientCommandSource> ctx) {
+        RoadNetworkRenderer.clearTestHighwayPath();
+        sendMessage(ctx.getSource(), "Cleared displayed test highway path.");
+        return 1;
+    }
+
+    // Helper to format Vec3d for messages
+    private static String formatVec3d(Vec3d vec) {
+        if (vec == null) return "null";
+        return String.format("%.1f, %.1f, %.1f", vec.getX(), vec.getY(), vec.getZ());
     }
 
     public static int handleHelp(CommandContext<FabricClientCommandSource> ctx) {

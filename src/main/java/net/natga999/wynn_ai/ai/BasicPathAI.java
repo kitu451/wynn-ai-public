@@ -1,10 +1,8 @@
 package net.natga999.wynn_ai.ai;
 
 import net.natga999.wynn_ai.managers.combat.CombatManager;
-import net.natga999.wynn_ai.strategies.CombatMovementStrategy;
-import net.natga999.wynn_ai.strategies.GeneralPurposeTravelStrategy;
-import net.natga999.wynn_ai.strategies.HarvestMovementStrategy;
-import net.natga999.wynn_ai.strategies.MovementStrategy;
+import net.natga999.wynn_ai.path.network.RoadNode;
+import net.natga999.wynn_ai.strategies.*;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -72,37 +70,83 @@ public class BasicPathAI {
     }
 
     /**
-     * Common initialization for all path types
+     * Common private initialization for all path types.
+     * Resets path index and sets the new waypoints.
      */
-    private void initPath(List<Vec3d> waypoints) {
-        if (waypoints == null || waypoints.isEmpty()) {
-            LOGGER.warn("Attempted to start path with empty waypoints");
-            return;
-        }
-
-        this.path = new ArrayList<>(waypoints);
+    private void initPathInternal(List<Vec3d> waypoints) { // Renamed to avoid confusion with a potential public initPath
+        this.path = (waypoints != null) ? new ArrayList<>(waypoints) : new ArrayList<>();
         this.currentPathIndex = 0;
-        this.followingPath = true;
+        this.followingPath = true; // Assume if a path is set, we should follow. Strategy can stop if needed.
 
-        LOGGER.info("Starting new path with {} waypoints", waypoints.size());
+        if (this.path.isEmpty() && !(this.strategy instanceof HighwaySplineStrategy)) {
+            LOGGER.warn("Initialized path with empty waypoints for a non-dynamic strategy. AI will stop.");
+            this.followingPath = false; // Don't follow if path is truly empty and not dynamic
+            // If strategy is null here and path is empty, it should probably stop completely.
+            // The stop() method handles clearing strategy.
+            if (this.strategy == null) {
+                stop();
+            }
+        } else if (!this.path.isEmpty()){
+            LOGGER.info("Path segment initialized with {} waypoints. Current strategy: {}",
+                    this.path.size(), strategy != null ? strategy.getClass().getSimpleName() : "None");
+        } else if (this.strategy instanceof HighwaySplineStrategy) {
+            LOGGER.info("Path initialized for HighwaySplineStrategy (path currently empty, strategy will populate).");
+        }
+    }
+
+    /**
+     * Public method for strategies or external controllers to set the current path segment
+     * for the AI to follow. This will clear any existing path segment and start fresh.
+     *
+     * @param waypoints The new list of waypoints for the current segment.
+     */
+    public void setPath(List<Vec3d> waypoints) {
+        // Call the internal private method to do the actual initialization
+        initPathInternal(waypoints);
+        // If a strategy is active and sets an empty path, it might intend to stop or re-evaluate.
+        // The strategy's isComplete() or tick() logic should handle such cases.
+        if (waypoints == null || waypoints.isEmpty()) {
+            if (!(strategy instanceof HighwaySplineStrategy)) { // HighwaySplineStrategy might start with empty and fill
+                LOGGER.info("An empty path segment was set. BasicPathAI will likely stop unless strategy intervenes.");
+                // It's often better for the strategy to call ai.stop() explicitly if it means to stop.
+            }
+        }
     }
 
     /** Called by your higher-level controller when a new harvest path is ready. */
     public void startHarvest(List<Vec3d> waypoints) {
-        initPath(waypoints);
-        this.strategy = new HarvestMovementStrategy();
+        this.strategy = new HarvestMovementStrategy(); // Set strategy first
+        setPath(waypoints); // Then set the path
     }
 
     /** Called by your higher-level controller when combat-movement should begin. */
     public void startCombatPath(List<Vec3d> waypoints) {
-        initPath(waypoints);
-        this.strategy = new CombatMovementStrategy();
+        this.strategy = new CombatMovementStrategy(); // Set strategy first
+        setPath(waypoints); // Then set the path
     }
 
     public void startGeneralPath(List<Vec3d> waypoints) {
-        initPath(waypoints); // Uses the existing common initialization
-        this.strategy = new GeneralPurposeTravelStrategy();
-        LOGGER.info("Starting new General Purpose path with {} waypoints", waypoints.size());
+        this.strategy = new GeneralPurposeTravelStrategy(); // Set strategy first
+        setPath(waypoints); // Then set the path
+        // Original log: LOGGER.info("Starting new General Purpose path with {} waypoints", waypoints.size());
+        // This log is now handled by initPathInternal or setPath.
+    }
+
+    /**
+     * Initializes BasicPathAI to follow a path composed of highway RoadNodes,
+     * using dynamic Catmull-Rom spline generation.
+     * The HighwaySplineStrategy will feed spline segments into this AI's path.
+     */
+    public void startHighwaySplinePath(List<RoadNode> highwayNodes) {
+        if (highwayNodes == null || highwayNodes.size() < 2) {
+            LOGGER.warn("Attempted to start highway spline path with insufficient nodes. Aborting.");
+            stop();
+            return;
+        }
+        this.strategy = new HighwaySplineStrategy(highwayNodes); // Set strategy first
+        setPath(new ArrayList<>()); // Start with an empty path; strategy will populate it.
+        this.followingPath = true; // Explicitly ensure we are in following mode for this strategy.
+        LOGGER.info("Starting new Highway Spline Path with {} total road nodes.", highwayNodes.size());
     }
 
     /**
@@ -200,8 +244,8 @@ public class BasicPathAI {
             client.options.sprintKey.setPressed(true);
         }
 
-        // Random "bunny hop" (5% chance)
-        if (Math.random() < 0.005 && client.player.isOnGround()) {
+        // Random "bunny hop" (1% chance each tick)
+        if (Math.random() < 0.01 && client.player.isOnGround()) {
             client.options.jumpKey.setPressed(true);
         }
     }
