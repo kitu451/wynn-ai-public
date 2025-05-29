@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.List;
 
 import static net.natga999.wynn_ai.managers.ResourceNodeManager.scanAndStore;
@@ -84,9 +85,11 @@ public class RenderManager {
     public boolean isMenuHUDEnabled() {
         return config.isMenuHUDVisible();
     }
+    /*
     public void setMenuHUDEnabled(boolean value) {
         config.setMenuHUDVisible(value);
     }
+    **/
     public void toggleMenuHUD() {
         config.setMenuHUDVisible(!config.isMenuHUDVisible());
     }

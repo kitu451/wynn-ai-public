@@ -1,10 +1,5 @@
 package net.natga999.wynn_ai.commands;
 
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
@@ -13,6 +8,12 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtElement;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.text.Text;
+
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +45,7 @@ public class NbtInfoCommand {
         );
     }
 
-    private static int showHandItemNbt(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
+    private static int showHandItemNbt(CommandContext<FabricClientCommandSource> ctx) {
         ClientPlayerEntity player = ctx.getSource().getPlayer();
         // getPlayer() in FabricClientCommandSource doesn't throw CommandSyntaxException, but good practice for other contexts
         if (player == null) {
@@ -56,7 +57,7 @@ public class NbtInfoCommand {
         return 1;
     }
 
-    private static int showSlotItemNbt(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
+    private static int showSlotItemNbt(CommandContext<FabricClientCommandSource> ctx) {
         ClientPlayerEntity player = ctx.getSource().getPlayer();
         if (player == null) {
             ctx.getSource().sendError(Text.literal("Player not found."));
@@ -83,12 +84,12 @@ public class NbtInfoCommand {
     private static void displayNbtInfo(FabricClientCommandSource source, ItemStack stack, String itemLocation) {
         if (stack.isEmpty()) {
             source.sendFeedback(Text.literal(itemLocation + " is empty."));
-            LOGGER.error("{} is empty.", itemLocation);
+            LOGGER.info("{} is empty.", itemLocation);
             return;
         }
 
         source.sendFeedback(Text.literal("--- Info for " + stack.getName().getString() + " (" + itemLocation + ") ---"));
-        LOGGER.error("--- Info for {} ({}) ---", stack.getName().getString(), itemLocation);
+        LOGGER.info("--- Info for {} ({}) ---", stack.getName().getString(), itemLocation);
 
         // Display Standard Component Durability
         Integer maxDamage = stack.get(DataComponentTypes.MAX_DAMAGE);
@@ -98,10 +99,10 @@ public class NbtInfoCommand {
             int currentDurability = maxDamage - damageTaken;
             String durabilityInfo = String.format("Component Durability: %d/%d (Damage component: %d)", currentDurability, maxDamage, damageTaken);
             source.sendFeedback(Text.literal(durabilityInfo));
-            LOGGER.error(durabilityInfo);
+            LOGGER.info(durabilityInfo);
         } else {
             source.sendFeedback(Text.literal("Item does not have MAX_DAMAGE component (or it's not positive)."));
-            LOGGER.error("Item does not have MAX_DAMAGE component (or it's not positive).");
+            LOGGER.info("Item does not have MAX_DAMAGE component (or it's not positive).");
         }
 
         // Display CUSTOM_DATA component
@@ -109,17 +110,17 @@ public class NbtInfoCommand {
         if (customDataComponent != null && !customDataComponent.isEmpty()) {
             NbtCompound customNbt = customDataComponent.copyNbt(); // Get a mutable copy
             source.sendFeedback(Text.literal("Custom Data Component (custom_data): (see logs)"));
-            LOGGER.error("Custom Data Component (custom_data): {}", customNbt.toString());
+            LOGGER.info("Custom Data Component (custom_data): {}", customNbt.toString());
         } else {
             source.sendFeedback(Text.literal("Item has no 'custom_data' component or it's empty."));
-            LOGGER.error("Item has no 'custom_data' component or it's empty.");
+            LOGGER.info("Item has no 'custom_data' component or it's empty.");
         }
 
         // Display Full Encoded NBT (includes all components)
         try {
             RegistryWrapper.WrapperLookup registries = source.getWorld().getRegistryManager();
             if (registries == null) {
-                LOGGER.error("RegistryWrapper.WrapperLookup is null, cannot encode full NBT.");
+                LOGGER.warn("RegistryWrapper.WrapperLookup is null, cannot encode full NBT.");
                 source.sendError(Text.literal("Error: Could not get registry manager to encode NBT."));
                 return; // Added return
             }
@@ -128,17 +129,17 @@ public class NbtInfoCommand {
             if (fullNbtElement instanceof NbtCompound) {
                 String fullNbtString = fullNbtElement.toString();
                 source.sendFeedback(Text.literal("Full Encoded NBT: (see logs for potentially long string)"));
-                LOGGER.error("Full Encoded NBT of {}: {}", stack.getName().getString(), fullNbtString);
+                LOGGER.info("Full Encoded NBT of {}: {}", stack.getName().getString(), fullNbtString);
             } else {
-                LOGGER.error("Encoded ItemStack for {} resulted in non-compound NBT: {}", stack.getName().getString(), fullNbtElement.toString());
+                LOGGER.warn("Encoded ItemStack for {} resulted in non-compound NBT: {}", stack.getName().getString(), fullNbtElement.toString());
                 source.sendFeedback(Text.literal("Full Encoded NBT was not a compound: " + fullNbtElement.getNbtType().getCommandFeedbackName()));
             }
         } catch (Exception e) {
-            LOGGER.error("Error encoding full NBT for {}: {}", stack.getName().getString(), e.getMessage(), e);
+            LOGGER.warn("Error encoding full NBT for {}: {}", stack.getName().getString(), e.getMessage(), e);
             source.sendError(Text.literal("Error encoding full NBT: " + e.getMessage()));
         }
 
         source.sendFeedback(Text.literal("--- End Info ---"));
-        LOGGER.error("--- End Info ---");
+        LOGGER.info("--- End Info ---");
     }
 }

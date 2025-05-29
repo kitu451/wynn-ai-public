@@ -7,17 +7,14 @@ import java.util.List;
 import java.util.Objects;
 
 public class RoadNode {
-    private String id;
-    private Vec3dData positionData; // Using a separate class for GSON compatibility
-    private String worldId;
-    private List<String> connections;
+    private final String id;
+    private final Vec3dData positionData; // Using a separate class for GSON compatibility
+    private final String worldId;
+    private final List<String> connections;
     private String type;
 
     // Transient Vec3d for actual use after deserialization
     private transient Vec3d positionVec;
-
-    // Default constructor for GSON
-    public RoadNode() {}
 
     public RoadNode(String id, Vec3d position, String worldId, List<String> connections, String type) {
         this.id = id;
@@ -27,16 +24,13 @@ public class RoadNode {
         this.connections = (connections != null) ? new ArrayList<>(connections) : new ArrayList<>();
         this.type = type;
     }
-    // Or a simpler one used by the command, and worldId is set later or defaults
-    public RoadNode(String id, Vec3d position, String worldId, String type) { // Assumes empty connections initially
-        this(id, position, worldId, new ArrayList<>(), type);
-    }
+
     public String getId() {
         return id;
     }
 
     public Vec3d getPosition() {
-        if (positionVec == null && positionData != null) {
+        if (positionVec == null) {
             positionVec = new Vec3d(positionData.x, positionData.y, positionData.z);
         }
         return positionVec;
@@ -60,9 +54,7 @@ public class RoadNode {
 
     // Call this after GSON deserialization to initialize transient fields
     public void initializeTransientFields() {
-        if (positionData != null) {
-            this.positionVec = new Vec3d(positionData.x, positionData.y, positionData.z);
-        }
+        this.positionVec = new Vec3d(positionData.x, positionData.y, positionData.z);
     }
 
     @Override
@@ -88,17 +80,9 @@ public class RoadNode {
                 '}';
     }
 
-    public void reconstructPosition() {
-        // this.position = new Vec3d(this.x, this.y, this.z); // If you serialize x,y,z
-        // If RoadNode directly has Vec3d and you use a TypeAdapter, this might not be needed.
-        // However, if Vec3d is transient, and you serialize its components, this is essential.
-    }
-
     // Inner class for GSON Vec3d serialization/deserialization
     public static class Vec3dData {
         public double x, y, z;
-
-        public Vec3dData() {} // For GSON
 
         public Vec3dData(double x, double y, double z) {
             this.x = x;

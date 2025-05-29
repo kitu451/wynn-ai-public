@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class BoxConfigRegistry {
-    private static final Logger LOGGER = LoggerFactory.getLogger(BoxConfigRegistry.class); // Logger instance
+    private static final Logger LOGGER = LoggerFactory.getLogger(BoxConfigRegistry.class);
 
     private static final Map<String, BoxConfig> CONFIG_MAP = new HashMap<>();
 
@@ -58,7 +58,7 @@ public class BoxConfigRegistry {
 
             LOGGER.info("Loaded {} configurations successfully.", CONFIG_MAP.size());
         } catch (Exception e) {
-            LOGGER.error("Failed to load box configurations", e);
+            LOGGER.warn("Failed to load box configurations", e);
         }
     }
 

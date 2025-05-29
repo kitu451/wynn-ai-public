@@ -1,9 +1,9 @@
 package net.natga999.wynn_ai.ai;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.decoration.DisplayEntity;
 import net.natga999.wynn_ai.managers.combat.CombatManager;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.util.math.Vec3d;
 
@@ -15,7 +15,7 @@ public class CombatController {
     public static CombatController getInstance() { return INSTANCE; }
 
     private final CombatManager combatManager = CombatManager.getInstance();
-    private BasicPathAI pathAI = BasicPathAI.getInstance();
+    private final BasicPathAI pathAI = BasicPathAI.getInstance();
 
     // Current target approach style
     private enum ApproachStyle {
@@ -32,10 +32,10 @@ public class CombatController {
     private static final int PATH_UPDATE_FREQUENCY = 10; // Update path every 10 ticks
 
     // Configuration
-    private double optimalAttackRange = 12.0;  // Increased from 3.0 to utilize the 15 block range
-    private double maxAttackRange = 14.0;      // Increased to stay within effective range but not too close
-    private double circlingRadius = 12.5;      // Increased to keep distance while circling
-    private double minAttackRange = 10.0;      // New parameter for minimum attack distance
+    private final double optimalAttackRange = 12.0;  // Increased from 3.0 to utilize the 15 block range
+    private final double maxAttackRange = 14.0;      // Increased to stay within effective range but not too close
+    private final double circlingRadius = 12.5;      // Increased to keep distance while circling
+    private final double minAttackRange = 10.0;      // New parameter for minimum attack distance
 
     // Waypoint reaching thresholds
     private final double reachThresholdXZ = 1.0;
@@ -54,7 +54,7 @@ public class CombatController {
         ApproachStyle previousStyle = currentStyle;
 
         // Update approach style based on distance
-        updateApproachStyle(distanceToTarget, player);
+        updateApproachStyle(distanceToTarget);
 
         // Only update the path in these cases:
         // 1. We haven't set a target yet (lastTargetPos is null)
@@ -74,7 +74,7 @@ public class CombatController {
             // Generate new path based on the current approach style
             List<Vec3d> newPath = generateApproachPath(player, targetPos);
 
-            // If we had a previous target and it's significantly different, create a transition
+            // If we had a previous target, and it's significantly different, create a transition
             if (lastTargetPos != null && lastTargetPos.squaredDistanceTo(targetPos) > 16.0 && !styleChanged) {
                 newPath = createTransitionPath(player, lastTargetPos, targetPos, newPath);
             }
@@ -135,7 +135,7 @@ public class CombatController {
         return transitionPath;
     }
 
-    private void updateApproachStyle(double distanceToTarget, ClientPlayerEntity player) {
+    private void updateApproachStyle(double distanceToTarget) {
         // Keep distance when close to combat
         if (distanceToTarget < minAttackRange) {
             currentStyle = ApproachStyle.BACKING_AWAY;
@@ -171,7 +171,7 @@ public class CombatController {
         double distance = player.getPos().distanceTo(targetPos);
 
         // Choose approach style based on distance and conditions
-        updateApproachStyle(distance, player);
+        updateApproachStyle(distance);
 
         switch (currentStyle) {
             case DIRECT:
@@ -333,34 +333,7 @@ public class CombatController {
         boolean isCloseToTarget = isNearTarget(player, target);
 
         // Get accurate target entity position when available
-        DisplayEntity.TextDisplayEntity entity = combatManager.getCurrentTarget();
-        Vec3d adjustedTarget;
-
-        if (entity != null && entity.isAlive()) {
-            // Always use the entity's exact position, not cached targetPos
-            adjustedTarget = entity.getPos();
-
-            // Calculate height adjustment based on distance
-            double distanceXZ = Math.sqrt(
-                    Math.pow(player.getX() - adjustedTarget.x, 2) +
-                            Math.pow(player.getZ() - adjustedTarget.z, 2)
-            );
-
-            // When very close, look at the entity's eye level
-            if (distanceXZ < 5.0) {
-                // Adjust aim point to be at the appropriate vertical position
-                // based on entity's hitbox - targeting slightly higher than
-                // center for most mobs
-                adjustedTarget = new Vec3d(
-                        adjustedTarget.x,
-                        adjustedTarget.y + 1.0, // Aiming higher on the mob when close
-                        adjustedTarget.z
-                );
-            }
-        } else {
-            // Fallback to the cached position
-            adjustedTarget = target;
-        }
+        Vec3d adjustedTarget = getAdjustedTargetPosition(player, target);
 
         // More direct camera movement when in attack range
         if (combatManager.isInAttackRange()) {
@@ -399,6 +372,38 @@ public class CombatController {
                 CombatManager.rotateCameraToward(adjustedTarget, client);
             }
         }
+    }
+
+    private Vec3d getAdjustedTargetPosition(ClientPlayerEntity player, Vec3d target) {
+        DisplayEntity.TextDisplayEntity entity = combatManager.getCurrentTarget();
+        Vec3d adjustedTarget;
+
+        if (entity != null && entity.isAlive()) {
+            // Always use the entity's exact position, not cached targetPos
+            adjustedTarget = entity.getPos();
+
+            // Calculate height adjustment based on distance
+            double distanceXZ = Math.sqrt(
+                    Math.pow(player.getX() - adjustedTarget.x, 2) +
+                            Math.pow(player.getZ() - adjustedTarget.z, 2)
+            );
+
+            // When very close, look at the entity's eye level
+            if (distanceXZ < 5.0) {
+                // Adjust aim point to be at the appropriate vertical position
+                // based on entity's hitbox - targeting slightly higher than
+                // center for most mobs
+                adjustedTarget = new Vec3d(
+                        adjustedTarget.x,
+                        adjustedTarget.y + 1.0, // Aiming higher on the mob when close
+                        adjustedTarget.z
+                );
+            }
+        } else {
+            // Fallback to the cached position
+            adjustedTarget = target;
+        }
+        return adjustedTarget;
     }
 
     // Helper method to interpolate between Vec3d points

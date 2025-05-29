@@ -35,7 +35,7 @@ public class PathFinder {
     }
 
     public List<Vec3d> findPath(BlockPos start, BlockPos goal) {
-        LOGGER.debug("Finding path from {} to {}", start, goal);
+        LOGGER.info("Finding path from {} to {}", start, goal);
 
         Map<BlockPos, Double> gScore = new HashMap<>();
         gScore.put(start, 0.0);
@@ -80,7 +80,7 @@ public class PathFinder {
                 List<BlockPos> rawPath = reconstructPath(current);
                 List<Vec3d> simplifiedPath = simplifyPath(rawPath);
                 List<Vec3d> curvedPath = postProcessCorners(simplifiedPath);
-                LOGGER.debug("Simplified path from {} to {} nodes", rawPath.size(), curvedPath.size());
+                LOGGER.info("Simplified path from {} to {} nodes", rawPath.size(), curvedPath.size());
                 return curvedPath;
             }
 
@@ -157,7 +157,7 @@ public class PathFinder {
             }
         }
 
-        LOGGER.error("No path found after {} iterations, {} nodes expanded", iterations, nodesExpanded);
+        LOGGER.warn("No path found after {} iterations, {} nodes expanded", iterations, nodesExpanded);
         return null; // No path found
     }
 
@@ -550,7 +550,7 @@ public class PathFinder {
             }
         }
 
-        LOGGER.debug("Reconstructed path of length {}", groundPath.size());
+        LOGGER.info("Reconstructed path of length {}", groundPath.size());
         return groundPath;
     }
 

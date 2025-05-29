@@ -3,7 +3,7 @@
   "id": "wynn_ai",
   "version": "${version}",
   "name": "WYNN AI",
-  "description": "AI mod",
+  "description": "AI-assisted gameplay mod for Wynncraft. Key features developed with AI collaboration (details in README) for brainstorming, code generation, and debugging.",
   "authors": ["natga999"],
   "contact": {
     "homepage": "https://github.com/kitu451/WYNN-AI"

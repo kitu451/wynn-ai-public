@@ -51,7 +51,7 @@ public class ItemConfigRegistry {
 
             LOGGER.info("Loaded {} item configurations successfully.", CONFIG_MAP.size());
         } catch (Exception e) {
-            LOGGER.error("Failed to load item configurations", e);
+            LOGGER.warn("Failed to load item configurations", e);
         }
     }
 

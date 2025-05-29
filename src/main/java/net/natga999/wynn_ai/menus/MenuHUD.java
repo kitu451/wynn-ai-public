@@ -43,7 +43,7 @@ public class MenuHUD {
         }
 
         if (this.config == null) {
-            LOGGER.error("[MenuHUD] Failed to load config for: {}", menuId);
+            LOGGER.warn("[MenuHUD] Failed to load config for: {}", menuId);
             return;
         }
 
@@ -257,7 +257,9 @@ public class MenuHUD {
         return menuId;
     }
 
+    /*
     public MenuHUDConfig getConfig() {
         return config;
     }
+    **/
 }

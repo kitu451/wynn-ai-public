@@ -19,10 +19,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.LinkedList;
 
 public class RoadNetworkManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(RoadNetworkManager.class);
+
     private static final RoadNetworkManager INSTANCE = new RoadNetworkManager();
     private final Map<String, RoadNode> nodes = new HashMap<>();
     private final Path networkFilePath;
@@ -64,7 +64,7 @@ public class RoadNetworkManager {
             }
             return true;
         } catch (IOException | com.google.gson.JsonSyntaxException e) {
-            LOGGER.error("Failed to load/parse road network from {}:", networkFilePath, e);
+            LOGGER.warn("Failed to load/parse road network from {}:", networkFilePath, e);
             return false;
         }
     }
@@ -80,7 +80,7 @@ public class RoadNetworkManager {
                 return true;
             }
         } catch (IOException e) {
-            LOGGER.error("Failed to save road network to {}:", networkFilePath, e);
+            LOGGER.warn("Failed to save road network to {}:", networkFilePath, e);
             return false;
         }
     }
@@ -190,18 +190,17 @@ public class RoadNetworkManager {
         }
     }
 
-    public boolean updateNodeType(String nodeId, String typeName) {
+    public void updateNodeType(String nodeId, String typeName) {
         RoadNode node = nodes.get(nodeId);
         if (node == null) {
             LOGGER.warn("Set node type: Node not found ({})", nodeId);
-            return false;
+            return;
         }
         // Assuming RoadNode has a setType method
         // If typeName is null or empty, maybe set type to null.
         String newType = (typeName == null || typeName.trim().isEmpty()) ? null : typeName.trim();
         node.setType(newType); // Requires setType in RoadNode
         LOGGER.info("Node {} type set to '{}'", nodeId, newType);
-        return true;
     }
 
     public RoadNode getNodeById(String id) {

@@ -3,6 +3,7 @@ package net.natga999.wynn_ai.managers.combat;
 import net.natga999.wynn_ai.managers.combat.enums.CombatState;
 import net.natga999.wynn_ai.ai.BasicPathAI;
 import net.natga999.wynn_ai.path.PathFinder;
+import net.natga999.wynn_ai.utility.CatmullRomSpline;
 
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.Hand;
@@ -15,7 +16,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 
-import net.natga999.wynn_ai.utility.CatmullRomSpline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,7 +110,7 @@ public class CombatManager {
         if (currentTarget != null && client.player != null && client.world != null) {
             targetPos = currentTarget.getPos().subtract(0, 1, 0);
 
-            LOGGER.error("Following target at {}", targetPos);
+            LOGGER.info("Following target at {}", targetPos);
 
             // Check if we're already in range to attack
             if (inAttackRange(targetPos)) {
@@ -129,7 +129,7 @@ public class CombatManager {
             // If we're not already pathing to the target, find a new path
             if (path == null) {
                 isInAttackRange = false;
-                LOGGER.error("Finding path to target at {}", targetPos);
+                LOGGER.info("Finding path to target at {}", targetPos);
 
                 // Convert player position and target position to BlockPos
                 BlockPos playerPos = client.player.getBlockPos();
@@ -143,13 +143,13 @@ public class CombatManager {
                     path = CatmullRomSpline.createSpline(path, calculateSegmentCount());
                     // Tell BasicPathAI to follow this path
                     BasicPathAI.getInstance().startCombatPath(path);
-                    LOGGER.error("Path found with {} waypoints", path.size());
+                    LOGGER.info("Path found with {} waypoints", path.size());
                 } else {
-                    LOGGER.warn("No path found to target");
+                    LOGGER.info("No path found to target");
                     // If no path is found, try direct movement (as fallback)
                     //BasicPathAI.getInstance().updateMovementToward(targetPos, client);
                     state = CombatState.SEARCH;
-                    LOGGER.error("No path found - switching to search state");
+                    LOGGER.info("No path found - switching to search state");
                 }
             }
 

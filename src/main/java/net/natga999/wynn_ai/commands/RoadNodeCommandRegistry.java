@@ -1,11 +1,11 @@
 package net.natga999.wynn_ai.commands;
 
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-
-import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
@@ -14,7 +14,6 @@ public class RoadNodeCommandRegistry {
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
         // Main literal for all road node commands, alias 'rn'
-        // First, define the structure using the builder
         var rnNodeBuilder = literal("rn")
                 // /rn add [id]
                 .then(literal("add")
@@ -34,11 +33,11 @@ public class RoadNodeCommandRegistry {
                                 // /rn add <id> center (player pos, custom ID, snapped)
                                 .then(literal("center")
                                         .executes(ctx -> RoadNodeCommands.handleAddNode(ctx, true))) // Snap = true, gets ID from context
-                                // *** NEW PATH: /rn add <id> <x> <y> <z> ***
+                                // /rn add <id> <x> <y> <z>
                                 .then(argument("x", DoubleArgumentType.doubleArg())
                                         .then(argument("y", DoubleArgumentType.doubleArg())
                                                 .then(argument("z", DoubleArgumentType.doubleArg())
-                                                        .executes(RoadNodeCommands::handleAddNodeWithCoordinates) // New handler method
+                                                        .executes(RoadNodeCommands::handleAddNodeWithCoordinates)
                                                 )
                                         )
                                 )
@@ -66,10 +65,9 @@ public class RoadNodeCommandRegistry {
                                 .executes(ctx -> RoadNodeCommands.handleSelectNode(ctx, 2))))
                 // /rn connect
                 .then(literal("connect")
-                        .executes(RoadNodeCommands::handleConnectNodes) // Existing: Connects selectedNodeId1 and selectedNodeId2
-                        // *** NEW SUBCOMMAND ***
+                        .executes(RoadNodeCommands::handleConnectNodes)
                         .then(literal("last")
-                                .executes(RoadNodeCommands::handleConnectLastNodes) // New handler
+                                .executes(RoadNodeCommands::handleConnectLastNodes)
                         )
                 )
                 // /rn disconnect
@@ -105,7 +103,7 @@ public class RoadNodeCommandRegistry {
                                                 .executes(RoadNodeCommands::handleTestHighwayPath) // Just shows the path
                                                 // New: /rn testpath <x> <y> <z> drive (visualizes AND drives)
                                                 .then(literal("drive")
-                                                        .executes(RoadNodeCommands::handleTestAndDriveHighwayPath) // New handler
+                                                        .executes(RoadNodeCommands::handleTestAndDriveHighwayPath)
                                                 )
                                         )
                                 )

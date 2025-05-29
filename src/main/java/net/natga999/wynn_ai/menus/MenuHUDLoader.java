@@ -38,7 +38,7 @@ public class MenuHUDLoader {
                 throw new IOException("Root JSON does not contain 'menus' key.");
             }
         } catch (Exception e) {
-            LOGGER.error("Failed to load menu layouts", e);
+            LOGGER.warn("Failed to load menu layouts", e);
         }
     }
 

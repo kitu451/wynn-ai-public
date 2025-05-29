@@ -59,7 +59,7 @@ public class BasicPathAI {
             return;
         }
 
-        LOGGER.error("Ticking movement strategy");
+        LOGGER.debug("Ticking movement strategy");
         // Let the strategy handle movement logic
         strategy.tick(this);
 
@@ -107,7 +107,7 @@ public class BasicPathAI {
         // The strategy's isComplete() or tick() logic should handle such cases.
         if (waypoints == null || waypoints.isEmpty()) {
             if (!(strategy instanceof HighwaySplineStrategy)) { // HighwaySplineStrategy might start with empty and fill
-                LOGGER.info("An empty path segment was set. BasicPathAI will likely stop unless strategy intervenes.");
+                LOGGER.warn("An empty path segment was set. BasicPathAI will likely stop unless strategy intervenes.");
                 // It's often better for the strategy to call ai.stop() explicitly if it means to stop.
             }
         }
@@ -244,8 +244,8 @@ public class BasicPathAI {
             client.options.sprintKey.setPressed(true);
         }
 
-        // Random "bunny hop" (1% chance each tick)
-        if (Math.random() < 0.01 && client.player.isOnGround()) {
+        // Random "bunny hop" (20% chance each tick)
+        if (Math.random() < 0.2 && client.player.isOnGround()) {
             client.options.jumpKey.setPressed(true);
         }
     }
@@ -402,7 +402,7 @@ public class BasicPathAI {
         boolean needsJump = !state.isAir() && !isCropBlock && !isSlab && !isStair
                 && !isLowSnowBlock && !isCarpet && (stateUp.isAir() || isCropBlockUp || isLowSnowBlockUp || isCarpetUp);
 
-        LOGGER.error("Obstacle detected: {} - {} - {} - {}", needsJump, state.getBlock(), checkPos, clientVecPos);
+        LOGGER.debug("Obstacle detected: {} - {} - {} - {}", needsJump, state.getBlock(), checkPos, clientVecPos);
 
         // 90% chance to jump if obstacle detected
         if (needsJump && Math.random() < 0.9) {

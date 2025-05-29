@@ -75,12 +75,12 @@ public class RenderHUD {
                     yOffset += Y_OFFSET_INCREMENT; // Increment Y position for the next line
                 } catch (Exception e) {
                     // Log an error for an individual entity but continue processing others
-                    LOGGER.error("Failed to render entity {} on HUD: {}", entity.getType().toString(), e.getMessage(), e);
+                    LOGGER.warn("Failed to render entity {} on HUD: {}", entity.getType().toString(), e.getMessage(), e);
                 }
             }
         } catch (Exception e) {
             // Catch any unexpected errors at a higher level
-            LOGGER.error("Failed to render HUD: {}", e.getMessage(), e);
+            LOGGER.warn("Failed to render HUD: {}", e.getMessage(), e);
         }
 
         // Clean up cache by removing entities no longer rendered

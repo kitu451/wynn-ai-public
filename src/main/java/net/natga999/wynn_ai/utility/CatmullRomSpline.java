@@ -1,6 +1,7 @@
 package net.natga999.wynn_ai.utility;
 
 import net.minecraft.util.math.Vec3d;
+
 import java.util.*;
 
 public class CatmullRomSpline {

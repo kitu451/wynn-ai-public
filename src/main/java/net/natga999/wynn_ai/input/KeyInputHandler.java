@@ -13,6 +13,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.text.Text;
 
 import org.lwjgl.glfw.GLFW;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

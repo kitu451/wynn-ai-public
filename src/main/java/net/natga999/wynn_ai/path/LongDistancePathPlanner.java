@@ -42,92 +42,90 @@ public class LongDistancePathPlanner {
 
         List<Vec3d> finalWaypoints = new ArrayList<>();
 
-        // Case 1: No road nodes involved (either too far, or direct path is short enough)
-        if (startRoadNode == null && goalRoadNode == null) {
-            LOGGER.info("Planning direct local path (no road nodes accessible/needed).");
-            return planLocalPath(startPosition, goalPosition, world, LOCAL_PATHFINDER_RANGE * 2); // Allow longer range for full direct
+        // Case 1: Direct local path (no road nodes involved or accessible)
+        if ((startRoadNode == null && goalRoadNode == null) ||
+                (startPosition.distanceTo(goalPosition) < LOCAL_PATHFINDER_RANGE * 0.5)) { // Heuristic: if very close, just do local
+            LOGGER.info("Planning direct local path.");
+            List<Vec3d> localPath = planLocalPath(startPosition, goalPosition, world, LOCAL_PATHFINDER_RANGE * 2);
+            if (localPath != null) {
+                appendSegmentAvoidingDuplicates(finalWaypoints, localPath);
+            }
+            return finalWaypoints.isEmpty() ? null : finalWaypoints;
         }
 
-        // Case 2: Only start is near a road node
-        if (startRoadNode != null && goalRoadNode == null) {
-            LOGGER.info("Planning path: Start near road node ({}), goal is off-network.", startRoadNode.getId());
-            List<Vec3d> pathToNode = planLocalPath(startPosition, startRoadNode.getPosition(), world, LOCAL_PATHFINDER_RANGE);
-            if (pathToNode == null) return null; // Cannot reach start node
-            finalWaypoints.addAll(pathToNode);
-            // No direct way to connect to goal from here without a road network path or a very long local path
-            LOGGER.warn("Goal is too far from road network and start node cannot reach it via network.");
-            return null; // Or attempt a very long direct path as a last resort if desired
-        }
-
-        // Case 3: Only goal is near a road node
-        if (startRoadNode == null && goalRoadNode != null) {
-            LOGGER.info("Planning path: Start is off-network, goal near road node ({}).", goalRoadNode.getId());
-            // Similar logic, may not be useful if start cannot connect to any road node.
-            // For simplicity, might require both to be connectable to network if using network.
-            LOGGER.warn("Start is too far from road network.");
-            return null;
-        }
-
-        // Case 4: Both start and goal are near road nodes (startRoadNode != null && goalRoadNode != null)
-        LOGGER.info("Planning path via road network: {} -> {}", startRoadNode.getId(), goalRoadNode.getId());
-
-        // Segment A: Player to Start Road Node
-        List<Vec3d> segmentA = planLocalPath(startPosition, startRoadNode.getPosition(), world, LOCAL_PATHFINDER_RANGE);
-        if (segmentA == null) {
-            LOGGER.warn("Failed to plan local path from player to start road node: {}", startRoadNode.getId());
-            return null;
-        }
-        finalWaypoints.addAll(segmentA);
-
-        // Segment B: Road Network Path
-        if (!startRoadNode.getId().equals(goalRoadNode.getId())) {
-            List<RoadNode> roadNodeHops = roadNetworkManager.findPathOnRoadNetwork(startRoadNode.getId(), goalRoadNode.getId());
-            if (roadNodeHops == null || roadNodeHops.isEmpty()) {
-                LOGGER.warn("Failed to find path on road network between {} and {}", startRoadNode.getId(), goalRoadNode.getId());
-                // Fallback: try direct local path between the two road nodes if they are somewhat close
-                List<Vec3d> directBetweenNodes = planLocalPath(startRoadNode.getPosition(), goalRoadNode.getPosition(), world, LOCAL_PATHFINDER_RANGE * 2);
-                if (directBetweenNodes != null) {
-                    LOGGER.info("Using direct local path as fallback between road nodes.");
-                    ensureNoDuplicateConsecutive(finalWaypoints, directBetweenNodes.getFirst());
-                    finalWaypoints.addAll(directBetweenNodes);
-                } else {
-                    return null; // True failure
-                }
-            } else {
-                // Add positions from roadNodeHops, skipping the first if it's same as startRoadNode
-                List<Vec3d> networkSegment = roadNodeHops.stream()
-                        .map(RoadNode::getPosition)
-                        .toList();
-
-                if (!networkSegment.isEmpty()) {
-                    ensureNoDuplicateConsecutive(finalWaypoints, networkSegment.getFirst());
-                    finalWaypoints.addAll(networkSegment);
-                }
+        // --- Attempt to use road network ---
+        List<Vec3d> segmentA;
+        if (startRoadNode != null) {
+            segmentA = planLocalPath(startPosition, startRoadNode.getPosition(), world, LOCAL_PATHFINDER_RANGE);
+            if (segmentA == null) {
+                LOGGER.warn("Failed to plan local path from player to start road node: {}. Attempting direct path to goal.", startRoadNode.getId());
+                // Fallback to direct path if we can't even reach the first road node
+                List<Vec3d> directFallback = planLocalPath(startPosition, goalPosition, world, LOCAL_PATHFINDER_RANGE * 3);
+                if (directFallback != null) appendSegmentAvoidingDuplicates(finalWaypoints, directFallback);
+                return finalWaypoints.isEmpty() ? null : finalWaypoints;
             }
         } else {
-            LOGGER.info("Start and goal road nodes are the same: {}", startRoadNode.getId());
+            LOGGER.info("Start position is too far from any road node. Attempting direct path to goal.");
+            List<Vec3d> directFallback = planLocalPath(startPosition, goalPosition, world, LOCAL_PATHFINDER_RANGE * 3);
+            if (directFallback != null) appendSegmentAvoidingDuplicates(finalWaypoints, directFallback);
+            return finalWaypoints.isEmpty() ? null : finalWaypoints;
         }
 
+        // At this point, segmentA should exist IF startRoadNode was valid and pathable.
+        appendSegmentAvoidingDuplicates(finalWaypoints, segmentA);
 
-        // Segment C: Goal Road Node to Final Goal
-        List<Vec3d> segmentC = planLocalPath(goalRoadNode.getPosition(), goalPosition, world, LOCAL_PATHFINDER_RANGE);
-        if (segmentC == null) {
-            LOGGER.warn("Failed to plan local path from goal road node {} to final goal.", goalRoadNode.getId());
-            return null; // Or maybe return path to goalRoadNode if that's acceptable
+        List<Vec3d> networkSegmentWaypoints = new ArrayList<>();
+        if (goalRoadNode != null) {
+            if (!startRoadNode.getId().equals(goalRoadNode.getId())) {
+                List<RoadNode> roadNodeHops = roadNetworkManager.findPathOnRoadNetwork(startRoadNode.getId(), goalRoadNode.getId());
+                if (roadNodeHops != null && !roadNodeHops.isEmpty()) {
+                    roadNodeHops.forEach(node -> {
+                        if (node.getPosition() != null) networkSegmentWaypoints.add(node.getPosition());
+                    });
+                    LOGGER.info("Using road network path between {} and {}.", startRoadNode.getId(), goalRoadNode.getId());
+                } else {
+                    LOGGER.warn("Failed to find path on road network. Attempting local path between road nodes as fallback.");
+                    List<Vec3d> directBetweenNodes = planLocalPath(startRoadNode.getPosition(), goalRoadNode.getPosition(), world, LOCAL_PATHFINDER_RANGE * 2);
+                    if (directBetweenNodes != null) networkSegmentWaypoints.addAll(directBetweenNodes);
+                }
+            } else {
+                LOGGER.info("Start and goal road nodes are the same: {}. No highway segment needed.", startRoadNode.getId());
+                // networkSegmentWaypoints remains empty, but we might add goalRoadNode.getPosition()
+                // if it wasn't the last point of segmentA.
+                // appendSegmentAvoidingDuplicates will handle this if startRoadNode.getPosition() is added.
+                // For clarity, explicitly add if segmentA's last point isn't already it.
+                if (startRoadNode.getPosition() != null) {
+                    networkSegmentWaypoints.add(startRoadNode.getPosition());
+                }
+            }
+        } else { // Start on network, goal off network
+            LOGGER.warn("Goal is off-network. Path will end at startRoadNode ({}), then attempt direct to final goal.", startRoadNode.getId());
+            // No actual network segment. The next segment (C) will try to go from startRoadNode.getPosition() to goalPosition
         }
-        if (!segmentC.isEmpty()) {
-            ensureNoDuplicateConsecutive(finalWaypoints, segmentC.getFirst());
-            finalWaypoints.addAll(segmentC);
+        // (Similar handling if startRoadNode is null and goalRoadNode is not, though earlier logic might preempt this)
+
+        appendSegmentAvoidingDuplicates(finalWaypoints, networkSegmentWaypoints);
+
+        List<Vec3d> segmentC = null;
+        // If goalRoadNode exists, path from it. Otherwise, path from startRoadNode (if goal is off-network),
+        // or from playerStartPos if no network was involved at all (covered by Case 1).
+        Vec3d segmentC_startPoint = goalRoadNode != null ? goalRoadNode.getPosition() :
+                startRoadNode.getPosition();
+
+        if (segmentC_startPoint != null && segmentC_startPoint.distanceTo(goalPosition) > 1.0) { // Only if not already at goal
+            segmentC = planLocalPath(segmentC_startPoint, goalPosition, world, LOCAL_PATHFINDER_RANGE);
+            if (segmentC == null) {
+                LOGGER.warn("Failed to plan local path from last network point/goal_RN to final goal. Path might be incomplete.");
+            }
+        }
+        appendSegmentAvoidingDuplicates(finalWaypoints, segmentC);
+
+        if (finalWaypoints.isEmpty() || (finalWaypoints.size() == 1 && finalWaypoints.getFirst().equals(startPosition))) {
+            LOGGER.warn("Final path is empty or only contains start position. Planning failed.");
+            return null;
         }
 
-
-        if (finalWaypoints.isEmpty()) return null;
-
-        // Optional: Apply spline to the whole path or segments
-        // For now, returning raw waypoints. Consider spline application for smoother movement.
-        // Example: return CatmullRomSpline.createSpline(finalWaypoints, calculateSegmentCount(finalWaypoints));
-
-        LOGGER.info("Successfully planned long-distance path with {} waypoints.", finalWaypoints.size());
+        LOGGER.info("Successfully planned long-distance path with {} distinct waypoints.", finalWaypoints.size());
         return finalWaypoints;
     }
 
@@ -143,37 +141,44 @@ public class LongDistancePathPlanner {
         PathFinder pf = new PathFinder(world, maxRange, startBlock, goalBlock); // Max range for local segments
         List<Vec3d> path = pf.findPath(startBlock, goalBlock);
 
+        // Ensure first point is actual start, last is actual goal if PathFinder uses block centers
         if (path == null || path.isEmpty()) {
             LOGGER.warn("Local PathFinder failed: {} -> {}", localStart, localGoal);
             return null;
         }
 
-        // Ensure first point is actual start, last is actual goal if PathFinder uses block centers
-        if (!path.isEmpty()) {
-            // PathFinder usually uses player's current block pos, so this might be okay.
-            // path.set(0, localStart); // Careful with this, might break pathfinder's assumptions
-            path.set(path.size() - 1, localGoal); // Ensure exact goal
-        }
+        // PathFinder usually uses player's current block pos, so this might be okay.
+        // path.set(0, localStart); // Careful with this, might break pathfinder's assumptions
+        path.set(path.size() - 1, localGoal); // Ensure exact goal
+
         return path;
     }
 
-    private void ensureNoDuplicateConsecutive(List<Vec3d> mainPath, Vec3d pointToAdd) {
-        if (mainPath.isEmpty() || !mainPath.getLast().equals(pointToAdd)) {
-            // Okay to add
-        } else {
-            LOGGER.trace("Skipping duplicate consecutive waypoint: {}", pointToAdd);
-            // If we don't add it, and the next list starts with it, we need to skip that too.
-            // This logic is tricky. Simpler might be to allow duplicates and have BasicPathAI handle them,
-            // or to build segments and then merge, removing duplicates at merge points.
-            // For now, this simple check might lead to missing the first point of a subsequent segment
-            // if it was identical to the last point of the previous one.
-            // A robust solution would be to assemble all segments, then filter.
+    /**
+     * Appends points from segmentPath to mainPath, ensuring the first point of
+     * segmentPath is not a duplicate of the last point of mainPath.
+     * It also filters consecutive duplicates within segmentPath itself before adding.
+     *
+     * @param mainPath The primary list of waypoints (will be modified).
+     * @param segmentPath The segment of waypoints to append.
+     */
+    private void appendSegmentAvoidingDuplicates(List<Vec3d> mainPath, List<Vec3d> segmentPath) {
+        if (segmentPath == null || segmentPath.isEmpty()) {
+            return;
         }
-    }
 
+        Vec3d previousPointAddedFromSegment = mainPath.isEmpty() ? null : mainPath.getLast(); // Initialize with the last point of mainPath
 
-    // Example: From HarvestPathManager, adapt as needed
-    private int calculateSegmentCount(List<Vec3d> path) {
-        return path.size() <= 3 ? 16 : (path.size() * 2); // More segments for longer paths
+        for (Vec3d currentPointInSegment : segmentPath) {
+            if (currentPointInSegment == null) continue; // Skip null points in segment
+
+            // Check against the last point actually added (either from mainPath or previous from segmentPath)
+            if (previousPointAddedFromSegment == null || !previousPointAddedFromSegment.equals(currentPointInSegment)) {
+                mainPath.add(currentPointInSegment);
+                previousPointAddedFromSegment = currentPointInSegment; // Update the last successfully added point
+            } else {
+                LOGGER.debug("Skipping duplicate consecutive waypoint during segment append: {}", currentPointInSegment);
+            }
+        }
     }
 }

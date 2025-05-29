@@ -109,7 +109,6 @@ public class HarvestPathManager {
                 }
                 break;
 
-            //todo add state to aim to goal before harvest
             case HARVESTING:
                 LOGGER.debug("HARVESTING");
                 performHarvestAction();
@@ -324,7 +323,7 @@ public class HarvestPathManager {
                     .get();
             startWithPath(best);
         } else {
-            LOGGER.debug("Pathfinding failed: no path to {}", baseGoal);
+            LOGGER.warn("Pathfinding failed: no path to {}", baseGoal);
             currentState = HarvestState.WAITING;
         }
         isFounding = false;

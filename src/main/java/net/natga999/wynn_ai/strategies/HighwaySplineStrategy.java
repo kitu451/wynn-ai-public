@@ -27,7 +27,7 @@ public class HighwaySplineStrategy implements MovementStrategy {
 
     public HighwaySplineStrategy(List<RoadNode> highwayNodes) {
         if (highwayNodes == null || highwayNodes.size() < 2) {
-            LOGGER.error("HighwaySplineStrategy initialized with insufficient highway nodes ({}). Pathing will likely fail.", highwayNodes != null ? highwayNodes.size() : "null");
+            LOGGER.debug("HighwaySplineStrategy initialized with insufficient highway nodes ({}). Pathing will likely fail.", highwayNodes != null ? highwayNodes.size() : "null");
             this.fullHighwayNodePath = new ArrayList<>(); // Avoid NPEs
             this.isOverallHighwayPathComplete = true; // Mark as complete to prevent issues
         } else {
@@ -44,8 +44,10 @@ public class HighwaySplineStrategy implements MovementStrategy {
             if (isOverallHighwayPathComplete && ai.getCurrentWaypoint() == null) {
                 // If marked complete and AI has no more waypoints, ensure AI stops.
                 // The isComplete() method should handle this, but as a safeguard.
+                LOGGER.info("HighwaySplineStrategy: Overall path marked complete and AI has no current waypoint. AI should stop via isComplete().");
             } else if (isOverallHighwayPathComplete) {
                 // Still processing the last segment of the overall path
+                assert client != null;
                 ai.updateMovementToward(ai.getCurrentWaypoint(), client);
                 if (ai.isReachedNext(client.player)) {
                     ai.incrementCurrentPathIndex();
@@ -91,21 +93,24 @@ public class HighwaySplineStrategy implements MovementStrategy {
         // We need at least two nodes in fullHighwayNodePath to form any segment.
         // The spline is typically between the 2nd (P1) and 3rd (P2) control points if we use 4.
         // So, if currentHighwayNodeProgressIndex is such that we can't get P1 and P2, we're done.
-        if (currentHighwayNodeProgressIndex >= fullHighwayNodePath.size() - 1 && fullHighwayNodePath.size() >= 2) {
+        if (fullHighwayNodePath.size() >= 2 && currentHighwayNodeProgressIndex == fullHighwayNodePath.size() - 2) {
             // This condition means we are at the last *segment* (leading to the final node).
             // If currentHighwayNodeProgressIndex is, for example, size-2, then P1 is size-2, P2 is size-1 (last node).
             // After this segment is generated and followed, currentHighwayNodeProgressIndex will be size-1.
             // The next call to this method will then hit the condition below more definitively.
+            LOGGER.info("HighwaySplineStrategy: Processing final spline segment (from node index {} to {}).",
+                    currentHighwayNodeProgressIndex, currentHighwayNodeProgressIndex + 1);
         }
         if (currentHighwayNodeProgressIndex >= fullHighwayNodePath.size()) { // More robust end check
-            LOGGER.info("generateAndSetNextSplineSegment: Reached end of processable highway node path (index {} >= size {}).", currentHighwayNodeProgressIndex, fullHighwayNodePath.size());
+            LOGGER.info("generateAndSetNextSplineSegment: Reached end of processable highway node path (index {} >= size {}).",
+                    currentHighwayNodeProgressIndex, fullHighwayNodePath.size());
             isOverallHighwayPathComplete = true;
             ai.setPath(new ArrayList<>());
             return;
         }
 
         List<RoadNode> segmentControlNodes = new ArrayList<>();
-        // Gather up to SPLINE_CONTROL_POINTS_LOOKAHEAD nodes for Catmull-Rom.
+        // Gather to SPLINE_CONTROL_POINTS_LOOKAHEAD nodes for Catmull-Rom.
         // The core segment of the spline will be between the second and third node gathered (if available).
         // CatmullRomSpline.createSpline handles virtual points if the list is shorter than 4.
         for (int i = 0; i < SPLINE_CONTROL_POINTS_LOOKAHEAD; i++) {
@@ -127,7 +132,7 @@ public class HighwaySplineStrategy implements MovementStrategy {
         // If we didn't even get the current node (P1) and the next node (P2), we can't make a segment.
         // This means currentHighwayNodeProgressIndex is at or past the second to last node.
         // We need at least two *distinct* nodes to define a segment for the spline.
-        if (segmentControlNodes.size() < 2 || (currentHighwayNodeProgressIndex >= fullHighwayNodePath.size() -1 && segmentControlNodes.size() <2) ) {
+        if (segmentControlNodes.size() < 2) {
             LOGGER.info("generateAndSetNextSplineSegment: Not enough actual control nodes ({}) for spline (currentHighwayNodeIndex: {}, total highway nodes: {}). Ending highway travel.",
                     segmentControlNodes.size(), currentHighwayNodeProgressIndex, fullHighwayNodePath.size());
             isOverallHighwayPathComplete = true;
@@ -158,7 +163,7 @@ public class HighwaySplineStrategy implements MovementStrategy {
 
         List<Vec3d> splinePoints = CatmullRomSpline.createSpline(controlPointPositions, CATMULL_SEGMENTS_PER_NODE_PAIR);
 
-        if (splinePoints == null || splinePoints.isEmpty()) {
+        if (splinePoints.isEmpty()) {
             LOGGER.warn("CatmullRomSpline.createSpline returned null or empty for segment. Highway progress index {}.", currentHighwayNodeProgressIndex);
             currentHighwayNodeProgressIndex++; // Try to advance past problematic segment
             isOverallHighwayPathComplete = (currentHighwayNodeProgressIndex >= fullHighwayNodePath.size() -1 && fullHighwayNodePath.size() >=2);

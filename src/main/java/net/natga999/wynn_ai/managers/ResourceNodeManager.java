@@ -85,7 +85,7 @@ public class ResourceNodeManager {
             String json = new GsonBuilder().setPrettyPrinting().create().toJson(root);
             Files.writeString(saveFile, json, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
-            LOGGER.error("Failed to save node data", e);
+            LOGGER.warn("Failed to save node data", e);
         }
     }
 
@@ -133,7 +133,7 @@ public class ResourceNodeManager {
                 keywordToNodes.put(key, list);
             }
         } catch (IOException | IllegalStateException e) {
-            LOGGER.error("Failed to load node data", e);
+            LOGGER.warn("Failed to load node data", e);
         }
 
         // Preserve valid resources even if empty in JSON

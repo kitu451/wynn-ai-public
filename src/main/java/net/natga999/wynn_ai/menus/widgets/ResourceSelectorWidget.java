@@ -27,7 +27,6 @@ public class ResourceSelectorWidget implements MenuWidget {
         this.selectedResource = HarvestingManager.getActiveResource();
     }
 
-    //todo make it scrollable
     @Override
     public void render(DrawContext context, MinecraftClient client, int parentX, int parentY) {
         this.selectedResource = HarvestingManager.getActiveResource();

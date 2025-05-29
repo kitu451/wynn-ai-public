@@ -3,11 +3,13 @@ package net.natga999.wynn_ai.commands;
 import net.natga999.wynn_ai.path.network.RoadNetworkManager;
 import net.natga999.wynn_ai.path.network.RoadNode;
 import net.natga999.wynn_ai.ai.BasicPathAI;
+import net.natga999.wynn_ai.render.RoadNetworkRenderer;
 
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.Formatting;
 
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 
@@ -18,7 +20,6 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.suggestion.Suggestions;
 
-import net.natga999.wynn_ai.render.RoadNetworkRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,11 @@ public class RoadNodeCommands {
 
     private static void sendMessage(FabricClientCommandSource source, String message) {
         source.sendFeedback(Text.literal(message));
+    }
+
+    // A more robust way to send colored messages piece by piece:
+    private static void sendFormattedText(FabricClientCommandSource source, Text text) {
+        source.sendFeedback(text);
     }
 
     private static ClientPlayerEntity getPlayer(FabricClientCommandSource source) throws CommandSyntaxException {
@@ -151,7 +157,7 @@ public class RoadNodeCommands {
         if (player == null) {
             // This is an unexpected situation for a client-side command typically executed by the player.
             // Log an error and potentially return empty suggestions or all nodes without world filtering.
-            LOGGER.error("Player entity is null in suggestRemovableNodes command context. Cannot filter suggestions by world.");
+            LOGGER.warn("Player entity is null in suggestRemovableNodes command context. Cannot filter suggestions by world.");
             return builder.buildFuture();
         }
 
@@ -471,61 +477,9 @@ public class RoadNodeCommands {
     }
 
     public static int handleTestHighwayPath(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
-        ClientPlayerEntity player = getPlayer(ctx.getSource());
-        Vec3d startPos = player.getPos();
-        String worldId = player.clientWorld.getRegistryKey().getValue().toString();
-
-        double goalX = DoubleArgumentType.getDouble(ctx, "x");
-        double goalY = DoubleArgumentType.getDouble(ctx, "y");
-        double goalZ = DoubleArgumentType.getDouble(ctx, "z");
-        Vec3d goalPos = new Vec3d(goalX, goalY, goalZ);
-
-        sendMessage(ctx.getSource(), String.format("Testing highway path from player (%.1f, %.1f, %.1f) to (%.1f, %.1f, %.1f) in world '%s'",
-                startPos.getX(), startPos.getY(), startPos.getZ(), goalX, goalY, goalZ, worldId));
-
-        RoadNetworkManager rnm = RoadNetworkManager.getInstance();
-
-        RoadNode startNode = rnm.findClosestNode(startPos, worldId);
-        if (startNode == null) {
-            sendMessage(ctx.getSource(), "Error: No road node found near your current position in this world.");
-            RoadNetworkRenderer.clearTestHighwayPath();
-            return 0;
-        }
-        sendMessage(ctx.getSource(), "Nearest start road node: " + startNode.getId() + " at " + formatVec3d(startNode.getPosition()));
-
-        RoadNode goalNode = rnm.findClosestNode(goalPos, worldId);
-        if (goalNode == null) {
-            sendMessage(ctx.getSource(), "Error: No road node found near the goal position in this world.");
-            RoadNetworkRenderer.clearTestHighwayPath();
-            return 0;
-        }
-        sendMessage(ctx.getSource(), "Nearest goal road node: " + goalNode.getId() + " at " + formatVec3d(goalNode.getPosition()));
-
-        if (startNode.getId().equals(goalNode.getId())) {
-            sendMessage(ctx.getSource(), "Start and goal are closest to the same road node (" + startNode.getId() + "). No highway path needed between them.");
-            // Optionally, you could draw a line from startNode to itself or just clear.
-            RoadNetworkRenderer.setTestHighwayPath(List.of(startNode)); // Show just the single node
-            return 1;
-        }
-
-        List<RoadNode> highwayPathNodes = rnm.findPathOnRoadNetwork(startNode.getId(), goalNode.getId());
-
-        if (highwayPathNodes == null || highwayPathNodes.isEmpty()) {
-            sendMessage(ctx.getSource(), "Failed to find a highway path between " + startNode.getId() + " and " + goalNode.getId() + ".");
-            RoadNetworkRenderer.clearTestHighwayPath();
-            return 0;
-        }
-
-        sendMessage(ctx.getSource(), "Highway path found with " + highwayPathNodes.size() + " nodes: " +
-                highwayPathNodes.stream().map(RoadNode::getId).collect(Collectors.joining(" -> ")));
-
-        RoadNetworkRenderer.setTestHighwayPath(highwayPathNodes);
-        RoadNetworkRenderer.renderTestHighwayPath = true; // Ensure it's enabled for rendering
-
-        return 1;
+        return findAndVisualizeHighwayPath(ctx, false); // Call helper, DO NOT drive
     }
 
-    // New handler to visualize AND drive the path
     public static int handleTestAndDriveHighwayPath(CommandContext<FabricClientCommandSource> ctx) throws CommandSyntaxException {
         return findAndVisualizeHighwayPath(ctx, true); // Call helper, DO drive
     }
@@ -547,7 +501,7 @@ public class RoadNodeCommands {
         RoadNetworkManager rnm = RoadNetworkManager.getInstance();
         BasicPathAI pathAI = BasicPathAI.getInstance(); // Get AI instance
 
-        // 1. Find closest road node to player (Start_RN)
+        // 1. Find the closest road node to player (Start_RN)
         RoadNode startRN = rnm.findClosestNode(playerStartPos, worldId);
         if (startRN == null) {
             sendMessage(ctx.getSource(), "Error: No road node found near your current position in this world.");
@@ -557,7 +511,7 @@ public class RoadNodeCommands {
         }
         sendMessage(ctx.getSource(), "Nearest start road node (Start_RN): " + startRN.getId() + " at " + formatVec3d(startRN.getPosition()));
 
-        // 2. Find closest road node to goal (Goal_RN)
+        // 2. Find the closest road node to goal (Goal_RN)
         RoadNode goalRN = rnm.findClosestNode(finalGoalPos, worldId);
         if (goalRN == null) {
             sendMessage(ctx.getSource(), "Error: No road node found near the goal position in this world.");
@@ -568,7 +522,7 @@ public class RoadNodeCommands {
         sendMessage(ctx.getSource(), "Nearest goal road node (Goal_RN): " + goalRN.getId() + " at " + formatVec3d(goalRN.getPosition()));
 
         // 3. A* on Road Network between Start_RN and Goal_RN
-        List<RoadNode> highwayNodes = null;
+        List<RoadNode> highwayNodes;
         if (startRN.getId().equals(goalRN.getId())) {
             sendMessage(ctx.getSource(), "Player and goal are closest to the same road node (" + startRN.getId() + "). Highway segment is trivial.");
             // We still need a list containing this single node for the logic below if driving.
@@ -637,19 +591,38 @@ public class RoadNodeCommands {
 
     public static int handleHelp(CommandContext<FabricClientCommandSource> ctx) {
         FabricClientCommandSource source = ctx.getSource();
-        sendMessage(source, "--- WynnAI RoadNode Commands (/rn) ---");
-        sendMessage(source, "/rn add [id] - Adds node at current pos. Optional custom ID.");
-        sendMessage(source, "/rn remove <id|\"nearest\"> [radius] - Removes node. Optional confirm radius for 'nearest'.");
-        sendMessage(source, "/rn select1 <id|\"nearest\"> - Selects first node for connect/disconnect.");
-        sendMessage(source, "/rn select2 <id|\"nearest\"> - Selects second node.");
-        sendMessage(source, "/rn connect - Connects selected nodes.");
-        sendMessage(source, "/rn disconnect - Disconnects selected nodes.");
-        sendMessage(source, "/rn info [id|\"nearest\"] - Shows info. Defaults to nearest if no ID.");
-        sendMessage(source, "/rn list [radius] - Lists nodes, optionally within radius.");
-        sendMessage(source, "/rn settype <id|\"nearest\"> <type_name> - Sets the type of a node.");
-        sendMessage(source, "/rn save - Saves the current road network to file.");
-        sendMessage(source, "/rn reload - Reloads network from file (clears selections).");
-        sendMessage(source, "/rn help - Shows this help message.");
+
+        // Using direct § codes.
+        // §e = Yellow, §b = Aqua, §a = Green, §c = Red, §7 = Gray, §f = White, §6 = Gold
+        // Command names in Aqua, arguments in Yellow, descriptions in Gray/White.
+
+        sendFormattedText(source, Text.literal("--- §6WynnAI RoadNode Commands (/rn)§r ---").formatted(Formatting.GOLD)); // §r resets color
+
+        sendFormattedText(source, Text.literal("§b/rn add §e[id] ['center']§f - Add node. Options: custom ID, snap to player block center.")
+                .append(Text.literal("\n    §b/rn add §e[id] <x> <y> <z>§f - Add node at specific coordinates.").formatted(Formatting.AQUA)));
+
+        sendFormattedText(source, Text.literal("§b/rn remove §e<id | nearest> [radius]§f - Removes node. Optional confirm radius for 'nearest'.")
+                .append(Text.literal(" Suggests 'nearest' and existing node IDs.").formatted(Formatting.GRAY)));
+
+        sendFormattedText(source, Text.literal("§b/rn select1 §e<id | nearest>§f - Selects first node for connect/disconnect."));
+        sendFormattedText(source, Text.literal("§b/rn select2 §e<id | nearest>§f - Selects second node."));
+
+        sendFormattedText(source, Text.literal("§b/rn connect§f - Connects selected nodes.")
+                .append(Text.literal("\n    §b/rn connect last§f - Connects last two created nodes.").formatted(Formatting.AQUA)));
+
+        sendFormattedText(source, Text.literal("§b/rn disconnect§f - Disconnects selected nodes."));
+
+        sendFormattedText(source, Text.literal("§b/rn info §e[id | nearest]§f - Shows info for a node. Defaults to nearest if no ID."));
+        sendFormattedText(source, Text.literal("§b/rn list §e[radius]§f - Lists nodes, optionally within player radius."));
+        sendFormattedText(source, Text.literal("§b/rn settype §e<id | nearest> <type_name>§f - Sets the type of a node."));
+        sendFormattedText(source, Text.literal("§b/rn save§f - Saves the current road network to file."));
+        sendFormattedText(source, Text.literal("§b/rn reload§f - Reloads network from file (clears selections)."));
+
+        sendFormattedText(source, Text.literal("§b/rn testpath §e<x> <y> <z> ['drive']§f - Visualizes A* highway path to coords. 'drive' makes bot follow it.")
+                .append(Text.literal("\n    §b/rn testpath clearpath§f - Clears visualized test path & stops AI.").formatted(Formatting.AQUA)));
+
+        sendFormattedText(source, Text.literal("§b/rn help§f - Shows this help message."));
+
         return 1;
     }
 }
