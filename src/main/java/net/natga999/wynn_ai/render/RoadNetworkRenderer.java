@@ -164,9 +164,13 @@ public class RoadNetworkRenderer {
             float markerGreen = ((NODE_MARKER_COLOR >>  8) & 0xFF) / 255.0f;
             float markerBlue  = (NODE_MARKER_COLOR & 0xFF) / 255.0f;
 
+            boolean hasDrawnAnyMarkers = false;
+
             for (RoadNode node : allNodes) {
                 if (node.getPosition() == null) continue;
                 if (playerWorldId != null && node.getWorldId() != null && !node.getWorldId().equals(playerWorldId)) continue;
+
+                hasDrawnAnyMarkers = true;
 
                 Vec3d nodeCenterWorld = node.getPosition().add(0, Y_OFFSET, 0);
                 Vec3d nodeCenterCameraRelative = nodeCenterWorld.subtract(cameraPos);
@@ -182,13 +186,31 @@ public class RoadNetworkRenderer {
                 drawSolidColorBoxQuadsWithBufferBuilder(bufferBuilder, positionMatrix, x1, y1, z1, x2, y2, z2, markerRed, markerGreen, markerBlue, markerAlpha);
             }
 
-            // Finish building and draw
-            // In modern Fabric/Minecraft, after bufferBuilder.begin, you use BuiltBuffer and tessellator.draw
-            // For older versions or direct BufferBuilder usage that matches your example:
-            BufferRenderer.drawWithGlobalProgram(bufferBuilder.end()); // As per your example
-            // OR, more commonly for world rendering with Tessellator:
-            //tessellator.draw(); // This implicitly calls bufferBuilder.end() and draws the buffer.
-
+            if (hasDrawnAnyMarkers) { // <<< CHECK FLAG
+                // Only call end() and draw if we actually added vertices
+                BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
+                LOGGER.trace("Rendered node markers."); // Optional trace
+            } else {
+                // If no markers were drawn, we must still "end" the BufferBuilder consumption
+                // in a way that doesn't throw an error if it's empty.
+                // Calling .clear() or simply not calling .end() if Tessellator.getInstance().begin()
+                // doesn't require an explicit end call for an empty buffer is one way.
+                // However, BufferBuilder.end() *itself* throws if empty.
+                // A common pattern if using Tessellator directly is:
+                // if (hasDrawnAnyMarkers) tessellator.draw();
+                // If you explicitly manage bufferBuilder.end():
+                // If it was truly empty and you called .begin(), you might just not call .end() or .draw().
+                // Let's assume if nothing was drawn, we just don't call .end().
+                // However, the .begin() call prepares the Tessellator/BufferBuilder.
+                // It's safer to call end() but only if not empty.
+                // If it's empty, some rendering APIs might expect a discard or reset.
+                // For Minecraft's BufferBuilder, if you call begin(), you are expected to eventually call end().
+                // The check for hasDrawnAnyMarkers prevents the exception from .end().
+                // If it's empty, and .end() is the issue, the above 'if' handles it.
+                // No explicit "discard empty buffer" call is usually needed with BufferBuilder.
+                // The main thing is to AVOID calling .end() on an empty buffer.
+                LOGGER.debug("No node markers were eligible for rendering in the current view/world.");
+            }
         }
 
         // Restore default RenderSystem states after ALL rendering is done for this renderer

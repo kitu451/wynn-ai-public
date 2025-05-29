@@ -37,7 +37,7 @@ public class RepairStateManager {
     private final LongDistancePathPlanner longDistancePathPlanner;
     private final RoadNetworkManager roadNetworkManager;
 
-    private final int toolDurabilityThreshold = 49;
+    private final int toolDurabilityThreshold = 5;
     private final String repairStationRoadNodeType = "REPAIR_STATION_ADJACENT";
     private final String repairNpcNameOrType = "Armorer"; // Example: Name to look for
     private final String repairInitiatorItemName = "Repair Items"; // Text on the "potion" like item
