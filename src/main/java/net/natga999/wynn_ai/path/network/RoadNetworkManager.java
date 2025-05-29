@@ -29,6 +29,7 @@ public class RoadNetworkManager {
     private final Gson gson;
     private final LinkedList<String> recentlyAddedNodeIds = new LinkedList<>();
     private static final int MAX_RECENT_NODES_TO_TRACK = 2;
+    private static final double TUNNEL_TRAVEL_COST = 1.0;
 
     private RoadNetworkManager() {
         this.networkFilePath = FabricLoader.getInstance()
@@ -268,6 +269,31 @@ public class RoadNetworkManager {
                     // Remove if neighbor is already in openSet with higher fScore, then add new
                     openSet.removeIf(step -> step.node.equals(neighbor));
                     openSet.add(new PathStep(neighbor, fScore));
+                }
+            }
+
+            // *** Explore tunnel connection if applicable ***
+            if ("TUNNEL_ENTRANCE".equalsIgnoreCase(current.getType()) && current.getTargetTunnelExitNodeId() != null) {
+                RoadNode tunnelExitNeighbor = nodes.get(current.getTargetTunnelExitNodeId());
+                if (tunnelExitNeighbor != null && tunnelExitNeighbor.getPosition() != null) {
+                    // Ensure the tunnel exit is in the same world, or handle cross-world tunnels if your system supports it
+                    if (current.getWorldId().equals(tunnelExitNeighbor.getWorldId())) {
+                        double tentativeGScore = gScore.get(current) + TUNNEL_TRAVEL_COST; // Special low cost for tunnel travel
+
+                        if (tentativeGScore < gScore.getOrDefault(tunnelExitNeighbor, Double.POSITIVE_INFINITY)) {
+                            cameFrom.put(tunnelExitNeighbor, current); // Traveled from current (entrance) to exit
+                            gScore.put(tunnelExitNeighbor, tentativeGScore);
+                            double fScore = tentativeGScore + heuristic(tunnelExitNeighbor, goalNode);
+                            openSet.removeIf(step -> step.node.equals(tunnelExitNeighbor));
+                            openSet.add(new PathStep(tunnelExitNeighbor, fScore));
+                            LOGGER.debug("A*: Considered tunnel from {} to {} with cost {}", current.getId(), tunnelExitNeighbor.getId(), TUNNEL_TRAVEL_COST);
+                        }
+                    } else {
+                        LOGGER.warn("A*: Tunnel from {} to {} crosses worlds ({} -> {}). Cross-world A* not yet supported here.",
+                                current.getId(), tunnelExitNeighbor.getId(), current.getWorldId(), tunnelExitNeighbor.getWorldId());
+                    }
+                } else {
+                    LOGGER.warn("A*: Tunnel entrance {} has invalid target exit ID {} or exit node has no position.", current.getId(), current.getTargetTunnelExitNodeId());
                 }
             }
         }

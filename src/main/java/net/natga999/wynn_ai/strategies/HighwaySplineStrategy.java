@@ -88,25 +88,62 @@ public class HighwaySplineStrategy implements MovementStrategy {
     }
 
     private void generateAndSetNextSplineSegment(BasicPathAI ai) {
-        // Check if we've processed all nodes that can start a segment
-        // If currentHighwayNodeProgressIndex points to the last node, we can't form a P1-P2 segment from it.
-        // We need at least two nodes in fullHighwayNodePath to form any segment.
-        // The spline is typically between the 2nd (P1) and 3rd (P2) control points if we use 4.
-        // So, if currentHighwayNodeProgressIndex is such that we can't get P1 and P2, we're done.
-        if (fullHighwayNodePath.size() >= 2 && currentHighwayNodeProgressIndex == fullHighwayNodePath.size() - 2) {
-            // This condition means we are at the last *segment* (leading to the final node).
-            // If currentHighwayNodeProgressIndex is, for example, size-2, then P1 is size-2, P2 is size-1 (last node).
-            // After this segment is generated and followed, currentHighwayNodeProgressIndex will be size-1.
-            // The next call to this method will then hit the condition below more definitively.
-            LOGGER.info("HighwaySplineStrategy: Processing final spline segment (from node index {} to {}).",
-                    currentHighwayNodeProgressIndex, currentHighwayNodeProgressIndex + 1);
-        }
-        if (currentHighwayNodeProgressIndex >= fullHighwayNodePath.size()) { // More robust end check
-            LOGGER.info("generateAndSetNextSplineSegment: Reached end of processable highway node path (index {} >= size {}).",
-                    currentHighwayNodeProgressIndex, fullHighwayNodePath.size());
+        if (currentHighwayNodeProgressIndex >= fullHighwayNodePath.size()) {
+            LOGGER.info("generateAndSetNextPathSegment: End of processable nodes. Index: {}", currentHighwayNodeProgressIndex);
             isOverallHighwayPathComplete = true;
             ai.setPath(new ArrayList<>());
             return;
+        }
+
+        RoadNode p1_currentNode = fullHighwayNodePath.get(currentHighwayNodeProgressIndex);
+
+        // If this is the last node, we can't form a P1-P2 segment from it.
+        if (currentHighwayNodeProgressIndex >= fullHighwayNodePath.size() - 1) {
+            LOGGER.info("generateAndSetNextPathSegment: At last node ({}) or beyond. No further segments to generate.", p1_currentNode.getId());
+            isOverallHighwayPathComplete = true;
+            ai.setPath(new ArrayList<>()); // Ensure AI path is cleared
+            return;
+        }
+
+        RoadNode p2_nextNode = fullHighwayNodePath.get(currentHighwayNodeProgressIndex + 1);
+
+        // *** TUNNEL LOGIC ***
+        if ("TUNNEL_ENTRANCE".equalsIgnoreCase(p1_currentNode.getType()) &&
+                p1_currentNode.getTargetTunnelExitNodeId() != null &&
+                p1_currentNode.getTargetTunnelExitNodeId().equals(p2_nextNode.getId())) {
+
+            LOGGER.info("HighwaySplineStrategy: Detected tunnel from {} (current) to {} (next in A* plan).",
+                    p1_currentNode.getId(), p2_nextNode.getId());
+
+            // Path to the tunnel entrance block itself.
+            // BasicPathAI will move to this single point.
+            // Upon reaching it, the game's instantaneous teleport should occur.
+            if (p1_currentNode.getPosition() != null) {
+                ai.setPath(List.of(p1_currentNode.getPosition()));
+                LOGGER.info("Setting path to tunnel entrance: {}", p1_currentNode.getPosition());
+            } else {
+                LOGGER.warn("Tunnel entrance {} has no position! Skipping segment.", p1_currentNode.getId());
+                ai.setPath(new ArrayList<>()); // Clear path
+                // Error: advance past this problematic segment.
+                // We effectively skip both the entrance (p1) and the exit (p2) for path generation.
+                currentHighwayNodeProgressIndex += 2; // Advance past P1 (entrance) and P2 (exit)
+                isOverallHighwayPathComplete = (currentHighwayNodeProgressIndex >= fullHighwayNodePath.size() -1 && fullHighwayNodePath.size() >=2);
+                return;
+            }
+
+            // After BasicPathAI reaches p1_currentNode.getPosition(), the player is teleported to p2_nextNode.
+            // The next time tick() calls this method (because AI's path to p1 is complete),
+            // currentHighwayNodeProgressIndex will be incremented to point to p2_nextNode (the tunnel exit).
+            // We advance the progress index here to signify that this "tunnel segment" (P1 to P2) has been "processed"
+            // by initiating the move to P1. The next segment generation will start FROM P2.
+            currentHighwayNodeProgressIndex++; // Advance past P1 (entrance). Next segment will start from P2 (exit).
+            return; // Path set for tunnel entrance, next tick will handle from exit.
+        }
+
+        // *** REGULAR SPLINE LOGIC ***
+        if (fullHighwayNodePath.size() >=2 && currentHighwayNodeProgressIndex == fullHighwayNodePath.size() - 2) {
+            LOGGER.info("HighwaySplineStrategy: Processing final spline segment (from node {} to {}).",
+                    p1_currentNode.getId(), p2_nextNode.getId());
         }
 
         List<RoadNode> segmentControlNodes = new ArrayList<>();

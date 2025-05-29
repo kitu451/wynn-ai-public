@@ -1,9 +1,9 @@
 package net.natga999.wynn_ai.managers;
 
 import net.natga999.wynn_ai.ai.BasicPathAI;
-import net.natga999.wynn_ai.path.LongDistancePathPlanner;
 import net.natga999.wynn_ai.path.network.RoadNetworkManager;
 import net.natga999.wynn_ai.path.network.RoadNode;
+import net.natga999.wynn_ai.services.NavigationService;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -34,7 +34,6 @@ public class RepairStateManager {
     private static final RepairStateManager INSTANCE = new RepairStateManager();
 
     private final BasicPathAI basicPathAI;
-    private final LongDistancePathPlanner longDistancePathPlanner;
     private final RoadNetworkManager roadNetworkManager;
 
     private final int toolDurabilityThreshold = 5;
@@ -46,6 +45,7 @@ public class RepairStateManager {
     private final int postRepairCooldownTicks = 20 * 5;
     private static final int SUB_STATE_TIMEOUT_TICKS = 20 * 5; // 5 seconds timeout for each GUI sub-step
 
+    private final NavigationService navigationService;
     private RepairState currentState = RepairState.IDLE;
     private boolean needsRepairFlag = false;
     private Vec3d previousActivityLocation = null;
@@ -83,7 +83,7 @@ public class RepairStateManager {
 
     private RepairStateManager() {
         this.basicPathAI = BasicPathAI.getInstance();
-        this.longDistancePathPlanner = LongDistancePathPlanner.getInstance();
+        this.navigationService = NavigationService.getInstance();
         this.roadNetworkManager = RoadNetworkManager.getInstance();
     }
 
@@ -447,9 +447,12 @@ public class RepairStateManager {
                     transitionToState(RepairState.COOLDOWN_ERROR);
                     return;
                 }
-                List<Vec3d> pathToRepair = longDistancePathPlanner.planPathToGoal(client.player.getPos(), currentTargetRepairStationVec3d, client.world);
-                if (pathToRepair != null && !pathToRepair.isEmpty()) {
-                    basicPathAI.startGeneralPath(pathToRepair);
+
+                LOGGER.info("Attempting to navigate to repair station: {}", currentTargetRepairStationVec3d);
+                NavigationService.TravelPlan planToRepair = navigationService.planJourneyTo(currentTargetRepairStationVec3d);
+
+                if (planToRepair.planSuccess) {
+                    basicPathAI.startGeneralPath(planToRepair.waypoints);
                 } else {
                     LOGGER.warn("Failed to plan path to repair station {}.", currentTargetRepairStationVec3d);
                     client.player.sendMessage(Text.literal("Failed to path to repair station!"), false);
@@ -462,9 +465,12 @@ public class RepairStateManager {
                     resetToIdle();
                     return;
                 }
-                List<Vec3d> pathToWork = longDistancePathPlanner.planPathToGoal(client.player.getPos(), previousActivityLocation, client.world);
-                if (pathToWork != null && !pathToWork.isEmpty()) {
-                    basicPathAI.startGeneralPath(pathToWork);
+
+                LOGGER.info("Attempting to navigate back to work location: {}", previousActivityLocation);
+                NavigationService.TravelPlan planToWork = navigationService.planJourneyTo(previousActivityLocation);
+
+                if (planToWork.planSuccess) {
+                    basicPathAI.startGeneralPath(planToWork.waypoints);
                 } else {
                     //TODO sometimes failing find, add retry to go, maybe just restart harvest strategy
                     LOGGER.warn("Failed to plan path back to work location {}.", previousActivityLocation);
