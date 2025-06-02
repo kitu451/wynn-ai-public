@@ -527,6 +527,7 @@ public class RoadNodeCommands {
             sendMessage(ctx.getSource(), "Player and goal are closest to the same road node (" + startRN.getId() + "). Highway segment is trivial.");
             // We still need a list containing this single node for the logic below if driving.
             highwayNodes = List.of(startRN);
+            //TODO it didn't visualize single node
             RoadNetworkRenderer.setTestHighwayPath(highwayNodes); // Visualize this single point or segment
         } else {
             highwayNodes = rnm.findPathOnRoadNetwork(startRN.getId(), goalRN.getId());

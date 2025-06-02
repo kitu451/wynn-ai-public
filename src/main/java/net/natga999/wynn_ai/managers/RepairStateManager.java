@@ -452,6 +452,7 @@ public class RepairStateManager {
                 NavigationService.TravelPlan planToRepair = navigationService.planJourneyTo(currentTargetRepairStationVec3d);
 
                 if (planToRepair.planSuccess) {
+                    //TODO change to startHighwaySplinePath, but clear waypoints between tunnel nodes
                     basicPathAI.startGeneralPath(planToRepair.waypoints);
                 } else {
                     LOGGER.warn("Failed to plan path to repair station {}.", currentTargetRepairStationVec3d);
@@ -470,6 +471,7 @@ public class RepairStateManager {
                 NavigationService.TravelPlan planToWork = navigationService.planJourneyTo(previousActivityLocation);
 
                 if (planToWork.planSuccess) {
+                    //TODO change to startHighwaySplinePath, but clear waypoints between tunnel nodes
                     basicPathAI.startGeneralPath(planToWork.waypoints);
                 } else {
                     //TODO sometimes failing find, add retry to go, maybe just restart harvest strategy

@@ -349,6 +349,8 @@ public class HarvestPathManager {
         assert MinecraftClient.getInstance().player != null;
         assert MinecraftClient.getInstance().world != null;
         Vec3d exact = getAdjustedPlayerPosition(MinecraftClient.getInstance().player, MinecraftClient.getInstance().world);
+        //TODO Index 0 out of bounds for length 0 - after AFK in lobby without turning harvest off
+        //  at knot//net.natga999.wynn_ai.managers.HarvestPathManager.startWithPath(HarvestPathManager.java:352)
         path.set(0, exact.add(0, 0.5, 0));
         this.path       = path;
         this.splinePath = CatmullRomSpline.createSpline(path, calculateSegmentCount());
