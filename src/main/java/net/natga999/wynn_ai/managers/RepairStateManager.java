@@ -36,7 +36,7 @@ public class RepairStateManager {
     private final BasicPathAI basicPathAI;
     private final RoadNetworkManager roadNetworkManager;
 
-    private final int toolDurabilityThreshold = 5;
+    private final int toolDurabilityThreshold = 59;
     private final String repairStationRoadNodeType = "REPAIR_STATION_ADJACENT";
     private final String repairNpcNameOrType = "Armorer"; // Example: Name to look for
     private final String repairInitiatorItemName = "Repair Items"; // Text on the "potion" like item
@@ -166,7 +166,8 @@ public class RepairStateManager {
                 Entity npc = findRepairNpc(client);
                 if (npc != null) {
                     LOGGER.info("Found repair NPC: {}. Attempting interaction.", Objects.requireNonNull(npc.getDisplayName()).getString());
-                    BasicPathAI.rotateCameraToward(npc.getEyePos(), client, true);
+                    //BasicPathAI.rotateCameraToward(npc.getEyePos(), client, true);
+                    BasicPathAI.getInstance().rotateCameraToward(client, true);
                     assert client.interactionManager != null;
                     client.interactionManager.interactEntity(client.player, npc, Hand.MAIN_HAND);
                     interactionSubState = RepairInteractionSubState.CLICKED_NPC_WAITING_FOR_MENU;

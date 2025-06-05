@@ -43,7 +43,7 @@ public class HarvestMovementStrategy implements MovementStrategy {
                         .getOriginalGoalPos() != null) {
                     Vec3d goalPos = Vec3d.of(HarvestPathManager
                             .getOriginalGoalPos().add(0, 1, 0));
-                    BasicPathAI.rotateCameraToward(goalPos, client, true);
+                    BasicPathAI.getInstance().rotateCameraToward(client, true);
                 }
                 harvest.setPathComplete(true);
                 ai.stop();
@@ -68,7 +68,7 @@ public class HarvestMovementStrategy implements MovementStrategy {
                             HarvestPathManager
                                     .getOriginalGoalPos().getZ() + 0.5
                     );
-                    BasicPathAI.rotateCameraToward(goalPos, client, true);
+                    BasicPathAI.getInstance().rotateCameraToward(client, true);
                 }
 
                 // Mark the path as complete
@@ -96,8 +96,7 @@ public class HarvestMovementStrategy implements MovementStrategy {
 
         Vec3d target = ai.getCurrentWaypoint();
         if (target != null) {
-            BasicPathAI.rotateCameraToward(
-                    target.subtract(0, 1, 0),
+            BasicPathAI.getInstance().rotateCameraToward(
                     client,
                     false
             );

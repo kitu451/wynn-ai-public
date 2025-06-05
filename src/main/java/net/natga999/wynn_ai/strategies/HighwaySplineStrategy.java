@@ -231,7 +231,7 @@ public class HighwaySplineStrategy implements MovementStrategy {
     public void handleCameraRotation(BasicPathAI ai, MinecraftClient client) {
         Vec3d waypoint = ai.getCurrentWaypoint();
         if (waypoint != null && client.player != null) {
-            BasicPathAI.rotateCameraToward(waypoint, client, false);
+            BasicPathAI.getInstance().rotateCameraToward(client, false);
         }
     }
 

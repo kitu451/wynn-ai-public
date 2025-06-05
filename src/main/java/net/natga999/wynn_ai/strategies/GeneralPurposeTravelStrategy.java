@@ -47,7 +47,7 @@ public class GeneralPurposeTravelStrategy implements MovementStrategy {
         Vec3d waypoint = ai.getCurrentWaypoint();
         if (waypoint != null && client.player != null) {
             // Use the final=false version for smooth turning
-            BasicPathAI.rotateCameraToward(waypoint, client, false);
+            BasicPathAI.getInstance().rotateCameraToward(client, false);
         }
     }
 

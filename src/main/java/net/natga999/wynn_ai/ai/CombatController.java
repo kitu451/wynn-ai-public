@@ -358,14 +358,14 @@ public class CombatController {
                         // This is a conceptual implementation - you'd need to implement a method
                         // to blend between two camera targets
                         Vec3d blendedTarget = lerpVec3d(adjustedWaypoint, adjustedTarget, blendFactor);
-                        BasicPathAI.rotateCameraToward(blendedTarget, client, false);
+                        BasicPathAI.getInstance().rotateCameraToward(client, false);
                     } else {
                         CombatManager.rotateCameraToward(adjustedTarget, client);
                     }
                 } else {
                     // Keep eyes level for better navigation when far from waypoint
                     Vec3d adjustedWaypoint = new Vec3d(waypoint.x, player.getEyeY(), waypoint.z);
-                    BasicPathAI.rotateCameraToward(adjustedWaypoint, client, false);
+                    BasicPathAI.getInstance().rotateCameraToward(client, false);
                 }
             } else {
                 // If no waypoint, focus on the target

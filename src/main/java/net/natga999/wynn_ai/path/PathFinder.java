@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 //   https://github.com/Lehirti/Lehirti-Game-Engine
 //   https://github.com/AntiCope/meteor-rejects
 
+//TODO fix crops count as air
 public class PathFinder {
     private static final Logger LOGGER = LoggerFactory.getLogger(PathFinder.class);
     private final ClientWorld world;
@@ -383,62 +384,204 @@ public class PathFinder {
     public List<Vec3d> simplifyPath(List<BlockPos> rawPath) {
         if (rawPath.size() <= 2) {
             List<Vec3d> direct = new ArrayList<>(rawPath.size());
-            for (BlockPos p : rawPath) direct.add(toVec3(p, null)); // Pass null for previous block initially
+            for (BlockPos p : rawPath) direct.add(toVec3(p, null));
             return direct;
         }
 
         List<Vec3d> simplified = new ArrayList<>();
-        simplified.add(toVec3(rawPath.getFirst(), null)); // First point has no predecessor
+        simplified.add(toVec3(rawPath.getFirst(), null));
 
-        int currentIndex = 0;
-        while (currentIndex < rawPath.size() - 1) {
-            BlockPos lastAddedBlock = rawPath.get(currentIndex);
-            Vec3d lastVec = simplified.getLast();
+        int currentIndexInRawPath = 0;
+        final int MAX_SEGMENT_LENGTH = 6; // Maximum length of a straight segment before forcing a new point
+        final double MIN_SEGMENT_LENGTH_FOR_CHOPPING = 1.5; // Don't chop segments that are already very short
 
-            int farthestValid = currentIndex + 1;
-            for (int i = currentIndex + 1; i < rawPath.size(); i++) {
+        while (currentIndexInRawPath < rawPath.size() - 1) {
+            BlockPos segmentStartBlockPos = rawPath.get(currentIndexInRawPath);
+            // Vec3d lastAddedVec = simplified.getLast(); // Not directly used before re-assignment or check
+
+            // 1. Find the absolute farthest point reachable by raycast, ignoring MAX_SEGMENT_LENGTH for now.
+            int farthestRaycastIndexInRawPath = currentIndexInRawPath + 1;
+            for (int i = currentIndexInRawPath + 1; i < rawPath.size(); i++) {
                 BlockPos candidateBlockInRawPath = rawPath.get(i);
-                if (isRaycastWalkable(lastAddedBlock, candidateBlockInRawPath)) {
-                    farthestValid = i;
+                if (isRaycastWalkable(segmentStartBlockPos, candidateBlockInRawPath)) {
+                    farthestRaycastIndexInRawPath = i;
                 } else {
                     break;
                 }
             }
 
-            BlockPos nextBlockRaw = rawPath.get(farthestValid);
-            // When converting the next block, pass the lastAddedBlock to toVec3 for context
-            Vec3d nextVecTarget = toVec3(nextBlockRaw, lastAddedBlock);
+            BlockPos segmentEndBlockPos = rawPath.get(farthestRaycastIndexInRawPath);
 
-            int dy = lastAddedBlock.getY() - nextBlockRaw.getY();
-            boolean lastIsLadder = isLadder(lastAddedBlock);
-            boolean nextIsLadder = isLadder(nextBlockRaw);
+            // 2. Now, check the length of this full segment (segmentStartBlockPos to segmentEndBlockPos)
+            double fullSegmentManhattanDistance = segmentStartBlockPos.getManhattanDistance(segmentEndBlockPos);
+            Vec3d segmentStartVec = toVec3(segmentStartBlockPos, (currentIndexInRawPath > 0) ? rawPath.get(currentIndexInRawPath - 1) : null);
+            Vec3d segmentEndVec = toVec3(segmentEndBlockPos, segmentStartBlockPos); // prevPos for segmentEndVec is segmentStartBlockPos
+
+            int numChops = 0; // Declare numChops here with a default value
+
+            if (fullSegmentManhattanDistance > MAX_SEGMENT_LENGTH && fullSegmentManhattanDistance > MIN_SEGMENT_LENGTH_FOR_CHOPPING) {
+                // Segment is too long, chop it.
+                numChops = (int) Math.ceil(fullSegmentManhattanDistance / MAX_SEGMENT_LENGTH); // Assign value
+                if (numChops <= 1) numChops = 2; // Ensure at least one chop if over limit and numChops calculated as 1
+
+                LOGGER.debug("Chopping segment from {} to {} (Manhattan dist: {}) into {} sub-segments.",
+                        segmentStartBlockPos, segmentEndBlockPos, fullSegmentManhattanDistance, numChops);
+
+                for (int chop = 1; chop < numChops; chop++) { // Iterate to add numChops-1 intermediate points
+                    double t = (double) chop / numChops;
+                    Vec3d intermediatePoint = segmentStartVec.lerp(segmentEndVec, t);
+                    if (simplified.isEmpty() || simplified.getLast().squaredDistanceTo(intermediatePoint) > 0.0001) {
+                        simplified.add(intermediatePoint);
+                    }
+                }
+                // After adding intermediate points, add the actual end of the long segment
+                if (simplified.isEmpty() || simplified.getLast().squaredDistanceTo(segmentEndVec) > 0.0001) {
+                    simplified.add(segmentEndVec);
+                }
+            } else {
+                // Segment is within MAX_SEGMENT_LENGTH or too short to chop, just add its end point.
+                if (simplified.isEmpty() || simplified.getLast().squaredDistanceTo(segmentEndVec) > 0.0001) {
+                    simplified.add(segmentEndVec);
+                }
+                numChops = 1; // If not chopped, consider it as one segment
+            }
+
+            // --- Drop Logic ---
+            int dy = segmentStartBlockPos.getY() - segmentEndBlockPos.getY();
+            boolean lastIsLadder = isLadder(segmentStartBlockPos);
+            boolean nextIsLadder = isLadder(segmentEndBlockPos);
 
             if (dy >= 2 && !lastIsLadder && !nextIsLadder) {
-                Vec3d directionToNextRaw = toVec3(nextBlockRaw, lastAddedBlock).subtract(toVec3(lastAddedBlock, (currentIndex > 0 ? rawPath.get(currentIndex -1) : null) ));
-                Vec3d edgeVec = toVec3(lastAddedBlock, (currentIndex > 0 ? rawPath.get(currentIndex -1) : null)).add(directionToNextRaw.normalize().multiply(0.5 * Math.sqrt(lastAddedBlock.getSquaredDistance(nextBlockRaw))));
-                edgeVec = new Vec3d(edgeVec.x, lastAddedBlock.getY() + 0.5, edgeVec.z);
+                Vec3d pointBeforeDrop;
+                // If chopped, numChops will be > 1. The points added are: start (already there), chop1, chop2,..., segmentEndVec
+                // So, if numChops = 2 (1 intermediate point), simplified has added: intermediate, segmentEndVec. Total 2 points.
+                // We want the point *before* these chopped points were added.
+                // simplified.size() - numChops will give the index of the point before the first chop.
+                if (numChops > 1 && simplified.size() >= numChops) { // Check if chopping occurred and enough points exist
+                    pointBeforeDrop = simplified.get(simplified.size() - numChops -1); // -1 because numChops includes the final segmentEndVec conceptually
+                    // and we want the one *before* the first chop.
+                    // Example: simplified = [S, C1, C2, E]. numChops = 3. size = 4. 4-3-1 = 0. Correct.
+                    // Example: simplified = [S, E_chopped]. numChops = 2. size = 2. 2-2-1 = -1. Incorrect.
+                    // Let's rethink the index for pointBeforeDrop
 
-                if (edgeVec.squaredDistanceTo(lastVec) > 0.01) {
-                    simplified.add(edgeVec);
+                    // The point before the drop is the one that was lastAddedVec *before* this segment's processing.
+                    // This is tricky because lastAddedVec was from the *previous* iteration.
+                    // The `segmentStartVec` is the Vec3d of `segmentStartBlockPos`.
+                    // If chopping happened, the points added are relative to `segmentStartVec` and `segmentEndVec`.
+                    // The "point before drop" should be `segmentStartVec` if we consider the drop to start from `segmentStartBlockPos`.
+
+                    pointBeforeDrop = segmentStartVec; // The drop starts from the beginning of this long segment.
+
+                } else {
+                    // No chopping, or not enough points to reliably use numChops for indexing back.
+                    // The point before the drop is the one added at the end of the *previous* segment.
+                    // This is simplified.get(simplified.size() - 2) if segmentEndVec was just added.
+                    if (simplified.size() >= 2) {
+                        pointBeforeDrop = simplified.get(simplified.size() - 2); // The one before segmentEndVec
+                    } else {
+                        pointBeforeDrop = simplified.getFirst(); // Fallback, should ideally not happen in a drop scenario with a path
+                    }
                 }
 
-                if (farthestValid + 1 < rawPath.size()) {
-                    BlockPos nextNextBlockRaw = rawPath.get(farthestValid + 1);
-                    // Vec3d nextNextVecRaw = toVec3(nextNextBlockRaw, nextBlockRaw); // Pass nextBlockRaw as previous
 
-                    Vec3d toNextNext = toVec3(nextNextBlockRaw, nextBlockRaw).subtract(nextVecTarget); // Recalculate nextVecTarget if it was adjusted
+                BlockPos blockPosBeforeDrop = BlockPos.ofFloored(pointBeforeDrop);
+                BlockPos prevToBlockPosForToVec3 = null;
+
+                // Attempt to find the actual BlockPos corresponding to pointBeforeDrop in rawPath
+                // to get its true predecessor for toVec3 alignment.
+                // This is important if pointBeforeDrop was itself a ladder-aligned point.
+                int indexOfBlockPosBeforeDrop = -1;
+                for (int k = 0; k < rawPath.size(); k++) {
+                    // Compare BlockPos.ofFloored if pointBeforeDrop might not be an exact match to a rawPath toVec3
+                    if (rawPath.get(k).equals(BlockPos.ofFloored(pointBeforeDrop))) { // Check against segmentStartBlockPos
+                        if (rawPath.get(k).equals(segmentStartBlockPos)) { // More precise: drop starts at segmentStartBlockPos
+                            indexOfBlockPosBeforeDrop = k;
+                            break;
+                        }
+                    }
+                }
+                if (indexOfBlockPosBeforeDrop != -1 && indexOfBlockPosBeforeDrop > 0) {
+                    prevToBlockPosForToVec3 = rawPath.get(indexOfBlockPosBeforeDrop - 1);
+                } else if (currentIndexInRawPath > 0) { // Fallback if exact match not found, use predecessor of segmentStartBlockPos
+                    prevToBlockPosForToVec3 = rawPath.get(currentIndexInRawPath -1);
+                }
+                // The Vec3d for the start of the drop should be based on segmentStartBlockPos
+                Vec3d actualPointBeforeDropVec = toVec3(segmentStartBlockPos, prevToBlockPosForToVec3);
+
+
+                Vec3d directionToSegmentEnd = segmentEndVec.subtract(actualPointBeforeDropVec);
+
+                Vec3d edgeVec = actualPointBeforeDropVec
+                        .add(directionToSegmentEnd.normalize().multiply(0.5 * Math.sqrt(segmentStartBlockPos.getSquaredDistance(segmentEndBlockPos))));
+                edgeVec = new Vec3d(edgeVec.x, segmentStartBlockPos.getY() + 0.5, edgeVec.z);
+
+                // Insert edgeVec. It should be placed before the first point of the drop (segmentEndVec or its first chop).
+                // If chopped, segmentEndVec is the last point added in the chopping block.
+                // If not chopped, segmentEndVec was the last point added.
+                // We need to insert edgeVec before segmentEndVec (or its first chopped part).
+
+                int insertionIndex = simplified.lastIndexOf(segmentEndVec); // Find where segmentEndVec is
+                if (numChops > 1) { // If chopped, find the first chop or segmentEndVec
+                    // The first point *of the drop sequence* is either the first chop or segmentEndVec
+                    // We want to insert edgeVec before that.
+                    // The points added were [chop1, chop2, ..., segmentEndVec]
+                    // simplified.size() - numChops is the index of the first chop.
+                    if (simplified.size() >= numChops) {
+                        insertionIndex = simplified.size() - numChops;
+                    } else {
+                        insertionIndex = simplified.size() -1; // Fallback
+                    }
+                }
+
+
+                if (insertionIndex != -1 && insertionIndex < simplified.size() &&
+                        edgeVec.squaredDistanceTo(actualPointBeforeDropVec) > 0.01 &&
+                        edgeVec.squaredDistanceTo(simplified.get(insertionIndex)) > 0.01) {
+                    simplified.add(insertionIndex, edgeVec);
+                }
+
+
+                // Landing offset adjustment
+                if (farthestRaycastIndexInRawPath + 1 < rawPath.size()) {
+                    BlockPos nextNextBlockRaw = rawPath.get(farthestRaycastIndexInRawPath + 1);
+                    // The Vec3d we are adjusting is segmentEndVec, which is the landing point.
+                    Vec3d originalLandingPoint = segmentEndVec; // toVec3(segmentEndBlockPos, segmentStartBlockPos)
+
+                    Vec3d toNextNext = toVec3(nextNextBlockRaw, segmentEndBlockPos).subtract(originalLandingPoint);
                     Vec3d toNextNextXZ = new Vec3d(toNextNext.x, 0, toNextNext.z).normalize();
-
                     double landingOffsetAmount = 0.5;
-                    nextVecTarget = new Vec3d(
-                            nextVecTarget.x + toNextNextXZ.x * landingOffsetAmount,
-                            nextVecTarget.y,
-                            nextVecTarget.z + toNextNextXZ.z * landingOffsetAmount
+
+                    Vec3d adjustedLandingPoint = new Vec3d(
+                            originalLandingPoint.x + toNextNextXZ.x * landingOffsetAmount,
+                            originalLandingPoint.y, // Y of the actual landing block
+                            originalLandingPoint.z + toNextNextXZ.z * landingOffsetAmount
                     );
+
+                    // Update the last point in simplified if it was segmentEndVec (or the last chop)
+                    int lastIndexOfOriginalLanding = simplified.lastIndexOf(originalLandingPoint);
+                    if(lastIndexOfOriginalLanding != -1){
+                        simplified.set(lastIndexOfOriginalLanding, adjustedLandingPoint);
+                    }
                 }
             }
-            simplified.add(nextVecTarget);
-            currentIndex = farthestValid;
+            // --- End Drop Logic ---
+
+            currentIndexInRawPath = farthestRaycastIndexInRawPath;
+        }
+
+        // Final point addition logic
+        if (!rawPath.isEmpty()) {
+            BlockPos finalRawBlock = rawPath.getLast();
+            BlockPos prevToFinalRawBlock = rawPath.size() > 1 ? rawPath.get(rawPath.size() - 2) : null;
+            Vec3d finalVec = toVec3(finalRawBlock, prevToFinalRawBlock);
+            if (simplified.isEmpty() || simplified.getLast().squaredDistanceTo(finalVec) > 0.0001) {
+                if (simplified.isEmpty() || !BlockPos.ofFloored(simplified.getLast()).equals(finalRawBlock)) {
+                    simplified.add(finalVec);
+                } else if (!simplified.getLast().equals(finalVec)) {
+                    simplified.removeLast();
+                    simplified.add(finalVec);
+                }
+            }
         }
         return simplified;
     }
@@ -871,23 +1014,46 @@ public class PathFinder {
         }
 
         // Feet can be in air, passable plants, thin blocks, or a ladder
-        boolean feetClear = blockAt.isReplaceable() // More general check for replaceable blocks
+        boolean feetClear = blockAt.isAir() // Explicitly allow air first
+                || blockAt.isReplaceable() // General replaceable blocks (like grass, ferns)
                 || blockAt.getBlock() instanceof CarpetBlock
                 || (blockAt.getBlock() == Blocks.SNOW && blockAt.get(SnowBlock.LAYERS) <= 3)
-                || isLadder(pos); // Feet can be in a ladder block
+                || isLadder(pos) // Feet can be in a ladder block
+                // Add back specific checks for crops and other non-solid plants
+                || blockAt.getBlock() instanceof CropBlock // General check for all crops
+                || blockAt.getBlock() instanceof FlowerBlock // General flowers
+                || blockAt.getBlock() == Blocks.SHORT_GRASS
+                || blockAt.getBlock() == Blocks.TALL_GRASS // if you want to path through tall grass
+                || blockAt.getBlock() == Blocks.FERN
+                || blockAt.getBlock() == Blocks.LARGE_FERN
+                || blockAt.getBlock() == Blocks.DEAD_BUSH
+                || blockAt.getBlock() == Blocks.VINE
+                || blockAt.getBlock() == Blocks.SUGAR_CANE
+                || blockAt.getBlock() == Blocks.NETHER_WART;
+
 
         // Head can be in air, passable plants, or a ladder
-        boolean headClear = blockAbove.isReplaceable()
-                || isLadder(pos.up()); // Head can be in a ladder block
+        boolean headClear = blockAbove.isAir()
+                || blockAbove.isReplaceable()
+                || isLadder(pos.up()) // Head can be in a ladder block
+                // Add back specific checks for crops and other non-solid plants for head clearance
+                || blockAbove.getBlock() instanceof CropBlock
+                || blockAbove.getBlock() instanceof FlowerBlock
+                || blockAbove.getBlock() == Blocks.SHORT_GRASS
+                || blockAbove.getBlock() == Blocks.TALL_GRASS
+                || blockAbove.getBlock() == Blocks.FERN
+                || blockAbove.getBlock() == Blocks.LARGE_FERN
+                || blockAbove.getBlock() == Blocks.DEAD_BUSH
+                || blockAbove.getBlock() == Blocks.VINE
+                || blockAbove.getBlock() == Blocks.SUGAR_CANE
+                || blockAbove.getBlock() == Blocks.NETHER_WART;
+
 
         // If feet are in a ladder, head must also be in a ladder or air/replaceable
         if (isLadder(pos) && !headClear) {
-            // If feet are in a ladder, but head is blocked by a non-ladder/non-air block, it's not clear
-            // This check is now more implicitly handled by isSpaceClearForLadder which checks the block above a ladder
-            // However, keeping a direct check here for general isSpaceClear can be beneficial.
             if (!(blockAbove.isAir() || blockAbove.isReplaceable() || isLadder(pos.up()))) {
                 LOGGER.debug("Space not clear at {}: feet in ladder, but head blocked by {}", pos, blockAbove);
-                return false; // Redundant if isSpaceClearForLadder is used correctly for ladder nodes
+                return false;
             }
         }
 
