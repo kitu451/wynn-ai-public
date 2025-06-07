@@ -143,25 +143,25 @@ Setup & Installation
 
 To use a pre-configured road network or to share your own, you need to place the road_network.json file in the correct game folder.
 
-    1. Get the road_network.json File
+1. Get the road_network.json File
     
-        Download the `road_network.json` file from this repository. You can find it inside the `run/config/wynn_ai/` directory or by clicking [this direct link](https://github.com/kitu451/wynn-ai-public/blob/main/src/main/run/config/wynn_ai/road_network.json?download=true).
+Download the `road_network.json` file from this repository. You can find it inside the `run/config/wynn_ai/` directory or by clicking [this direct link](https://github.com/kitu451/wynn-ai-public/blob/main/run/config/wynn_ai/road_network.json?download=true).
     
-    2. Find Your Minecraft Config Folder
+2. Find Your Minecraft Config Folder
     
         Launch Minecraft and go to the main menu.
 
-       Press Escape -> Options... -> Resource Packs...
+        Press Escape -> Options... -> Resource Packs...
 
         Click the Open Pack Folder button. This will open your computer's file explorer.
 
-    3. Navigate to the Correct Location
+3. Navigate to the Correct Location
 
         In the file explorer window that just opened, you will be inside the resourcepacks folder.
 
         Navigate up one directory. You should now be in your main Minecraft installation folder (the one that contains resourcepacks, saves, mods, etc.).
 
-    4. Place the File
+4. Place the File
 
         Look for a folder named config. If it doesn't exist, create it.
 
