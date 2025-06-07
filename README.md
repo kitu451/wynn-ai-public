@@ -1,3 +1,39 @@
+# WYNN AI
+
+![Minecraft 1.21.0](https://img.shields.io/badge/Minecraft-1.21.0_(Main)-569C3A?style=for-the-badge&logo=minecraft)
+![Minecraft 1.21.4](https://img.shields.io/badge/Minecraft-1.21.4_(Separate_Branch)-orange?style=for-the-badge&logo=minecraft)
+
+> ⚠️ **Project Status: Inactive / Not Maintained**
+>
+> This project is no longer in active development and is not currently maintained by the original author. This means there will be no new features or bug fixes.
+>
+> -   **Users are expected to build the mod from the source code themselves using Gradle.**
+> -   **Developers are encouraged to fork this repository** to continue its development or create their own versions.
+
+## Community & Pre-Compiled Builds
+
+For pre-compiled builds, discussion, and project archives, please join the official Telegram channel.
+
+✈️ **[Join the Telegram Channel](https://t.me/+bYkjuQ-fUGc1YmIy)**
+
+In the channel, you will find:
+-   Access to all pre-compiled `.jar` files for easy installation.
+-   A complete mirror of this Git repository, archived as a single file for offline access and preservation.
+
+## Version Compatibility
+
+This repository supports multiple versions of Minecraft. Please choose the correct branch for your needs.
+
+-   **Minecraft 1.21.0 (Main Branch):** The `main` branch contains the latest features and active development. This is the recommended version.
+    -   ➡️ [**Go to the `main` branch for Minecraft 1.21.0**](https://github.com/kitu451/wynn-ai-public/tree/main)
+
+-   **Minecraft 1.21.4 (1.21.4 Branch):** The `1.21.4` branch is available for users on that specific Minecraft version.
+    -   ⚠️ **Warning:** This branch is **not kept up-to-date** with the `main` branch and does **not** include the latest features, bug fixes, or documentation.
+    -   ➡️ [**Go to the `1.21.4` branch for Minecraft 1.21.4**](https://github.com/kitu451/wynn-ai-public/tree/1.21.4)
+
+
+## Gallery
+
 <table>
   <tr>
     <td width="50%" align="center">
