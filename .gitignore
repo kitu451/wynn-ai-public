@@ -4,3 +4,4 @@ build
 run
 src/main/java/net/natga999/wynn_ai/legacy
 .mailmap
+!/run/config/wynn_ai/road_network.json
